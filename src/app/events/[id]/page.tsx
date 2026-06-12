@@ -253,13 +253,32 @@ export default async function EventDetailPage({ params }: PageProps) {
                 </p>
                 <div className="flex flex-col gap-3">
                   <Link
-                    href={`/events/${event.id}/attendance`}
+                    href={`/events/${event.id}/live`}
                     className="flex justify-center bg-primary px-4 py-3 text-center text-xs font-mono uppercase tracking-widest font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md"
+                  >
+                    🔴 Dashboard Live
+                  </Link>
+                  <Link
+                    href={`/events/${event.id}/attendance`}
+                    className="flex justify-center border border-primary/40 bg-primary/5 px-4 py-3 text-center text-xs font-mono uppercase tracking-widest font-bold text-primary hover:bg-primary/10 transition-all"
                   >
                     Asistencia en Tiempo Real
                   </Link>
                   <NotifyButton eventId={event.id} />
                 </div>
+              </div>
+            )}
+
+            {/* Live link para jugadores */}
+            {!isCoach && (
+              <div className="border border-border bg-card p-5 shadow-sm">
+                <Link
+                  href={`/events/${event.id}/live`}
+                  className="flex items-center justify-center gap-2 border border-primary/30 bg-primary/5 px-4 py-3 text-xs font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-all"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                  Ver asistencia en vivo
+                </Link>
               </div>
             )}
           </div>
