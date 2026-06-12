@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// ENUMS
+// ---------------------------------------------------------------------------
+
+enum Role {
+  PLAYER
+  COACH
+}
+
+enum RugbyPosition {
+  PROP_LOOSEHEAD
+  HOOKER
+  PROP_TIGHTHEAD
+  LOCK
+  FLANKER_BLINDSIDE
+  FLANKER_OPENSIDE
+  NUMBER_EIGHT
+  SCRUM_HALF
+  FLY_HALF
+  CENTER_INSIDE
+  CENTER_OUTSIDE
+  WING_LEFT
+  WING_RIGHT
+  FULLBACK
+  REPLACEMENT
+}
+
+enum EventType {
+  TRAINING
+  MATCH
+  TOURNAMENT
+  TRIP
+  OTHER
+}
+
+enum AttendanceStatus {
+  PENDING
+  CONFIRMED
+  DECLINED
+}
+
+// ---------------------------------------------------------------------------
+// NEXTAUTH MODELS
+// ---------------------------------------------------------------------------
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// USERS
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  emailVerified DateTime?
+  name         String
+  image        String?
+  passwordHash String?
+  role         Role     @default(PLAYER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+  memberships  TeamMember[]
+  attendances  Attendance[]
+  callups      Callup[]
+  rpeEntries   RpeEntry[]
+  trainingLogs TrainingLog[]
+
+  @@index([email])
+}
+
+// ---------------------------------------------------------------------------
+// TEAMS
+// ---------------------------------------------------------------------------
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  inviteToken String   @unique
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members  TeamMember[]
+  events   Event[]
+
+  @@index([inviteToken])
+  @@index([slug])
+}
+
+model TeamMember {
+  id           String         @id @default(cuid())
+  userId       String
+  teamId       String
+  position     RugbyPosition?
+  jerseyNumber Int?
+  isCoach      Boolean        @default(false)
+  joinedAt     DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// EVENTS & ATTENDANCE
+// ---------------------------------------------------------------------------
+
+model Event {
+  id          String    @id @default(cuid())
+  teamId      String
+  title       String
+  type        EventType
+  description String?
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  rsvpDeadline DateTime?
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  team            Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  attendances     Attendance[]
+  callups         Callup[]
+  trainingSession TrainingSession?
+  rpeEntries      RpeEntry[]
+
+  @@index([teamId])
+  @@index([startDate])
+}
+
+model Attendance {
+  id          String           @id @default(cuid())
+  eventId     String
+  userId      String
+  status      AttendanceStatus @default(PENDING)
+  checkedIn   Boolean          @default(false)
+  checkedInAt DateTime?
+  updatedAt   DateTime         @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+}
+
+model Callup {
+  id        String         @id @default(cuid())
+  eventId   String
+  userId    String
+  isStarter Boolean        @default(false)
+  position  RugbyPosition?
+  createdAt DateTime       @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+}
+
+// ---------------------------------------------------------------------------
+// TRAINING
+// ---------------------------------------------------------------------------
+
+model TrainingSession {
+  id        String          @id @default(cuid())
+  eventId   String          @unique
+  event     Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  objective String
+  blocks    TrainingBlock[]
+  logs      TrainingLog[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model TrainingBlock {
+  id                String          @id @default(cuid())
+  trainingSessionId String
+  session           TrainingSession @relation(fields: [trainingSessionId], references: [id], onDelete: Cascade)
+  name              String
+  duration          Int             
+  description       String?
+  order             Int             
+
+  @@index([trainingSessionId])
+}
+
+model RpeEntry {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rpe       Int      
+  duration  Int      
+  workload  Int      
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+}
+
+model TrainingLog {
+  id          String   @id @default(cuid())
+  userId      String
+  sessionId   String?
+  mongoLogId  String?
+  weight      Float?
+  recordedAt  DateTime @default(now())
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session TrainingSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([sessionId])
+}

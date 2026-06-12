@@ -1,0 +1,1 @@
+{ "onlyBuiltDependencies": ["sharp", "unrs-resolver", "argon2", "prisma", "@prisma/client"] }
