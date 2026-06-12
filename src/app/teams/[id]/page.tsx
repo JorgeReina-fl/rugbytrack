@@ -96,16 +96,24 @@ export default async function TeamDetailPage({ params }: PageProps) {
           </Link>
         </div>
 
-        <div className="mb-8 flex items-start justify-between">
+        <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-5xl font-heading font-extrabold tracking-tighter uppercase">{team.name}</h1>
             {team.description && (
               <p className="mt-2 text-sm font-mono text-muted-foreground">{team.description}</p>
             )}
           </div>
-          <span className="bg-secondary border border-border px-3 py-1 text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground">
-            {team.members.length} miembros
-          </span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <span className="bg-secondary border border-border px-3 py-1 text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground">
+              {team.members.length} miembros
+            </span>
+            <Link
+              href={`/teams/${team.id}/similar`}
+              className="border border-primary/40 bg-primary/5 px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-all"
+            >
+              🔍 Jugadores similares
+            </Link>
+          </div>
         </div>
 
         {isCoach && (
