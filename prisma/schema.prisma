@@ -50,6 +50,12 @@ enum AttendanceStatus {
   DECLINED
 }
 
+enum ProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ---------------------------------------------------------------------------
 // NEXTAUTH MODELS
 // ---------------------------------------------------------------------------
@@ -116,6 +122,10 @@ model User {
   rpeEntries   RpeEntry[]
   trainingLogs TrainingLog[]
   embedding    PlayerEmbedding?
+  createdPolls Poll[]
+  pollVotes    PollVote[]
+  createdProposals Proposal[]
+  proposalSupports ProposalSupport[]
 
   @@index([email])
 }
@@ -137,6 +147,8 @@ model Team {
   members    TeamMember[]
   events     Event[]
   embeddings PlayerEmbedding[]
+  polls      Poll[]
+  proposals  Proposal[]
 
   @@index([inviteToken])
   @@index([slug])
@@ -296,4 +308,78 @@ model PlayerEmbedding {
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([teamId])
+}
+
+// ---------------------------------------------------------------------------
+// POLLS (VOTING)
+// ---------------------------------------------------------------------------
+
+model Poll {
+  id          String       @id @default(cuid())
+  teamId      String
+  title       String
+  description String?
+  createdById String
+  isActive    Boolean      @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime     @default(now())
+
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy   User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  options     PollOption[]
+  
+  @@index([teamId])
+}
+
+model PollOption {
+  id        String   @id @default(cuid())
+  pollId    String
+  text      String
+  
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes     PollVote[]
+}
+
+model PollVote {
+  id           String     @id @default(cuid())
+  pollOptionId String
+  userId       String
+  createdAt    DateTime   @default(now())
+
+  option       PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollOptionId, userId])
+}
+
+// ---------------------------------------------------------------------------
+// PROPOSALS (ACTIVITIES)
+// ---------------------------------------------------------------------------
+
+model Proposal {
+  id          String         @id @default(cuid())
+  teamId      String
+  createdById String
+  title       String
+  description String
+  status      ProposalStatus @default(PENDING)
+  createdAt   DateTime       @default(now())
+
+  team        Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy   User           @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  supporters  ProposalSupport[]
+
+  @@index([teamId])
+}
+
+model ProposalSupport {
+  id         String   @id @default(cuid())
+  proposalId String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, userId])
 }

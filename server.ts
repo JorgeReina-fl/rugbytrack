@@ -69,7 +69,7 @@ app.prepare().then(() => {
 
   // Redis Subscriber for sync with REST endpoints
   const redisSub = redisLocal.duplicate();
-  redisSub.subscribe("session:status", "attendance:update");
+  redisSub.subscribe("session:status", "attendance:update", "poll:update", "proposal:update");
   redisSub.on("message", (channel, message) => {
     try {
       const data = JSON.parse(message);
@@ -86,6 +86,10 @@ app.prepare().then(() => {
           checkedInAt: data.checkedInAt,
           status: data.status,
         });
+      } else if (channel === "poll:update") {
+        io.to(`team:${data.teamId}`).emit("poll_update", data);
+      } else if (channel === "proposal:update") {
+        io.to(`team:${data.teamId}`).emit("proposal_update", data.proposal);
       }
     } catch (err) {
       logger.error({ err, channel }, "Error processing Redis subscription message");
@@ -146,6 +150,10 @@ app.prepare().then(() => {
       } catch (err) {
         logger.error(err, "Error checking if session active on join_session");
       }
+    });
+
+    socket.on("join_team", ({ teamId: roomTeamId }) => {
+      if (roomTeamId) socket.join(`team:${roomTeamId}`);
     });
 
     socket.on("check_in", async ({ eventId: checkEventId }) => {

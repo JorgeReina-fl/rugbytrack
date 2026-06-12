@@ -21,7 +21,7 @@ export default async function ForumRouterPage() {
 
   // 2. Si tiene equipos, redirigir al foro del primero
   if (teams.length > 0) {
-    redirect(`/teams/${teams[0].id}/forum`);
+    redirect(`/teams/${teams[0]?.id}/forum`);
   }
 
   // 3. Fallback en Modo Claro y bordes rectos (0px) si no pertenece a ningún equipo

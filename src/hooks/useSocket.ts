@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { ClientToServerEvents, ServerToClientEvents } from "@/types/socket";
 
-export function useSocket(eventId?: string) {
+export function useSocket(eventId?: string, teamId?: string) {
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
 
@@ -14,8 +14,12 @@ export function useSocket(eventId?: string) {
 
     if (!wsUrl) return;
 
+    const query: Record<string, string> = {};
+    if (eventId) query.eventId = eventId;
+    if (teamId) query.teamId = teamId;
+
     const socketInstance = io(wsUrl, {
-      query: eventId ? { eventId } : {},
+      query,
       withCredentials: true,
       transports: ["websocket"],
       autoConnect: true,
@@ -36,7 +40,7 @@ export function useSocket(eventId?: string) {
         socketInstance.disconnect();
       }
     };
-  }, [eventId]);
+  }, [eventId, teamId]);
 
   return {
     socket: socketRef.current,
