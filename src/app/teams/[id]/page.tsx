@@ -113,6 +113,14 @@ export default async function TeamDetailPage({ params }: PageProps) {
             >
               🔍 Jugadores similares
             </Link>
+            {isCoach && (
+              <Link
+                href={`/teams/${team.id}/analytics`}
+                className="border border-primary/40 bg-primary/5 px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-all"
+              >
+                📊 Analytics
+              </Link>
+            )}
           </div>
         </div>
 
