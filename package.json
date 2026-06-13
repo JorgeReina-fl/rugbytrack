@@ -20,6 +20,8 @@
     "@hookform/resolvers": "^5.4.0",
     "@prisma/client": "^5.22.0",
     "@react-email/components": "^1.0.12",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "@socket.io/redis-adapter": "^8.3.0",
     "argon2": "^0.44.0",
     "date-fns": "^4.4.0",
@@ -38,6 +40,7 @@
     "server-only": "^0.0.1",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
+    "three": "^0.184.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -50,6 +53,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.184.1",
     "eslint": "^9",
     "eslint-config-next": "^15.3.3",
     "jest": "^30.4.2",

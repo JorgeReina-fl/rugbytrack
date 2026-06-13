@@ -14,6 +14,7 @@ COPY . .
 RUN pnpm prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV REDIS_URL=redis://localhost:6379
 RUN pnpm build
 
 FROM base AS runner

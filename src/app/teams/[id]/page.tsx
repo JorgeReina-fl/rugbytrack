@@ -125,6 +125,12 @@ export default async function TeamDetailPage({ params }: PageProps) {
             >
               💡 Propuestas
             </Link>
+            <Link
+              href={`/teams/${team.id}/gameplan`}
+              className="border border-primary/40 bg-primary/5 px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-all"
+            >
+              🏉 Plan de Juego
+            </Link>
             {isCoach && (
               <Link
                 href={`/teams/${team.id}/analytics`}

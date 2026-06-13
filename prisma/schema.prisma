@@ -13,6 +13,13 @@ datasource db {
 // ENUMS
 // ---------------------------------------------------------------------------
 
+enum PlayCategory {
+  ATTACK
+  DEFENSE
+  SET_PIECE
+  TRANSITION
+}
+
 enum Role {
   PLAYER
   COACH
@@ -126,6 +133,7 @@ model User {
   pollVotes    PollVote[]
   createdProposals Proposal[]
   proposalSupports ProposalSupport[]
+  createdPlays     Play[]
 
   @@index([email])
 }
@@ -149,6 +157,7 @@ model Team {
   embeddings PlayerEmbedding[]
   polls      Poll[]
   proposals  Proposal[]
+  plays      Play[]
 
   @@index([inviteToken])
   @@index([slug])
@@ -382,4 +391,26 @@ model ProposalSupport {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([proposalId, userId])
+}
+
+// ---------------------------------------------------------------------------
+// GAME PLAN (3D PLAYS)
+// ---------------------------------------------------------------------------
+
+model Play {
+  id          String       @id @default(cuid())
+  teamId      String
+  title       String
+  description String?
+  category    PlayCategory
+  isPublished Boolean      @default(false)
+  positions   Json
+  createdById String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
 }
