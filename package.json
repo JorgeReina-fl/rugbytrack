@@ -57,6 +57,7 @@
     "prisma": "^5.22.0",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.11",
+    "ts-node": "^10.9.2",
     "tsx": "^4.22.4",
     "typescript": "^5"
   }
