@@ -41,6 +41,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
     "@next/env": "^16.2.7",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
