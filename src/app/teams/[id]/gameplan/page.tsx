@@ -2,9 +2,21 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { PlayCategory, Play } from "@prisma/client";
+import { useSession } from "next-auth/react";
 
-type PlayDto = Play & { createdBy: { name: string } };
+type PlayDto = {
+  id: string;
+  teamId: string;
+  title: string;
+  description: string | null;
+  category: string;
+  isPublished: boolean;
+  positions: unknown;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: { name: string };
+};
 
 export default function GamePlanPage() {
   const params = useParams();
@@ -15,10 +27,17 @@ export default function GamePlanPage() {
   const [loading, setLoading] = useState(true);
   const [isCoach, setIsCoach] = useState(false);
 
+  const { data: session, status } = useSession();
+
   useEffect(() => {
     fetchPlays();
-    checkRole();
   }, [teamId]);
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.id) {
+      checkRole(session.user.id);
+    }
+  }, [teamId, status, session]);
 
   const fetchPlays = async () => {
     try {
@@ -31,12 +50,13 @@ export default function GamePlanPage() {
     }
   };
 
-  const checkRole = async () => {
+  const checkRole = async (userId: string) => {
     try {
       const res = await fetch(`/api/teams/${teamId}`);
       if (res.ok) {
         const team = await res.json();
-        setIsCoach(team.currentUserRole === "COACH");
+        const member = team.members?.find((m: any) => m.userId === userId || m.user?.id === userId);
+        setIsCoach(member?.isCoach === true);
       }
     } catch {}
   };
@@ -73,52 +93,66 @@ export default function GamePlanPage() {
         )}
       </div>
 
-      {categories.map((cat) => {
-        const categoryPlays = plays.filter((p) => p.category === cat);
-        if (categoryPlays.length === 0) return null;
-
-        return (
-          <div key={cat} className="space-y-4">
-            <h2 className="text-xl font-bold border-b pb-2">{cat}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categoryPlays.map((play) => (
-                <div key={play.id} className="border rounded-lg p-4 bg-white shadow-sm flex flex-col">
-                  <h3 className="font-bold text-lg mb-1">{play.title}</h3>
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-1">
-                    {play.description}
-                  </p>
-                  <div className="flex justify-between items-center mt-auto pt-4 border-t">
-                    <Link
-                      href={`/teams/${teamId}/gameplan/${play.id}`}
-                      className="text-blue-600 font-medium text-sm"
-                    >
-                      Ver Jugada
-                    </Link>
-                    {isCoach && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handlePublish(play.id, !play.isPublished)}
-                          className={`text-xs px-2 py-1 rounded ${
-                            play.isPublished ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {play.isPublished ? "Publicada" : "Borrador"}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(play.id)}
-                          className="text-xs text-red-600 hover:bg-red-50 px-2 py-1 rounded"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    )}
+      {plays.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center text-gray-500">
+          <span className="text-5xl mb-4">🏉</span>
+          <p className="text-xl font-semibold mb-2">No hay jugadas aún</p>
+          {isCoach ? (
+            <p className="text-sm">
+              Crea la primera jugada con el botón{" "}
+              <span className="font-medium text-blue-600">Nueva Jugada</span>.
+            </p>
+          ) : (
+            <p className="text-sm">El entrenador aún no ha publicado jugadas.</p>
+          )}
+        </div>
+      ) : (
+        categories.map((cat) => {
+          const categoryPlays = plays.filter((p) => p.category === cat);
+          if (categoryPlays.length === 0) return null;
+          return (
+            <div key={cat} className="space-y-4">
+              <h2 className="text-xl font-bold border-b pb-2">{cat}</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {categoryPlays.map((play) => (
+                  <div key={play.id} className="border rounded-lg p-4 bg-white shadow-sm flex flex-col">
+                    <h3 className="font-bold text-lg mb-1">{play.title}</h3>
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-1">
+                      {play.description}
+                    </p>
+                    <div className="flex justify-between items-center mt-auto pt-4 border-t">
+                      <Link
+                        href={`/teams/${teamId}/gameplan/${play.id}`}
+                        className="text-blue-600 font-medium text-sm"
+                      >
+                        Ver Jugada
+                      </Link>
+                      {isCoach && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handlePublish(play.id, !play.isPublished)}
+                            className={`text-xs px-2 py-1 rounded ${
+                              play.isPublished ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {play.isPublished ? "Publicada" : "Borrador"}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(play.id)}
+                            className="text-xs text-red-600 hover:bg-red-50 px-2 py-1 rounded"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })
+      )}
     </div>
   );
 }
