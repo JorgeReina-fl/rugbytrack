@@ -71,7 +71,7 @@ jobs:
           DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
 
       - name: Run tests
-        run: pnpm test --ci --passWithNoTests
+        run: pnpm test -- --ci --passWithNoTests
         env:
           NODE_ENV: test
 
