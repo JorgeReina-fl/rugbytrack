@@ -4,7 +4,6 @@ import {
   apiSuccess,
   apiUnauthorized,
   apiForbidden,
-  apiError,
   handleZodError,
   handleUnknownError,
 } from "@/lib/api-response";
