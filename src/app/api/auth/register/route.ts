@@ -1,12 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import {
   apiSuccess,
   apiError,
   handleZodError,
   handleUnknownError,
 } from "@/lib/api-response";
-import { ZodError } from "zod";
 
 const registerSchema = z.object({
   name: z.string().min(2).max(80).trim(),
