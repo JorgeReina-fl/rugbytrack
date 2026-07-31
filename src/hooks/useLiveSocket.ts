@@ -1,55 +1,54 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { io, Socket } from "socket.io-client";
-import type { ServerToClientEvents, ClientToServerEvents } from "@/types/socket";
+import { useSocketConnection } from "./useSocketConnection";
 
-/**
- * Connects to the Socket.io server scoped to a specific eventId room.
- * Auto-reconnects, cleans up on unmount, and exposes typed socket ref.
- */
 export function useLiveSocket(eventId: string) {
-  const [connected, setConnected] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
-  const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  const joinedRef = useRef(false);
 
+  const { socket, connected } = useSocketConnection({
+    query: { eventId },
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+  });
+
+  // Emit join_session once per connection and subscribe to domain events
   useEffect(() => {
-    const wsUrl =
-      process.env.NEXT_PUBLIC_WS_URL ||
-      (typeof window !== "undefined" ? window.location.origin : "");
+    if (!socket) return;
 
-    if (!wsUrl) return;
+    const handleConnect = () => {
+      if (!joinedRef.current) {
+        socket.emit("join_session", { eventId });
+        joinedRef.current = true;
+      }
+    };
 
-    const socket = io(wsUrl, {
-      query: { eventId },
-      withCredentials: true,
-      transports: ["websocket"],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
+    const handleDisconnect = () => {
+      joinedRef.current = false;
+    };
 
-    socketRef.current = socket;
-
-    socket.on("connect", () => {
-      setConnected(true);
-      socket.emit("join_session", { eventId });
-    });
-
-    socket.on("disconnect", () => setConnected(false));
-
-    socket.on("session_status_change", ({ active }) => {
+    const handleSessionStatus = ({ active }: { active: boolean }) => {
       setSessionActive(active);
-    });
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("session_status_change", handleSessionStatus);
+
+    // If already connected when effect runs, join immediately
+    if (socket.connected) handleConnect();
 
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("session_status_change", handleSessionStatus);
     };
-  }, [eventId]);
+  }, [socket, eventId]);
 
   const checkIn = useCallback(() => {
-    socketRef.current?.emit("check_in", { eventId });
-  }, [eventId]);
+    socket?.emit("check_in", { eventId });
+  }, [socket, eventId]);
 
-  return { socket: socketRef.current, connected, sessionActive, checkIn };
+  return { socket, connected, sessionActive, checkIn };
 }
