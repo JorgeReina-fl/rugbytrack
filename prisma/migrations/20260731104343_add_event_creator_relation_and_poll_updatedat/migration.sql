@@ -29,7 +29,25 @@ CREATE INDEX "Event_createdById_idx" ON "Event"("createdById");
 -- AddForeignKey
 ALTER TABLE "Event" ADD CONSTRAINT "Event_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- Restore ivfflat index dropped above (Prisma can't track indexes on Unsupported columns)
+-- ============================================================
+-- IVFFLAT INDEX — READ BEFORE TOUCHING THIS BLOCK
+-- ============================================================
+-- PlayerEmbedding.embedding is declared as Unsupported("vector(768)")
+-- in schema.prisma because Prisma has no native pgvector type.
+-- Consequence: Prisma's shadow-DB diff cannot represent this index
+-- in the DSL, so every `prisma migrate dev` run emits a DROP INDEX
+-- for idx_player_embedding_cosine in the generated migration file.
+--
+-- RULE: any migration that contains DROP INDEX "idx_player_embedding_cosine"
+-- MUST re-create it in the same file (as done below).
+--
+-- To detect regressions after deploy run:
+--   pnpm db:check-index
+--   (queries pg_indexes and exits 1 if the index is absent)
+--
+-- DO NOT run `prisma migrate dev --create-only` and apply without
+-- reviewing the generated SQL for a stray DROP INDEX on this table.
+-- ============================================================
 CREATE INDEX idx_player_embedding_cosine
   ON "PlayerEmbedding"
   USING ivfflat (embedding vector_cosine_ops)
