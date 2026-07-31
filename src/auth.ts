@@ -20,7 +20,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Contraseña", type: "password" },
       },
-      async authorize(credentials: any) {
+      async authorize(credentials) {
         const parsed = credentialsSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
@@ -59,7 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   events: {
-    async signOut(message: any) {
+    async signOut(message) {
       if ("session" in message && message.session?.sessionToken) {
         await prisma.session.deleteMany({
           where: { sessionToken: message.session.sessionToken },

@@ -2,6 +2,7 @@ import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import type { NextAuthConfig } from "next-auth";
+import type { Role } from "@prisma/client";
 
 const useSecureCookies = process.env.NODE_ENV === "production";
 const cookiePrefix = useSecureCookies ? "__Host-" : "";
@@ -53,16 +54,17 @@ export const authConfig = {
   ],
 
   callbacks: {
-    async session({ session, token }: { session: any; token: any }) {
+    async session({ session, token }) {
       if (token?.sub) {
         session.user.id = token.sub;
-        session.user.role = token.role || "PLAYER";
+        session.user.role = (token.role ?? "PLAYER") as Role;
       }
       return session;
     },
-    async jwt({ token, user }: { token: any; user: any }) {
+    async jwt({ token, user }) {
       if (user) {
-        token.role = user.role;
+        const role = (user as { role?: Role }).role;
+        if (role !== undefined) token.role = role;
       }
       return token;
     },
