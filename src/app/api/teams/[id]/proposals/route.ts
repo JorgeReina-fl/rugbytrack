@@ -25,12 +25,12 @@ export async function GET(_req: Request, { params }: Params) {
 
   const { id } = await params;
 
-  const membership = await prisma.teamMember.findFirst({
-    where: { userId: session.user.id, teamId: id },
-  });
-  if (!membership) return apiForbidden();
-
   try {
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId: session.user.id, teamId: id },
+    });
+    if (!membership) return apiForbidden();
+
     const proposals = await prisma.proposal.findMany({
       where: { teamId: id },
       include: {
