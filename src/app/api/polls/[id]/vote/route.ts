@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
+import { Prisma } from "@prisma/client";
 import {
   apiSuccess,
   apiUnauthorized,
@@ -11,6 +12,9 @@ import {
   handleUnknownError,
 } from "@/lib/api-response";
 import { z } from "zod";
+
+class AlreadyVotedError extends Error {}
+class SameOptionError extends Error {}
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -48,30 +52,41 @@ export async function POST(req: Request, { params }: Params) {
     });
     if (!membership) return apiForbidden();
 
-    // Check if the user already voted for this option (our schema currently unique per optionId+userId)
-    // Actually, usually users can only vote for ONE option per poll.
-    // Let's enforce 1 vote per poll per user.
-    const existingVote = await prisma.pollVote.findFirst({
-      where: {
-        userId,
-        option: { pollId: id },
-      },
-    });
+    // Atomic vote: findFirst → optional delete → create inside a single transaction.
+    // Prevents the TOCTOU race where two concurrent requests from the same user both
+    // pass the existingVote check and attempt duplicate creates.
+    // The @@unique([pollOptionId, userId]) DB constraint is a second-line defense (P2002).
+    let vote: Awaited<ReturnType<typeof prisma.pollVote.create>>;
+    try {
+      vote = await prisma.$transaction(async (tx) => {
+        const existingVote = await tx.pollVote.findFirst({
+          where: { userId, option: { pollId: id } },
+        });
 
-    if (existingVote) {
-      if (existingVote.pollOptionId === optionId) {
+        if (existingVote) {
+          if (existingVote.pollOptionId === optionId) throw new SameOptionError();
+          await tx.pollVote.delete({ where: { id: existingVote.id } });
+        }
+
+        return tx.pollVote.create({
+          data: { pollOptionId: optionId, userId },
+        });
+      });
+    } catch (txErr) {
+      if (txErr instanceof SameOptionError) {
         return apiError("Ya has votado por esta opción", 400);
       }
-      // Delete old vote, insert new one (changing vote)
-      await prisma.pollVote.delete({ where: { id: existingVote.id } });
+      if (txErr instanceof AlreadyVotedError) {
+        return apiError("Ya has votado en esta encuesta", 409);
+      }
+      if (
+        txErr instanceof Prisma.PrismaClientKnownRequestError &&
+        txErr.code === "P2002"
+      ) {
+        return apiError("Ya has votado en esta encuesta", 409);
+      }
+      throw txErr;
     }
-
-    const vote = await prisma.pollVote.create({
-      data: {
-        pollOptionId: optionId,
-        userId,
-      },
-    });
 
     // Fetch updated poll options for broadcasting
     const updatedOptions = await prisma.pollOption.findMany({
