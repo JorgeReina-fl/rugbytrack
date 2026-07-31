@@ -4,8 +4,6 @@ const nextConfig: NextConfig = {
   output: "standalone",
 
   serverExternalPackages: ["argon2", "pino", "mongoose"],
-  eslint: { ignoreDuringBuilds: true },
-  typescript: { ignoreBuildErrors: true },
 
   headers: async () => [
     {
@@ -22,11 +20,12 @@ const nextConfig: NextConfig = {
           key: "Content-Security-Policy",
           value: [
             "default-src 'self'",
-            `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ""}`,
+            "script-src 'self' 'unsafe-inline'",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: https://avatars.githubusercontent.com",
             "connect-src 'self'",
+            "worker-src 'self'",
             "object-src 'none'",
             "frame-ancestors 'none'",
           ].join("; "),
