@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 import { generateRsvpToken } from "@/lib/tokens";
 import { Resend } from "resend";
 
@@ -27,43 +28,40 @@ export async function POST(
     });
 
     if (attendances.length === 0) {
-      return NextResponse.json({ sent: 0, links: [] });
+      return NextResponse.json({ sent: 0 });
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
     const resendApiKey = process.env.RESEND_API_KEY;
     const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-    const links: string[] = [];
     let sentCount = 0;
 
     for (const attendance of attendances) {
       const token = generateRsvpToken(attendance.userId, attendance.eventId);
       const url = `${baseUrl}/rsvp/${token}`;
-      links.push(url);
 
       if (resend) {
         try {
           await resend.emails.send({
-            from: "RugbyTrack <onboarding@resend.dev>",
+            from: process.env.EMAIL_FROM ?? "RugbyTrack <onboarding@resend.dev>",
             to: attendance.user.email,
             subject: "Convocatoria de RugbyTrack",
             html: `<p>Hola ${attendance.user.name},</p><p>Has sido convocado a un evento. Confirma tu asistencia aquí:</p><p><a href="${url}">${url}</a></p>`,
           });
           sentCount++;
         } catch (error) {
-          console.error("Error sending email:", error);
+          logger.error({ userId: attendance.userId, eventId: id }, "Failed to send RSVP email");
         }
       } else {
-        console.log(`[MAGIC_LINK] userId=${attendance.userId} eventId=${attendance.eventId} url=${url}`);
+        logger.warn({ userId: attendance.userId, eventId: id }, "RESEND_API_KEY not set — email skipped");
         sentCount++;
       }
     }
 
-    // En producción no devolveríamos los links, pero para depurar/desarrollo lo dejamos
-    return NextResponse.json({ sent: sentCount, links });
+    return NextResponse.json({ sent: sentCount });
   } catch (error) {
-    console.error("Error in notify route:", error);
+    logger.error({ err: error }, "Error in notify route");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
