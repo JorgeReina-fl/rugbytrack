@@ -116,6 +116,7 @@ export function EventForm({ teamId, members }: EventFormProps) {
 
     // Filter selected callups and format them
     const formattedCallups = Object.entries(callups)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       .filter(([_userId, info]) => info.selected)
       .map(([userId, info]) => ({
         userId,

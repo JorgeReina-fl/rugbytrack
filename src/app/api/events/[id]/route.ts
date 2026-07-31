@@ -56,6 +56,7 @@ export async function GET(
 
     // Retorna el detalle del evento, convocados, y el estado de asistencia del usuario actual
     const userAttendance = event.attendances[0] ?? null;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { attendances: _attendances, ...eventData } = event;
 
     return apiSuccess({
