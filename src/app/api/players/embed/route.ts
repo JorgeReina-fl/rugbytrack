@@ -15,10 +15,8 @@ import {
   generateEmbedding,
   buildPlayerStatsText,
 } from "@/lib/gemini-embeddings";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
-
-// TODO(security): Consider rate-limiting this endpoint — embedding generation
-// is relatively expensive. A lightweight Redis-based rate limiter is recommended.
 
 const querySchema = z.object({
   userId: z.string().cuid("ID de usuario inválido").optional(),
@@ -39,6 +37,14 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) return apiUnauthorized();
     if (session.user.role !== "COACH") return apiForbidden();
+
+    const rl = await checkRateLimit(`rate_limit:embed:${session.user.id}`, 10, 3600);
+    if (!rl.allowed) {
+      return apiError(
+        `Rate limit exceeded. Try again in ${Math.ceil(rl.resetInSeconds / 60)} minutes.`,
+        429
+      );
+    }
 
     const body = await req.json();
     const parsed = querySchema.safeParse(body);
