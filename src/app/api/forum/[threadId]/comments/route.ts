@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import "server-only";
 import { auth } from "@/auth";
 import { dbConnect } from "@/lib/mongoose";
 import { Comment } from "@/models/Comment";
@@ -6,6 +6,14 @@ import { Thread } from "@/models/Thread";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import mongoose from "mongoose";
+import {
+  apiSuccess,
+  apiUnauthorized,
+  apiForbidden,
+  apiNotFound,
+  handleZodError,
+  handleUnknownError,
+} from "@/lib/api-response";
 
 const commentSchema = z.object({
   content: z.string().min(2, "El comentario debe tener al menos 2 caracteres").max(2000),
@@ -17,39 +25,30 @@ export async function GET(
 ) {
   try {
     const { threadId } = await params;
-    
+
     if (!mongoose.Types.ObjectId.isValid(threadId)) {
-      return NextResponse.json({ error: "ID de hilo inválido" }, { status: 400 });
+      return apiNotFound("Hilo");
     }
 
     const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+    if (!session?.user?.id) return apiUnauthorized();
 
     await dbConnect();
-    
-    // Verificamos si el hilo existe y a qué equipo pertenece
-    const thread = await Thread.findById(threadId).lean();
-    if (!thread) {
-      return NextResponse.json({ error: "Hilo no encontrado" }, { status: 404 });
-    }
 
-    // Verificamos membresía
+    const thread = await Thread.findById(threadId).lean();
+    if (!thread) return apiNotFound("Hilo");
+
     const membership = await prisma.teamMember.findUnique({
       where: { userId_teamId: { userId: session.user.id, teamId: thread.teamId } },
     });
 
-    if (!membership) {
-      return NextResponse.json({ error: "No eres miembro de este equipo" }, { status: 403 });
-    }
+    if (!membership) return apiForbidden();
 
     const comments = await Comment.find({ threadId }).sort({ createdAt: 1 }).lean();
 
-    return NextResponse.json(comments);
+    return apiSuccess(comments);
   } catch (error) {
-    console.error("[COMMENTS_GET]", error);
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
+    return handleUnknownError(error, "GET /api/forum/[threadId]/comments");
   }
 }
 
@@ -61,38 +60,27 @@ export async function POST(
     const { threadId } = await params;
 
     if (!mongoose.Types.ObjectId.isValid(threadId)) {
-      return NextResponse.json({ error: "ID de hilo inválido" }, { status: 400 });
+      return apiNotFound("Hilo");
     }
 
     const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+    if (!session?.user?.id) return apiUnauthorized();
 
     await dbConnect();
 
     const thread = await Thread.findById(threadId);
-    if (!thread) {
-      return NextResponse.json({ error: "Hilo no encontrado" }, { status: 404 });
-    }
+    if (!thread) return apiNotFound("Hilo");
 
     const membership = await prisma.teamMember.findUnique({
       where: { userId_teamId: { userId: session.user.id, teamId: thread.teamId } },
     });
 
-    if (!membership) {
-      return NextResponse.json({ error: "No eres miembro de este equipo" }, { status: 403 });
-    }
+    if (!membership) return apiForbidden();
 
     const body = await req.json();
     const result = commentSchema.safeParse(body);
 
-    if (!result.success) {
-      return NextResponse.json(
-        { error: "Datos inválidos", details: result.error.flatten().fieldErrors },
-        { status: 400 }
-      );
-    }
+    if (!result.success) return handleZodError(result.error);
 
     const newComment = await Comment.create({
       threadId: new mongoose.Types.ObjectId(threadId),
@@ -101,13 +89,11 @@ export async function POST(
       content: result.data.content,
     });
 
-    // Opcional: Actualizar el updatedAt del hilo para que suba arriba en la lista
     thread.updatedAt = new Date();
     await thread.save();
 
-    return NextResponse.json(newComment, { status: 201 });
+    return apiSuccess(newComment, 201);
   } catch (error) {
-    console.error("[COMMENTS_POST]", error);
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
+    return handleUnknownError(error, "POST /api/forum/[threadId]/comments");
   }
 }
