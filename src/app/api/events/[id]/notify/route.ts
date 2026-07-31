@@ -53,8 +53,8 @@ export async function POST(
             html: `<p>Hola ${attendance.user.name},</p><p>Has sido convocado a un evento. Confirma tu asistencia aquí:</p><p><a href="${url}">${url}</a></p>`,
           });
           sentCount++;
-        } catch (error) {
-          logger.error({ userId: attendance.userId, eventId: id }, "Failed to send RSVP email");
+        } catch (err) {
+          logger.error({ err, userId: attendance.userId, eventId: id }, "Failed to send RSVP email");
         }
       } else {
         logger.warn({ userId: attendance.userId, eventId: id }, "RESEND_API_KEY not set — email skipped");
