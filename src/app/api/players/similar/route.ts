@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import {
   apiSuccess,
   apiUnauthorized,
+  apiForbidden,
   apiNotFound,
   apiError,
   handleUnknownError,
@@ -69,7 +70,7 @@ export async function GET(req: NextRequest) {
     const membership = await prisma.teamMember.findFirst({
       where: { userId: session.user.id, teamId },
     });
-    if (!membership) return apiUnauthorized();
+    if (!membership) return apiForbidden();
 
     // Cosine similarity search — excludes the target player from results
     // Uses pgvector's <=> operator (cosine distance: lower = more similar)

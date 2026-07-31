@@ -11,8 +11,11 @@ export async function POST(
 ) {
   try {
     const session = await auth();
-    if (!session?.user || session.user.role !== "COACH") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session?.user) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+    if (session.user.role !== "COACH") {
+      return NextResponse.json({ error: "Se requiere rol de entrenador" }, { status: 403 });
     }
 
     const { id } = await params;
