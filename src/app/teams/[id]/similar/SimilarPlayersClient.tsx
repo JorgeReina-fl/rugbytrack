@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
+import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 
 interface PlayerStats {
   name: string;
@@ -49,12 +49,10 @@ const POSITION_LABELS: Record<string, string> = {
 
 export default function SimilarPlayersClient({
   teamId,
-  teamName,
   players,
   isCoach,
 }: {
   teamId: string;
-  teamName: string;
   players: TeamMember[];
   isCoach: boolean;
 }) {
@@ -62,8 +60,8 @@ export default function SimilarPlayersClient({
   const [results, setResults] = useState<SimilarPlayer[]>([]);
   const [loading, setLoading] = useState(false);
   const [embedding, setEmbedding] = useState(false);
-  const [embedMsg, setEmbedMsg] = useState("");
-  const [error, setError] = useState("");
+  const [embedMsg, setEmbedMsg] = useState<React.ReactNode>("");
+  const [error, setError] = useState<string>("");
   const [limit, setLimit] = useState(5);
 
   const fetchSimilar = useCallback(async () => {
@@ -106,7 +104,7 @@ export default function SimilarPlayersClient({
         setEmbedMsg(`Error: ${json.error ?? "desconocido"}`);
       } else {
         setEmbedMsg(
-          `✅ ${json.data?.embedded ?? 0} embeddings generados. Selecciona un jugador para buscar similares.`
+          (<> <CheckCircle size={16} weight="regular" className="inline mr-1" /> {json.data?.embedded ?? 0} embeddings generados. Selecciona un jugador para buscar similares.</>)
         );
         if (selectedId) fetchSimilar();
       }

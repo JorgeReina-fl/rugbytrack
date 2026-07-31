@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import type { RugbyPosition } from "@prisma/client";
 
 const POSITIONS: { value: RugbyPosition; label: string }[] = [

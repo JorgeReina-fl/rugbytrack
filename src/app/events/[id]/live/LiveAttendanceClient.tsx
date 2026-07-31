@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLiveSocket } from "@/hooks/useLiveSocket";
 import type { RugbyPosition } from "@prisma/client";
+import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 
 interface PlayerRecord {
   userId: string;
@@ -17,7 +18,6 @@ interface PlayerRecord {
 
 interface Props {
   eventId: string;
-  eventTitle: string;
   isCoach: boolean;
   currentUserId: string;
   initialAttendances: PlayerRecord[];
@@ -100,7 +100,6 @@ function AnimatedCount({ value, className }: { value: number; className?: string
 
 export function LiveAttendanceClient({
   eventId,
-  eventTitle,
   isCoach,
   currentUserId,
   initialAttendances,
@@ -270,7 +269,7 @@ export function LiveAttendanceClient({
             <div className="flex items-center gap-3">
               <div className="h-3 w-3 bg-primary rounded-full animate-pulse" />
               <p className="text-sm font-mono font-bold text-primary">
-                ✅ Tu asistencia está registrada
+                <CheckCircle size={24} weight="regular" className="inline mr-2" /> Tu asistencia está registrada
               </p>
             </div>
           ) : (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import type { Metadata } from "next";
 import SimilarPlayersClient from "./SimilarPlayersClient";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -107,7 +108,7 @@ export default async function SimilarPlayersPage({ params }: PageProps) {
         {/* Header */}
         <div className="mb-10">
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-3xl">🔍</span>
+            <span className="text-3xl"><MagnifyingGlass size={24} weight="regular" className="inline mr-2" /></span>
             <h1 className="text-4xl font-heading font-extrabold tracking-tighter uppercase">
               Jugadores Similares
             </h1>
@@ -153,7 +154,6 @@ export default async function SimilarPlayersPage({ params }: PageProps) {
         ) : (
           <SimilarPlayersClient
             teamId={teamId}
-            teamName={team.name}
             players={players}
             isCoach={isCoach}
           />

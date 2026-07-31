@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useSocket } from "@/hooks/useSocket";
 import { useRouter } from "next/navigation";
 
@@ -72,7 +73,7 @@ export default function LivePollClient({ teamId, initialPolls }: { teamId: strin
           <div key={poll.id} className="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
             <div className="flex items-center gap-3 mb-4">
               {poll.createdBy.image && (
-                <img src={poll.createdBy.image} alt={poll.createdBy.name} className="w-8 h-8 rounded-full" />
+                <Image src={poll.createdBy.image} alt={poll.createdBy.name} width={32} height={32} className="rounded-full" />
               )}
               <div>
                 <h3 className="text-xl font-bold text-gray-900">{poll.title}</h3>

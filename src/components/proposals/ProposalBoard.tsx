@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useSocket } from "@/hooks/useSocket";
 import { useRouter } from "next/navigation";
 
@@ -96,7 +97,7 @@ export default function ProposalBoard({ teamId, initialProposals, isCoach, curre
                     <p className="text-sm text-muted-foreground mt-1 mb-2">{proposal.description}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       {proposal.createdBy.image && (
-                        <img src={proposal.createdBy.image} className="w-4 h-4 rounded-full" alt="avatar" />
+                        <Image src={proposal.createdBy.image} width={16} height={16} className="rounded-full" alt="avatar" />
                       )}
                       <span>{proposal.createdBy.name}</span>
                       <span>•</span>

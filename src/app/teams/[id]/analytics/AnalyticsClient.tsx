@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   AreaChart,
   Area,
@@ -11,7 +12,8 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import { AlertTriangle, TrendingUp, Users, ArrowLeft, Activity } from "lucide-react";
+import { AlertTriangle, Users, ArrowLeft, Activity } from "lucide-react";
+import { ChartBar } from "@phosphor-icons/react/dist/ssr";
 
 interface WeeklyData {
   week: string;
@@ -47,7 +49,6 @@ export default function AnalyticsClient({
   initialData,
 }: AnalyticsClientProps) {
   const { weeks, players, teamWeeklyAvgLoad } = initialData;
-  const [weeksCount, setWeeksCount] = useState(8);
 
   // Filter players by alerts
   const alertPlayers = players.filter((p) => p.hasAlert);
@@ -93,7 +94,7 @@ export default function AnalyticsClient({
             </Link>
           </div>
           <h1 className="text-4xl font-heading font-extrabold tracking-tighter uppercase">
-            📊 Analytics & RPE
+            <ChartBar size={24} weight="regular" className="inline mr-2" /> Analytics & RPE
           </h1>
           <p className="text-sm font-mono text-muted-foreground mt-1">
             Análisis de carga de entrenamiento y prevención de lesiones
@@ -199,9 +200,11 @@ export default function AnalyticsClient({
                       <div className="flex items-center gap-2 py-1 pr-2 truncate border-r border-border/50">
                         <div className="h-6 w-6 shrink-0 border border-border bg-secondary font-heading font-black text-xs flex items-center justify-center text-foreground overflow-hidden">
                           {player.image ? (
-                            <img
+                            <Image
                               src={player.image}
                               alt={player.name}
+                              width={24}
+                              height={24}
                               className="h-full w-full object-cover"
                             />
                           ) : (
@@ -321,9 +324,11 @@ export default function AnalyticsClient({
                       <div className="flex items-center gap-3">
                         <div className="h-8 w-8 border border-rose-500/30 bg-rose-500/10 font-heading font-black text-sm flex items-center justify-center text-rose-400 overflow-hidden">
                           {player.image ? (
-                            <img
+                            <Image
                               src={player.image}
                               alt={player.name}
+                              width={32}
+                              height={32}
                               className="h-full w-full object-cover"
                             />
                           ) : (

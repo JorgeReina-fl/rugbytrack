@@ -214,19 +214,6 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // Calculate team summary stats
-    let totalTeamLoad = 0;
-    let totalActiveCells = 0;
-    activeWeeks.forEach((week) => {
-      playersData.forEach((p) => {
-        const wData = p.weeklyData.find((d) => d.week === week);
-        if (wData && wData.workload > 0) {
-          totalTeamLoad += wData.workload;
-          totalActiveCells++;
-        }
-      });
-    });
-
     const teamWeeklyAvgLoad =
       activeWeeks.length > 0
         ? Math.round(

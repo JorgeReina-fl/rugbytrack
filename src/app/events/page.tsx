@@ -1,4 +1,5 @@
 import "server-only";
+import { RugbyBallIcon } from "@/components/icons/RugbyBallIcon";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -10,9 +11,7 @@ import {
   startOfMonth,
   endOfMonth,
   eachDayOfInterval,
-  getDay,
   isSameDay,
-  parseISO,
   startOfWeek,
   endOfWeek,
 } from "date-fns";
@@ -64,7 +63,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
           </div>
         </nav>
         <main className="mx-auto max-w-3xl px-4 py-16 text-center">
-          <div className="text-6xl mb-6">🏉</div>
+          <div className="text-6xl mb-6"><RugbyBallIcon size={24} weight="regular" className="inline mr-2" /></div>
           <h1 className="text-3xl font-heading font-extrabold uppercase tracking-tighter text-foreground">No tienes equipos todavía</h1>
           <p className="mt-2 text-xs font-mono uppercase tracking-widest font-bold text-muted-foreground">
             Primero debes crear un equipo o unirte a uno existente para ver los eventos.

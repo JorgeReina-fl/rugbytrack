@@ -8,6 +8,7 @@ import { es } from "date-fns/locale";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { LiveAttendanceClient } from "./LiveAttendanceClient";
 import type { Metadata } from "next";
+import { Gear } from "@phosphor-icons/react/dist/ssr";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -158,14 +159,13 @@ export default async function LiveAttendancePage({ params }: PageProps) {
               href={`/events/${eventId}/attendance`}
               className="border border-primary/40 bg-primary/5 px-4 py-2 text-xs font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-all"
             >
-              ⚙️ Panel de Control
+              <Gear size={24} weight="regular" className="inline mr-2" /> Panel de Control
             </Link>
           )}
         </div>
 
         <LiveAttendanceClient
           eventId={eventId}
-          eventTitle={event.title}
           isCoach={isCoach}
           currentUserId={session.user.id}
           initialAttendances={initialAttendances}

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { RugbyPosition, EventType } from "@prisma/client";
+import { Warning } from "@phosphor-icons/react/dist/ssr";
 
 interface MemberWithUser {
   id: string;
@@ -115,7 +116,7 @@ export function EventForm({ teamId, members }: EventFormProps) {
 
     // Filter selected callups and format them
     const formattedCallups = Object.entries(callups)
-      .filter(([_, info]) => info.selected)
+      .filter(([_userId, info]) => info.selected)
       .map(([userId, info]) => ({
         userId,
         isStarter: info.isStarter,
@@ -164,7 +165,7 @@ export function EventForm({ teamId, members }: EventFormProps) {
     <form onSubmit={handleSubmit} className="space-y-8">
       {error && (
         <div className="border border-destructive bg-destructive/10 p-4 text-xs font-mono font-bold uppercase tracking-widest text-destructive">
-          ⚠️ {error}
+          <Warning size={24} weight="regular" className="inline mr-2" /> {error}
         </div>
       )}
 

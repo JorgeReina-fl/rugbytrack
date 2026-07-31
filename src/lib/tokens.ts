@@ -32,7 +32,7 @@ export function verifyRsvpToken(token: string): { userId: string; eventId: strin
       userId: parsedPayload.userId,
       eventId: parsedPayload.eventId,
     };
-  } catch (error) {
+  } catch {
     return null;
   }
 }
