@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { RugbyPosition, EventType } from "@prisma/client";
 import { Warning } from "@phosphor-icons/react/dist/ssr";
@@ -41,10 +41,121 @@ const positionLabels: Record<RugbyPosition, string> = {
   REPLACEMENT: "Suplente",
 };
 
+/* ── Autocomplete component ─────────────────────────────────────────── */
+
+interface AutocompleteInputProps {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  suggestions: string[];
+  onSaveSuggestion: (v: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+}
+
+function AutocompleteInput({
+  id,
+  value,
+  onChange,
+  suggestions,
+  onSaveSuggestion,
+  placeholder,
+  required,
+  className,
+}: AutocompleteInputProps) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const filtered = suggestions.filter(
+    (s) => s.toLowerCase().includes(value.toLowerCase()) && s !== value
+  );
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <input
+        id={id}
+        type="text"
+        required={required}
+        value={value}
+        placeholder={placeholder}
+        autoComplete="off"
+        className={className}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => onSaveSuggestion(value)}
+      />
+      {open && filtered.length > 0 && (
+        <ul className="absolute z-20 left-0 right-0 top-full mt-1 border border-border bg-card shadow-md max-h-48 overflow-y-auto divide-y divide-border">
+          {filtered.map((s) => (
+            <li
+              key={s}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(s);
+                setOpen(false);
+              }}
+              className="px-4 py-2.5 text-sm font-mono text-foreground cursor-pointer hover:bg-secondary hover:text-primary transition-colors"
+            >
+              {s}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ── Helpers for localStorage ───────────────────────────────────────── */
+
+function loadSuggestions(key: string): string[] {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSuggestion(key: string, value: string, current: string[]): string[] {
+  if (!value.trim()) return current;
+  const next = [value.trim(), ...current.filter((v) => v !== value.trim())].slice(0, 15);
+  try {
+    localStorage.setItem(key, JSON.stringify(next));
+  } catch {}
+  return next;
+}
+
+/* ── Main form ──────────────────────────────────────────────────────── */
+
 export function EventForm({ teamId, members }: EventFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const titleKey = `rt_evt_titles_${teamId}`;
+  const locationKey = `rt_evt_locations_${teamId}`;
+
+  const [titleSuggestions, setTitleSuggestions] = useState<string[]>([]);
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
+
+  useEffect(() => {
+    setTitleSuggestions(loadSuggestions(titleKey));
+    setLocationSuggestions(loadSuggestions(locationKey));
+  }, [titleKey, locationKey]);
 
   // Form Fields
   const [title, setTitle] = useState("");
@@ -77,6 +188,28 @@ export function EventForm({ teamId, members }: EventFormProps) {
       ])
     )
   );
+
+  const playerIds = members.filter((m) => !m.isCoach).map((m) => m.userId);
+
+  const selectAll = () => {
+    setCallups((prev) => {
+      const next = { ...prev };
+      playerIds.forEach((id) => {
+        next[id] = { ...next[id]!, selected: true };
+      });
+      return next;
+    });
+  };
+
+  const deselectAll = () => {
+    setCallups((prev) => {
+      const next = { ...prev };
+      playerIds.forEach((id) => {
+        next[id] = { ...next[id]!, selected: false };
+      });
+      return next;
+    });
+  };
 
   const toggleMemberCallup = (userId: string) => {
     setCallups((prev) => ({
@@ -114,7 +247,6 @@ export function EventForm({ teamId, members }: EventFormProps) {
     setError(null);
     setLoading(true);
 
-    // Filter selected callups and format them
     const formattedCallups = Object.entries(callups)
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       .filter(([_userId, info]) => info.selected)
@@ -147,6 +279,10 @@ export function EventForm({ teamId, members }: EventFormProps) {
         throw new Error(result.error || "Error al crear el evento");
       }
 
+      // Persist title and location for future autocomplete
+      setTitleSuggestions((prev) => saveSuggestion(titleKey, title, prev));
+      setLocationSuggestions((prev) => saveSuggestion(locationKey, location, prev));
+
       router.push(`/events?teamId=${teamId}`);
       router.refresh();
     } catch (err: any) {
@@ -178,13 +314,17 @@ export function EventForm({ teamId, members }: EventFormProps) {
 
         <div className="grid gap-6 md:grid-cols-2">
           <div>
-            <label className={labelCls}>Título del Evento *</label>
-            <input
-              type="text"
-              required
+            <label htmlFor="event-title" className={labelCls}>Título del Evento *</label>
+            <AutocompleteInput
+              id="event-title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={setTitle}
+              suggestions={titleSuggestions}
+              onSaveSuggestion={(v) =>
+                setTitleSuggestions((prev) => saveSuggestion(titleKey, v, prev))
+              }
               placeholder="Ej. Entrenamiento Táctico / vs Club Liceo"
+              required
               className={inputCls}
             />
           </div>
@@ -239,11 +379,15 @@ export function EventForm({ teamId, members }: EventFormProps) {
         </div>
 
         <div>
-          <label className={labelCls}>Ubicación</label>
-          <input
-            type="text"
+          <label htmlFor="event-location" className={labelCls}>Ubicación</label>
+          <AutocompleteInput
+            id="event-location"
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={setLocation}
+            suggestions={locationSuggestions}
+            onSaveSuggestion={(v) =>
+              setLocationSuggestions((prev) => saveSuggestion(locationKey, v, prev))
+            }
             placeholder="Ej. Campo de Rugby de la Universidad / Club Municipal"
             className={inputCls}
           />
@@ -270,6 +414,24 @@ export function EventForm({ teamId, members }: EventFormProps) {
           <p className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground mt-3">
             Selecciona los jugadores convocados y asígnales su rol en el equipo.
           </p>
+        </div>
+
+        {/* Seleccionar / Deseleccionar todos */}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={selectAll}
+            className="px-4 py-2 text-xs font-mono font-bold uppercase tracking-widest border border-border bg-background text-foreground hover:border-primary hover:text-primary transition-all"
+          >
+            Seleccionar todos
+          </button>
+          <button
+            type="button"
+            onClick={deselectAll}
+            className="px-4 py-2 text-xs font-mono font-bold uppercase tracking-widest border border-border bg-background text-muted-foreground hover:border-destructive hover:text-destructive transition-all"
+          >
+            Deseleccionar todos
+          </button>
         </div>
 
         <div className="border border-border overflow-hidden divide-y divide-border bg-background">
