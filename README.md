@@ -77,3 +77,17 @@ Puedes iniciar sesión directamente en la plataforma usando las siguientes cuent
    pnpm dev
    ```
    Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
+
+---
+
+## 🗄️ Volúmenes Docker (Producción)
+
+| Volumen | Mount en contenedor | Propósito |
+|---------|---------------------|-----------|
+| `docker-lab_rugbytrack_uploads` | `/app/public/uploads` | Imágenes adjuntas en debates del foro. Persiste entre rebuilds y reinicios del contenedor. Definido en `/home/ubuntu/docker-lab/docker-compose.yml`. |
+
+**Notas:**
+- El volumen es gestionado por Docker Compose del docker-lab (`docker-lab_rugbytrack_uploads`).
+- En desarrollo local, las imágenes se guardan directamente en `public/uploads/` del sistema de archivos (no se usa Docker volume).
+- La API de subida (`POST /api/upload`) valida tipo (JPG/PNG/WEBP) y tamaño (máx. 5 MB) antes de escribir en el volumen.
+- Para inspeccionar el contenido del volumen en producción: `docker exec rugbytrack-app ls /app/public/uploads/`
