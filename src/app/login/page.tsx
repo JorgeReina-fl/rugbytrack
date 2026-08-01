@@ -43,9 +43,11 @@ function LoginFormContent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="text-5xl font-heading font-extrabold tracking-tighter uppercase text-foreground">
-            Rugby<span className="text-primary">Track</span>
-          </h1>
+          <Link href="/">
+            <h1 className="text-5xl font-heading font-extrabold tracking-tighter uppercase text-foreground hover:opacity-80 transition-opacity">
+              Rugby<span className="text-primary">Track</span>
+            </h1>
+          </Link>
           <p className="mt-2 text-muted-foreground font-mono uppercase tracking-widest text-xs font-semibold">
             Accede a tu cuenta
           </p>

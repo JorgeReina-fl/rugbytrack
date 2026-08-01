@@ -88,6 +88,7 @@ export default async function TeamsPage() {
             </div>
           </div>
         ) : (
+          <>
           <div className="grid gap-6 sm:grid-cols-2">
             {teams.map((team) => {
               const membership = team.members[0];
@@ -127,6 +128,7 @@ export default async function TeamsPage() {
               + Crear equipo
             </Link>
           </div>
+          </>
         )}
       </main>
     </div>
