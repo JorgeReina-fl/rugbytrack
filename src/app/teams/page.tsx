@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { RugbyBallIcon } from "@/components/icons/RugbyBallIcon";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -69,20 +70,13 @@ export default async function TeamsPage() {
           </Link>
         </div>
 
-        <div className="mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="mb-10">
           <h1 className="text-5xl font-heading font-extrabold uppercase tracking-tighter">Mis equipos</h1>
-          <Link
-            href="/teams/new"
-            id="create-team-link"
-            className="rounded-xl bg-primary px-6 py-3 text-sm font-mono uppercase tracking-widest font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md text-center"
-          >
-            + Crear equipo
-          </Link>
         </div>
 
         {teams.length === 0 ? (
           <div className="rounded-2xl border border-border bg-card p-16 text-center shadow-sm">
-            <div className="mb-6 text-5xl">🏉</div>
+            <div className="mb-6 text-5xl"><RugbyBallIcon size={24} weight="regular" className="inline mr-2" /></div>
             <p className="text-muted-foreground font-mono uppercase tracking-widest font-bold">Aún no perteneces a ningún equipo</p>
             <div className="mt-8 flex justify-center gap-3">
               <Link
@@ -106,7 +100,7 @@ export default async function TeamsPage() {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex h-14 w-14 items-center justify-center bg-secondary text-2xl">
-                      🏉
+                      <RugbyBallIcon size={24} weight="regular" className="inline mr-2" />
                     </div>
                     {membership?.isCoach && (
                       <span className="bg-primary/10 px-3 py-1 text-xs font-mono font-bold uppercase tracking-widest text-primary">
@@ -123,6 +117,15 @@ export default async function TeamsPage() {
                 </Link>
               );
             })}
+          </div>
+          <div className="mt-8 flex justify-start">
+            <Link
+              href="/teams/new"
+              id="create-team-link"
+              className="rounded-xl bg-primary px-6 py-3 text-sm font-mono uppercase tracking-widest font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md text-center"
+            >
+              + Crear equipo
+            </Link>
           </div>
         )}
       </main>
