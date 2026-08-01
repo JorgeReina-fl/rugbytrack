@@ -88,7 +88,7 @@ export default function NewTeamPage() {
                 minLength={2}
                 maxLength={80}
                 autoComplete="off"
-                className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none ring-ring transition-all focus:border-primary focus:ring-2 font-mono"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none ring-ring transition-all focus:border-ring focus:ring-2 font-mono"
                 placeholder="Ej: RC Sevilla"
               />
             </div>
@@ -102,7 +102,7 @@ export default function NewTeamPage() {
                 name="description"
                 rows={3}
                 maxLength={500}
-                className="w-full resize-none rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none ring-ring transition-all focus:border-primary focus:ring-2 font-sans"
+                className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none ring-ring transition-all focus:border-ring focus:ring-2 font-sans"
                 placeholder="Club de rugby amateur de Sevilla, categoría senior..."
               />
             </div>
@@ -111,7 +111,7 @@ export default function NewTeamPage() {
               id="create-team-submit"
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-primary px-4 py-4 text-sm font-mono uppercase tracking-widest font-bold text-primary-foreground transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 shadow-md"
+              className="w-full rounded-xl bg-primary px-4 py-4 text-sm font-mono uppercase tracking-widest font-bold text-primary-foreground transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 shadow-md"
             >
               {loading ? "CREANDO EQUIPO..." : "CREAR EQUIPO"}
             </button>

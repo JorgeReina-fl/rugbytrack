@@ -20,6 +20,9 @@
   --input: #e2e8f0;
   --ring: #808CFD;
 
+  --destructive: #e03131;
+  --destructive-foreground: #FFFFFF;
+
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
@@ -50,6 +53,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
 
   --radius-sm: 0px;
   --radius-md: 0px;

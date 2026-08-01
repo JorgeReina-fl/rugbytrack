@@ -67,7 +67,7 @@ export function RsvpAction({ token }: RsvpActionProps) {
         <button
           onClick={() => handleRsvp("CONFIRMED")}
           disabled={status === "loading"}
-          className="bg-[#808CFD] text-white hover:bg-[#000000] px-4 py-4 font-mono font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
+          className="bg-primary text-primary-foreground hover:bg-foreground px-4 py-4 font-mono font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
         >
           {status === "loading" ? "Procesando..." : "Asistiré"}
         </button>
@@ -75,7 +75,7 @@ export function RsvpAction({ token }: RsvpActionProps) {
         <button
           onClick={() => handleRsvp("DECLINED")}
           disabled={status === "loading"}
-          className="bg-[#E9ECFF] text-foreground hover:bg-[#000000] hover:text-white px-4 py-4 font-mono font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
+          className="bg-secondary text-secondary-foreground hover:bg-foreground hover:text-background px-4 py-4 font-mono font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
         >
           No Asistiré
         </button>
