@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import RegisterForm from "./register-form";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LogoStacked } from "@/components/icons/Logo";
 
 export const metadata: Metadata = {
   title: "Crear cuenta",
@@ -22,12 +23,10 @@ export default async function RegisterPage({ searchParams }: PageProps) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link href="/">
-            <h1 className="text-5xl font-heading font-extrabold tracking-tighter uppercase text-foreground hover:opacity-80 transition-opacity">
-              Rugby<span className="text-primary">Track</span>
-            </h1>
+          <Link href="/" className="inline-block hover:opacity-80 transition-opacity">
+            <LogoStacked size={48} />
           </Link>
-          <p className="mt-2 text-muted-foreground font-mono uppercase tracking-widest text-xs font-semibold">
+          <p className="mt-4 text-muted-foreground font-mono uppercase tracking-widest text-xs font-semibold">
             Crea tu cuenta
           </p>
         </div>

@@ -1,8 +1,11 @@
 import { auth } from "@/auth";
+import { RugbyBallIcon } from "@/components/icons/RugbyBallIcon";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { ChartBar, Plus, Calendar, Chats } from "@phosphor-icons/react/dist/ssr";
+import { LogoHorizontal } from "@/components/icons/Logo";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -16,8 +19,8 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-background text-foreground">
       <nav className="border-b border-border bg-background/80 backdrop-blur-sm shadow-sm sticky top-0 z-10">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-          <Link href="/dashboard" className="text-xl font-heading font-extrabold tracking-tighter uppercase">
-            Rugby<span className="text-primary">Track</span>
+          <Link href="/dashboard">
+            <LogoHorizontal size={32} />
           </Link>
           <div className="flex items-center gap-4">
             <span className="text-sm font-mono uppercase tracking-widest font-semibold text-muted-foreground">
@@ -49,7 +52,7 @@ export default async function DashboardPage() {
             id="dashboard-teams-card"
             className="group border border-border bg-card p-6 transition-all hover:border-primary hover:shadow-md"
           >
-            <div className="mb-4 text-3xl">🏉</div>
+            <div className="mb-4 text-3xl"><RugbyBallIcon size={24} weight="regular" className="inline mr-2" /></div>
             <h2 className="font-heading font-extrabold uppercase tracking-tighter text-foreground group-hover:text-primary transition-colors">
               Mis equipos
             </h2>
@@ -64,7 +67,7 @@ export default async function DashboardPage() {
             id="dashboard-create-team-card"
             className="group border border-dashed border-border bg-background p-6 transition-all hover:border-primary hover:bg-primary/5"
           >
-            <div className="mb-4 text-3xl">➕</div>
+            <div className="mb-4 text-3xl"><Plus size={32} weight="regular" /></div>
             <h2 className="font-heading font-extrabold uppercase tracking-tighter text-muted-foreground group-hover:text-primary transition-colors">
               Crear equipo
             </h2>
@@ -79,7 +82,7 @@ export default async function DashboardPage() {
             id="dashboard-events-card"
             className="group border border-border bg-card p-6 transition-all hover:border-primary hover:shadow-md"
           >
-            <div className="mb-4 text-3xl">📅</div>
+            <div className="mb-4 text-3xl"><Calendar size={32} weight="regular" /></div>
             <h2 className="font-heading font-extrabold uppercase tracking-tighter text-foreground group-hover:text-primary transition-colors">
               Eventos
             </h2>
@@ -94,7 +97,7 @@ export default async function DashboardPage() {
             id="dashboard-trainings-card"
             className="group border border-border bg-card p-6 transition-all hover:border-primary hover:shadow-md"
           >
-            <div className="mb-4 text-3xl">📊</div>
+            <div className="mb-4 text-3xl"><ChartBar size={24} weight="regular" className="inline mr-2" /></div>
             <h2 className="font-heading font-extrabold uppercase tracking-tighter text-foreground group-hover:text-primary transition-colors">
               Entrenos
             </h2>
@@ -109,7 +112,7 @@ export default async function DashboardPage() {
             id="dashboard-forum-card"
             className="group border border-border bg-card p-6 transition-all hover:border-primary hover:shadow-md rounded-none"
           >
-            <div className="mb-4 text-3xl">💬</div>
+            <div className="mb-4 text-3xl"><Chats size={32} weight="regular" /></div>
             <h2 className="font-heading font-extrabold uppercase tracking-tighter text-foreground group-hover:text-primary transition-colors">
               Foro
             </h2>

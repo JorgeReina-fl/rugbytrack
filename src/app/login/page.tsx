@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { LogoStacked } from "@/components/icons/Logo";
 
 function LoginFormContent() {
   const router = useRouter();
@@ -43,12 +44,10 @@ function LoginFormContent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link href="/">
-            <h1 className="text-5xl font-heading font-extrabold tracking-tighter uppercase text-foreground hover:opacity-80 transition-opacity">
-              Rugby<span className="text-primary">Track</span>
-            </h1>
+          <Link href="/" className="inline-block hover:opacity-80 transition-opacity">
+            <LogoStacked size={48} />
           </Link>
-          <p className="mt-2 text-muted-foreground font-mono uppercase tracking-widest text-xs font-semibold">
+          <p className="mt-4 text-muted-foreground font-mono uppercase tracking-widest text-xs font-semibold">
             Accede a tu cuenta
           </p>
         </div>
