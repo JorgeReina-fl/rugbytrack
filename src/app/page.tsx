@@ -130,7 +130,7 @@ export default async function HomePage() {
             </div>
           </div>
           {/* Right: Imagen Full */}
-          <div className="aspect-square md:aspect-auto w-full min-h-[400px] relative overflow-hidden">
+          <div className="aspect-[4/3] md:aspect-auto w-full md:min-h-[400px] relative overflow-hidden">
             <Image src="/img-rugbytrack3.jpg" alt="Rugby potencial" fill className="object-cover" />
           </div>
         </div>
@@ -153,29 +153,29 @@ export default async function HomePage() {
 
         {/* FOOTER LOCAL (Según Figma) — punto 3: enlaces legales */}
         <footer className="flex flex-col bg-background">
-          <div className="grid grid-cols-1 md:grid-cols-2 p-12 md:p-16 gap-16 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 px-6 py-10 md:p-16 gap-10 md:gap-8">
             {/* Logo Area */}
-            <div className="flex items-start">
+            <div className="flex justify-center md:justify-start items-start">
               <LogoHorizontal size={56} />
             </div>
 
             {/* Links Area */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-              <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 text-center sm:text-left">
+              <div className="flex flex-col gap-3 items-center sm:items-start">
                 <h5 className="font-heading font-bold text-lg uppercase">Contacto</h5>
                 <div className="flex flex-col gap-1 font-sans text-xs font-medium">
-                  <a href="mailto:rugbytrack@mivia.es" className="hover:underline">rugbytrack@mivia.es</a>
+                  <a href="mailto:rugbytrack@mivia.es" className="hover:underline break-all">rugbytrack@mivia.es</a>
                   <span>+34 600 000 000</span>
                 </div>
               </div>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 items-center sm:items-start">
                 <h5 className="font-heading font-bold text-lg uppercase">Horarios</h5>
-                <div className="flex flex-col gap-1 font-mono text-xs uppercase tracking-tighter">
-                  <div className="flex justify-between w-full max-w-[120px]"><span>Lun-Vie</span><span>09:00 - 22:00</span></div>
-                  <div className="flex justify-between w-full max-w-[120px]"><span>Sáb-Dom</span><span>08:00 - 15:00</span></div>
+                <div className="flex flex-col gap-1 font-mono text-xs uppercase tracking-tighter w-full max-w-[140px]">
+                  <div className="flex justify-between"><span>Lun-Vie</span><span>09-22h</span></div>
+                  <div className="flex justify-between"><span>Sáb-Dom</span><span>08-15h</span></div>
                 </div>
               </div>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 items-center sm:items-start col-span-2 sm:col-span-1">
                 <h5 className="font-heading font-bold text-lg uppercase">Redes</h5>
                 <div className="flex flex-col gap-1 font-sans text-xs underline font-medium">
                   <a href="#" className="hover:text-primary">Instagram</a>
@@ -187,7 +187,7 @@ export default async function HomePage() {
           </div>
 
           {/* Legal links */}
-          <div className="border-t border-border px-12 md:px-16 py-6 flex flex-wrap gap-6 items-center">
+          <div className="border-t border-border px-6 md:px-16 py-6 flex flex-wrap gap-3 md:gap-6 items-center justify-center md:justify-start text-center">
             <span className="font-mono text-xs text-muted-foreground uppercase tracking-tighter">© {new Date().getFullYear()} RugbyTrack</span>
             <Link href="/legal" className="font-mono text-xs text-muted-foreground uppercase tracking-tighter hover:text-primary transition-colors">Aviso Legal</Link>
             <Link href="/terminos" className="font-mono text-xs text-muted-foreground uppercase tracking-tighter hover:text-primary transition-colors">Términos y Condiciones</Link>
