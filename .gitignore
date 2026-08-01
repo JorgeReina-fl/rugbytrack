@@ -48,6 +48,10 @@ src/lib/*.js
 # docker backup files
 docker-compose.yml.bak.*
 
+# user uploads (keep the directory, ignore its contents)
+/public/uploads/*
+!/public/uploads/.gitkeep
+
 # one-off utility scripts (not part of the project)
 replace_*.js
 run_replace.js

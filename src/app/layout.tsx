@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Anek_Tamil, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
+import { CookieBanner } from "@/components/CookieBanner";
 
 const anekTamil = Anek_Tamil({
   subsets: ["latin"],
@@ -46,9 +47,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`${anekTamil.variable} ${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="es" className={`${anekTamil.variable} ${geistSans.variable} ${geistMono.variable} scroll-smooth`}>
       <body className="min-h-screen bg-background font-sans antialiased">
         <SessionProvider>{children}</SessionProvider>
+        <CookieBanner />
       </body>
     </html>
   );

@@ -103,7 +103,7 @@ export default async function HomePage() {
         </div>
 
         {/* DISCOVER POTENTIAL SPLIT */}
-        <div className="grid grid-cols-1 md:grid-cols-2 border-b border-border">
+        <section id="features" className="grid grid-cols-1 md:grid-cols-2 border-b border-border scroll-mt-24">
           {/* Left: Lista de Funcionalidades */}
           <div className="p-8 border-r border-border flex flex-col gap-12">
             <h3 className="font-heading font-bold text-4xl uppercase tracking-tight">Desbloquea tu Potencial</h3>
@@ -133,7 +133,7 @@ export default async function HomePage() {
           <div className="aspect-[4/3] md:aspect-auto w-full md:min-h-[400px] relative overflow-hidden">
             <Image src="/img-rugbytrack3.jpg" alt="Rugby potencial" fill className="object-cover" />
           </div>
-        </div>
+        </section>
 
         {/* CTA BANNER PÚRPURA — punto 2: titular + subtítulo + CTA "Prueba RugbyTrack gratis" */}
         <div className="relative text-primary-foreground p-12 md:p-24 flex flex-col items-center justify-center text-center gap-8 border-b border-border overflow-hidden">
@@ -165,7 +165,7 @@ export default async function HomePage() {
                 <h5 className="font-heading font-bold text-lg uppercase">Contacto</h5>
                 <div className="flex flex-col gap-1 font-sans text-xs font-medium">
                   <a href="mailto:rugbytrack@mivia.es" className="hover:underline break-all">rugbytrack@mivia.es</a>
-                  <span>+34 600 000 000</span>
+                  <a href="tel:+34865782210" className="hover:underline">+34 865 782 210</a>
                 </div>
               </div>
               <div className="flex flex-col gap-3 items-center sm:items-start">
@@ -178,9 +178,7 @@ export default async function HomePage() {
               <div className="flex flex-col gap-3 items-center sm:items-start col-span-2 sm:col-span-1">
                 <h5 className="font-heading font-bold text-lg uppercase">Redes</h5>
                 <div className="flex flex-col gap-1 font-sans text-xs underline font-medium">
-                  <a href="#" className="hover:text-primary">Instagram</a>
-                  <a href="#" className="hover:text-primary">X (Twitter)</a>
-                  <a href="#" className="hover:text-primary">Spotify</a>
+                  <a href="https://instagram.com/mivia.es" target="_blank" rel="noopener" className="hover:text-primary">Instagram</a>
                 </div>
               </div>
             </div>
