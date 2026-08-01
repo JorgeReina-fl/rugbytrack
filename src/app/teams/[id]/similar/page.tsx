@@ -98,6 +98,10 @@ export default async function SimilarPlayersPage({ params }: PageProps) {
             Dashboard
           </Link>
           <span>/</span>
+          <Link href="/teams" className="hover:text-primary transition-colors">
+            Mis Equipos
+          </Link>
+          <span>/</span>
           <Link href={`/teams/${teamId}`} className="hover:text-primary transition-colors">
             {team.name}
           </Link>
