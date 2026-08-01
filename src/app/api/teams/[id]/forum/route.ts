@@ -15,6 +15,7 @@ import {
 const threadSchema = z.object({
   title: z.string().min(5, "El título debe tener al menos 5 caracteres").max(100),
   content: z.string().min(10, "El contenido debe tener al menos 10 caracteres").max(5000),
+  imageUrl: z.string().url().optional().nullable(),
 });
 
 export async function GET(
@@ -69,6 +70,7 @@ export async function POST(
       authorName: session.user.name || "Usuario Desconocido",
       title: result.data.title,
       content: result.data.content,
+      ...(result.data.imageUrl ? { imageUrl: result.data.imageUrl } : {}),
     });
 
     return apiSuccess(newThread, 201);

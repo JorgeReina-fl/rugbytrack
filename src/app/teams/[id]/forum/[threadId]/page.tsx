@@ -2,6 +2,7 @@ import "server-only";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { dbConnect } from "@/lib/mongoose";
 import { Thread } from "@/models/Thread";
@@ -91,6 +92,19 @@ export default async function ThreadPage({ params }: PageProps) {
           <div className="prose prose-invert max-w-none font-sans text-foreground/90 whitespace-pre-wrap">
             {thread.content}
           </div>
+
+          {thread.imageUrl && (
+            <div className="mt-6 rounded-xl overflow-hidden border border-border">
+              <Image
+                src={thread.imageUrl}
+                alt="Imagen adjunta al debate"
+                width={800}
+                height={500}
+                className="w-full object-cover"
+                unoptimized
+              />
+            </div>
+          )}
         </article>
 
         <div className="space-y-6">

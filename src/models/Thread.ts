@@ -6,6 +6,7 @@ export interface IThread extends Document {
   authorName: string;
   title: string;
   content: string;
+  imageUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +34,10 @@ const ThreadSchema: Schema = new Schema(
     content: {
       type: String,
       required: true,
+    },
+    imageUrl: {
+      type: String,
+      required: false,
     },
   },
   {
