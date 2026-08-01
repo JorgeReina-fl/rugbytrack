@@ -5,6 +5,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { WorkloadChart } from "@/components/training/WorkloadChart";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { Fire } from "@phosphor-icons/react/dist/ssr";
 
 interface PageProps {
   params: Promise<{
@@ -157,7 +158,7 @@ export default async function TeamStatisticsPage({ params }: PageProps) {
             <div className="mb-8 flex items-center justify-between border-b border-border pb-4">
               <div>
                 <h2 className="text-2xl font-heading font-extrabold uppercase tracking-tight flex items-center gap-2">
-                  <span>🔥</span> Ranking de Jugadores
+                  <span><Fire size={24} weight="regular" className="inline mr-2" /></span> Ranking de Jugadores
                 </h2>
                 <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mt-1">
                   Carga Acumulada (Últimos 30 días)

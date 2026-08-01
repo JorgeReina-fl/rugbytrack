@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useSocket } from "@/hooks/useSocket";
 import { RugbyPosition } from "@prisma/client";
+import { Warning } from "@phosphor-icons/react/dist/ssr";
 
 interface PlayerAttendance {
   userId: string;
@@ -154,7 +155,7 @@ export function AttendanceBoard({ eventId, initialAttendances }: AttendanceBoard
     <div className="space-y-6">
       {error && (
         <div className="border border-destructive bg-destructive/10 p-4 text-sm font-mono font-bold text-destructive">
-          ⚠️ {error}
+          <Warning size={24} weight="regular" className="inline mr-2" /> {error}
         </div>
       )}
 

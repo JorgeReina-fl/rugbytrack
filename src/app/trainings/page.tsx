@@ -1,4 +1,5 @@
 import "server-only";
+import { RugbyBallIcon } from "@/components/icons/RugbyBallIcon";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -9,6 +10,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { RpeForm } from "@/components/training/RpeForm";
 import { WorkloadChart } from "@/components/training/WorkloadChart";
+import { ChartBar } from "@phosphor-icons/react/dist/ssr";
 
 interface PageProps {
   searchParams: Promise<{
@@ -54,7 +56,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
           </div>
         </nav>
         <main className="mx-auto max-w-3xl px-4 py-16 text-center">
-          <div className="text-6xl mb-6">🏉</div>
+          <div className="text-6xl mb-6"><RugbyBallIcon size={24} weight="regular" className="inline mr-2" /></div>
           <h1 className="text-3xl font-heading font-extrabold uppercase tracking-tighter text-foreground">No tienes equipos todavía</h1>
           <p className="mt-2 text-xs font-mono uppercase tracking-widest font-bold text-muted-foreground">
             Primero debes crear un equipo o unirte a uno existente para ver los entrenamientos.
@@ -202,7 +204,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
 
         {events.length === 0 ? (
           <div className="border border-border bg-card p-12 text-center shadow-sm rounded-none">
-            <div className="text-5xl mb-4">📊</div>
+            <div className="text-5xl mb-4"><ChartBar size={24} weight="regular" className="inline mr-2" /></div>
             <h2 className="text-2xl font-heading font-extrabold uppercase tracking-tighter">No hay sesiones de entrenamiento</h2>
             <p className="mt-2 text-xs font-mono uppercase tracking-widest text-muted-foreground">
               Los entrenamientos programados aparecerán aquí para registrar la carga física.

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { AttendanceStatus } from "@prisma/client";
+import { Warning } from "@phosphor-icons/react/dist/ssr";
 
 interface RsvpControlProps {
   eventId: string;
@@ -42,7 +43,7 @@ export function RsvpControl({ eventId, initialStatus }: RsvpControlProps) {
     <div className="space-y-4">
       {error && (
         <div className="border border-destructive bg-destructive/10 p-3 text-xs font-mono font-bold text-destructive">
-          ⚠️ {error}
+          <Warning size={24} weight="regular" className="inline mr-2" /> {error}
         </div>
       )}
 

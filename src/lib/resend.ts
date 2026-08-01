@@ -29,7 +29,7 @@ export async function sendEmail({ to, subject, react }: SendEmailParams) {
   try {
     const html = await render(react);
     const data = await resend.emails.send({
-      from: "RugbyTrack <onboarding@resend.dev>", // Usamos el remitente de prueba en desarrollo/sandbox
+      from: process.env.EMAIL_FROM || "RugbyTrack <rugbytrack@mivia.es>",
       to,
       subject,
       html,

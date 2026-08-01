@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { RugbyBallIcon } from "@/components/icons/RugbyBallIcon";
 import { notFound } from "next/navigation";
 import JoinTeamForm from "./join-form";
 import type { Metadata } from "next";
@@ -36,7 +37,7 @@ export default async function JoinTeamPage({ params }: PageProps) {
           <p className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground mb-3">
             Invitación al equipo
           </p>
-          <div className="mb-4 text-5xl">🏉</div>
+          <div className="mb-4 text-5xl"><RugbyBallIcon size={24} weight="regular" className="inline mr-2" /></div>
           <h1 className="text-4xl font-heading font-extrabold uppercase tracking-tighter text-foreground">
             Únete a{" "}
             <span className="text-primary">{team.name}</span>

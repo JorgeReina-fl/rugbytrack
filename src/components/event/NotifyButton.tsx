@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Warning } from "@phosphor-icons/react/dist/ssr";
 
 interface NotifyButtonProps {
   eventId: string;
@@ -52,7 +53,7 @@ export function NotifyButton({ eventId }: NotifyButtonProps) {
 
       {status === "error" && (
         <p className="text-xs font-mono font-bold uppercase tracking-widest text-destructive mt-1">
-          ⚠️ {message}
+          <Warning size={24} weight="regular" className="inline mr-2" /> {message}
         </p>
       )}
     </div>

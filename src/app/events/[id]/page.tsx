@@ -10,6 +10,7 @@ import { RugbyPosition } from "@prisma/client";
 import { RpeForm } from "@/components/training/RpeForm";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { NotifyButton } from "@/components/event/NotifyButton";
+import { Gear } from "@phosphor-icons/react/dist/ssr";
 
 interface PageProps {
   params: Promise<{
@@ -246,7 +247,7 @@ export default async function EventDetailPage({ params }: PageProps) {
             {isCoach && (
               <div className="border border-primary/30 bg-primary/5 p-6 shadow-sm space-y-4">
                 <h3 className="text-xl font-heading font-extrabold tracking-tighter uppercase flex items-center gap-2">
-                  <span>⚙️</span> Panel de Control
+                  <span><Gear size={24} weight="regular" className="inline mr-2" /></span> Panel de Control
                 </h3>
                 <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest leading-relaxed">
                   Como entrenador, puedes abrir la sesión de asistencia interactiva o pasar lista manualmente.

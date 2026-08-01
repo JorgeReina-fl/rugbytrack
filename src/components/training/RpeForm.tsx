@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { rpeEntrySchema, RpeEntryInput } from "@/lib/validations/rpe";
 import { useRouter } from "next/navigation";
+import { Warning } from "@phosphor-icons/react/dist/ssr";
 
 interface RpeFormProps {
   eventId: string;
@@ -69,7 +70,7 @@ export function RpeForm({ eventId }: RpeFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       {apiError && (
         <div className="rounded-none border border-destructive bg-destructive/10 p-4 text-sm font-semibold text-destructive">
-          ⚠️ {apiError}
+          <Warning size={24} weight="regular" className="inline mr-2" /> {apiError}
         </div>
       )}
 
