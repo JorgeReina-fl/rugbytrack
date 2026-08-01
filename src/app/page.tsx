@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { LogoHorizontal } from "@/components/icons/Logo";
+import { MobileNav } from "@/components/landing/MobileNav";
 
 export const metadata: Metadata = {
   title: "RugbyTrack — Entrena Duro. Rinde Mejor.",
@@ -20,27 +21,28 @@ export default async function HomePage() {
       <div className="w-full max-w-[1200px] flex flex-col relative border-x border-border">
 
         {/* NAV LOCAL — punto 4: CTA primario "Empieza gratis" + "Iniciar sesión" outline secundario */}
-        <nav className="flex flex-row items-center justify-between py-6 px-8 border-b border-border">
-          <Link href="/">
+        <nav className="flex flex-row items-center justify-between gap-3 py-4 md:py-6 px-4 md:px-8 border-b border-border">
+          <Link href="/" className="flex-shrink-0">
             <LogoHorizontal size={32} />
           </Link>
           <div className="hidden md:flex items-center gap-8 font-mono text-sm uppercase tracking-tighter">
             <Link href="/" className="hover:text-primary transition-colors">Inicio</Link>
             <Link href="#features" className="hover:text-primary transition-colors">Características</Link>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="font-mono uppercase text-sm py-3 px-5 rounded-lg border border-border hover:border-primary hover:text-primary transition-colors">
+          <div className="flex items-center gap-2 md:gap-3">
+            <Link href="/login" className="hidden md:inline-flex font-mono uppercase text-sm py-3 px-5 rounded-lg border border-border hover:border-primary hover:text-primary transition-colors whitespace-nowrap">
               Iniciar Sesión
             </Link>
-            <Link href="/register" className="bg-primary text-primary-foreground font-mono uppercase text-sm py-3 px-6 rounded-lg hover:bg-foreground hover:text-background transition-colors">
+            <Link href="/register" className="bg-primary text-primary-foreground font-mono uppercase text-xs md:text-sm py-2.5 md:py-3 px-3 md:px-6 rounded-lg hover:bg-foreground hover:text-background transition-colors whitespace-nowrap">
               Empieza Gratis
             </Link>
+            <MobileNav />
           </div>
         </nav>
 
         {/* TITULAR GIGANTE HERO */}
-        <div className="py-8 px-8 border-b border-border flex flex-col gap-6">
-          <h1 className="font-heading font-extrabold text-7xl md:text-[110px] leading-[0.85] tracking-tighter uppercase break-words">
+        <div className="py-8 px-4 md:px-8 border-b border-border flex flex-col gap-6">
+          <h1 className="font-heading font-extrabold text-5xl sm:text-7xl md:text-[110px] leading-[0.85] tracking-tighter uppercase break-words">
             Entrena Duro. <span className="text-primary">Rinde Mejor.</span>
           </h1>
           {/* punto 1: CTA primario hero */}
