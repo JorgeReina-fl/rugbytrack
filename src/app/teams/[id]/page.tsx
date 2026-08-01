@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import type { Metadata } from "next";
 import type { RugbyPosition } from "@prisma/client";
+import { CheckSquare, Lightbulb, ChartBar, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -89,10 +90,10 @@ export default async function TeamDetailPage({ params }: PageProps) {
       <div className="mx-auto max-w-4xl px-4 py-10">
         <div className="mb-4">
           <Link
-            href="/dashboard"
+            href="/teams"
             className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-all"
           >
-            ← Dashboard
+            ← Mis Equipos
           </Link>
         </div>
 
@@ -111,32 +112,27 @@ export default async function TeamDetailPage({ params }: PageProps) {
               href={`/teams/${team.id}/similar`}
               className="border border-primary/40 bg-primary/5 px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-all"
             >
-              🔍 Jugadores similares
+              <MagnifyingGlass size={24} weight="regular" className="inline mr-2" /> Jugadores similares
             </Link>
             <Link
               href={`/teams/${team.id}/polls`}
               className="border border-primary/40 bg-primary/5 px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-all"
             >
-              🗳️ Encuestas
+              <CheckSquare size={24} weight="regular" className="inline mr-2" /> Encuestas
             </Link>
             <Link
               href={`/teams/${team.id}/proposals`}
               className="border border-primary/40 bg-primary/5 px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-all"
             >
-              💡 Propuestas
+              <Lightbulb size={24} weight="regular" className="inline mr-2" /> Propuestas
             </Link>
-            <Link
-              href={`/teams/${team.id}/gameplan`}
-              className="border border-primary/40 bg-primary/5 px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-all"
-            >
-              🏉 Plan de Juego
-            </Link>
+
             {isCoach && (
               <Link
                 href={`/teams/${team.id}/analytics`}
                 className="border border-primary/40 bg-primary/5 px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-all"
               >
-                📊 Analytics
+                <ChartBar size={24} weight="regular" className="inline mr-2" /> Analytics
               </Link>
             )}
           </div>
