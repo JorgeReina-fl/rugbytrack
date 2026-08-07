@@ -158,7 +158,7 @@ export default function AnalyticsClient({
         {/* Heatmap & Grid Section */}
         <div className="lg:col-span-2 space-y-8">
           <div className="border border-border bg-card shadow-sm">
-            <div className="border-b border-border bg-secondary px-6 py-4 flex items-center justify-between">
+            <div className="border-b border-border bg-secondary px-6 py-4 flex flex-wrap items-center justify-between gap-y-2">
               <h2 className="font-mono font-bold text-sm uppercase tracking-widest text-foreground">
                 Heatmap de Intensidad (RPE Medio)
               </h2>
