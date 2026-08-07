@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import ProposalBoard from "@/components/proposals/ProposalBoard";
 
 interface PageProps {
@@ -21,7 +23,7 @@ export default async function ProposalsPage({ params }: PageProps) {
   });
 
   if (!membership) {
-    redirect("/dashboard");
+    notFound();
   }
 
   const proposals = await prisma.proposal.findMany({
@@ -37,17 +39,55 @@ export default async function ProposalsPage({ params }: PageProps) {
     ],
   });
 
+  const isCoach = membership.isCoach;
+
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
-      <div className="mb-4">
-        <a href={`/teams/${id}`} className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-all">← Volver al equipo</a>
+    <div className="min-h-screen bg-background text-foreground pb-16">
+      <DashboardHeader badgeLabel={isCoach ? "Entrenador" : "Jugador"} />
+
+      <div className="mx-auto max-w-4xl px-4 py-10">
+        {/* Breadcrumb */}
+        <div className="mb-6 flex flex-wrap items-center gap-2 text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground">
+          <Link href="/dashboard" className="hover:text-primary transition-colors">
+            Dashboard
+          </Link>
+          <span>/</span>
+          <Link href="/teams" className="hover:text-primary transition-colors">
+            Mis Equipos
+          </Link>
+          <span>/</span>
+          <Link href={`/teams/${id}`} className="hover:text-primary transition-colors">
+            {membership.team.name}
+          </Link>
+          <span>/</span>
+          <span className="text-foreground">Propuestas</span>
+        </div>
+
+        {/* Back link */}
+        <Link
+          href={`/teams/${id}`}
+          className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-all flex items-center gap-2"
+        >
+          ← Volver al Equipo
+        </Link>
+
+        {/* Header */}
+        <div className="mt-6 mb-8">
+          <h1 className="text-4xl md:text-5xl font-heading font-extrabold uppercase tracking-tighter">
+            Propuestas
+          </h1>
+          <p className="mt-2 text-xs font-mono uppercase tracking-widest font-semibold text-muted-foreground">
+            Sugiere actividades para {membership.team.name} y apoya las de tus compañeros
+          </p>
+        </div>
+
+        <ProposalBoard
+          teamId={id}
+          initialProposals={proposals}
+          isCoach={isCoach}
+          currentUserId={session.user.id}
+        />
       </div>
-      <ProposalBoard 
-        teamId={id} 
-        initialProposals={proposals} 
-        isCoach={membership.isCoach} 
-        currentUserId={session.user.id} 
-      />
     </div>
   );
 }

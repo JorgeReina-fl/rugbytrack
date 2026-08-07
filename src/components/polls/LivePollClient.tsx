@@ -157,7 +157,7 @@ export default function LivePollClient({ teamId, initialPolls, isCoach = false }
       )}
 
       {polls.length === 0 && (
-        <div className="text-center text-gray-500 py-10 bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="text-center text-muted-foreground py-10 bg-card rounded-xl shadow-sm border border-border font-mono uppercase text-xs tracking-widest">
           No hay encuestas activas.
         </div>
       )}
@@ -165,26 +165,29 @@ export default function LivePollClient({ teamId, initialPolls, isCoach = false }
         const totalVotes = poll.options.reduce((acc: number, opt: any) => acc + opt._count.votes, 0);
 
         return (
-          <div key={poll.id} className="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+          <div key={poll.id} className="p-6 bg-card rounded-xl shadow-sm border border-border">
             <div className="flex items-center gap-3 mb-4">
               {poll.createdBy.image && (
                 <Image src={poll.createdBy.image} alt={poll.createdBy.name} width={32} height={32} className="rounded-full" />
               )}
               <div>
-                <h3 className="text-xl font-bold text-gray-900">{poll.title}</h3>
-                <p className="text-sm text-gray-500">Por {poll.createdBy.name}</p>
+                <h3 className="text-xl font-heading font-extrabold uppercase tracking-tighter text-foreground">{poll.title}</h3>
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Por {poll.createdBy.name}</p>
               </div>
             </div>
-            {poll.description && <p className="text-gray-600 mt-2 mb-4">{poll.description}</p>}
+            {poll.description && <p className="text-sm text-foreground/80 mt-2 mb-4">{poll.description}</p>}
             <div className="space-y-3">
               {poll.options.map((opt: any) => {
                 const percentage = totalVotes === 0 ? 0 : Math.round((opt._count.votes / totalVotes) * 100);
                 return (
                   <div key={opt.id} className="relative group cursor-pointer" onClick={() => handleVote(poll.id, opt.id)}>
-                    <div className="absolute top-0 left-0 h-full bg-blue-100 rounded-lg transition-all duration-500 ease-out" style={{ width: `${percentage}%` }}></div>
-                    <div className="relative p-3 flex justify-between items-center z-10 border border-gray-200 rounded-lg hover:border-blue-300">
-                      <span className="font-medium text-gray-800">{opt.text}</span>
-                      <span className="text-sm font-semibold text-blue-600">{opt._count.votes} ({percentage}%)</span>
+                    <div
+                      className="absolute top-0 left-0 h-full bg-primary/15 rounded-lg transition-all duration-500 ease-out"
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                    <div className="relative p-3 flex justify-between items-center z-10 border border-border rounded-lg hover:border-primary transition-all">
+                      <span className="font-medium text-foreground">{opt.text}</span>
+                      <span className="text-sm font-mono font-bold text-primary">{opt._count.votes} ({percentage}%)</span>
                     </div>
                   </div>
                 );
