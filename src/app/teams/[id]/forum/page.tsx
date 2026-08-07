@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { dbConnect } from "@/lib/mongoose";
 import { Thread } from "@/models/Thread";
 import { CreateThreadForm } from "@/components/forum/CreateThreadForm";
-import { LogoutButton } from "@/components/auth/LogoutButton";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 
 interface PageProps {
   params: Promise<{
@@ -37,21 +37,7 @@ export default async function ForumPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-10">
-      <nav className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-          <Link href="/dashboard" className="text-xl font-heading font-extrabold tracking-tighter uppercase">
-            Rugby<span className="text-primary">Track</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-mono uppercase tracking-widest font-semibold text-muted-foreground">{session.user.name}</span>
-            <span className="rounded-full bg-secondary px-3 py-1 text-xs font-mono font-bold uppercase tracking-widest text-foreground hidden sm:inline-block">
-              {membership.isCoach ? "Cuerpo Técnico" : "Jugador"}
-            </span>
-            <div className="w-px h-4 bg-border hidden sm:block"></div>
-            <LogoutButton />
-          </div>
-        </div>
-      </nav>
+      <DashboardHeader badgeLabel={membership.isCoach ? "Cuerpo Técnico" : "Jugador"} />
 
       <main className="mx-auto max-w-4xl px-4 py-10 space-y-8">
         <div>
@@ -63,7 +49,7 @@ export default async function ForumPage({ params }: PageProps) {
           </Link>
           <div className="mt-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
-              <h1 className="text-5xl font-heading font-extrabold uppercase tracking-tighter">Tablón Táctico</h1>
+              <h1 className="text-4xl md:text-5xl font-heading font-extrabold uppercase tracking-tighter">Tablón Táctico</h1>
               <p className="text-muted-foreground font-mono uppercase text-xs tracking-widest font-semibold mt-2">
                 Debates y Feedback para {team.name}
               </p>

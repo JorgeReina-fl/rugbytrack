@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { LogoutButton } from "@/components/auth/LogoutButton";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import type { Metadata } from "next";
 import type { RugbyPosition } from "@prisma/client";
 import { CheckSquare, Lightbulb, ChartBar, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
@@ -69,23 +69,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-10">
-      <nav className="border-b border-border bg-background/80 backdrop-blur-sm shadow-sm sticky top-0 z-10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-          <Link href="/dashboard" className="text-xl font-heading font-extrabold tracking-tighter uppercase">
-            Rugby<span className="text-primary">Track</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-mono uppercase tracking-widest font-semibold text-muted-foreground">
-              {session.user.name}
-            </span>
-            <span className="bg-secondary px-3 py-1 text-xs font-mono font-bold uppercase tracking-widest text-foreground hidden sm:inline-block">
-              {isCoach ? "Entrenador" : "Jugador"}
-            </span>
-            <div className="w-px h-4 bg-border hidden sm:block"></div>
-            <LogoutButton />
-          </div>
-        </div>
-      </nav>
+      <DashboardHeader badgeLabel={isCoach ? "Entrenador" : "Jugador"} />
 
       <div className="mx-auto max-w-4xl px-4 py-10">
         <div className="mb-4">

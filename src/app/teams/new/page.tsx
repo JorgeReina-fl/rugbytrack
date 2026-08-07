@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogoutButton } from "@/components/auth/LogoutButton";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 
 export default function NewTeamPage() {
   const router = useRouter();
@@ -46,16 +46,7 @@ export default function NewTeamPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-10">
-      <nav className="border-b border-border bg-background/80 backdrop-blur-sm shadow-sm sticky top-0 z-10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-          <Link href="/dashboard" className="text-xl font-heading font-extrabold tracking-tighter uppercase">
-            Rugby<span className="text-primary">Track</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <LogoutButton />
-          </div>
-        </div>
-      </nav>
+      <DashboardHeader badgeLabel={null} />
 
       <main className="mx-auto max-w-xl px-4 py-12">
         <div className="mb-8">
