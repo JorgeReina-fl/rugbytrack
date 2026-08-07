@@ -188,7 +188,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
         {/* Encabezado y Selector */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
           <div>
-            <h1 className="text-5xl font-heading font-extrabold uppercase tracking-tighter">
+            <h1 className="text-4xl md:text-5xl font-heading font-extrabold uppercase tracking-tighter">
               REGISTRO DE ENTRENOS
             </h1>
             <p className="mt-2 text-xs font-mono uppercase tracking-widest font-bold text-muted-foreground">
