@@ -258,7 +258,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
                           : "border-border bg-card hover:border-primary"
                       }`}
                     >
-                      <div className="flex justify-between items-start gap-2 mb-2">
+                      <div className="flex flex-wrap justify-between items-start gap-2 gap-y-1 mb-2">
                         <span className="text-xs font-mono text-muted-foreground uppercase">
                           {formattedDate} - {formattedTime} hs
                         </span>
