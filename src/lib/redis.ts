@@ -26,6 +26,9 @@ function getRedis(): Redis {
 
 export const redis = new Proxy({} as Redis, {
   get(_target, prop) {
-    return (getRedis() as unknown as Record<string | symbol, unknown>)[prop];
+    const client = getRedis();
+    const value = (client as unknown as Record<string | symbol, unknown>)[prop];
+    // Métodos deben conservar `this` = client (si no, ioredis rompe en sendCommand).
+    return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(client) : value;
   },
 });
