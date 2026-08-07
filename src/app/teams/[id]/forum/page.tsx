@@ -83,7 +83,7 @@ export default async function ForumPage({ params }: PageProps) {
               <Link key={thread._id.toString()} href={`/teams/${id}/forum/${thread._id.toString()}`} className="block group">
                 <article className="rounded-2xl border border-border bg-card p-6 shadow-sm transition-all hover:border-primary hover:shadow-md">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
-                    <h2 className="text-xl font-heading font-bold uppercase tracking-tight text-foreground group-hover:text-primary transition-colors">
+                    <h2 className="text-xl font-heading font-bold uppercase tracking-tight text-foreground group-hover:text-primary transition-colors line-clamp-2 break-words">
                       {thread.title}
                     </h2>
                     <span className="text-xs font-mono font-bold text-muted-foreground">

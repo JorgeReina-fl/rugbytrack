@@ -168,10 +168,10 @@ export default function LivePollClient({ teamId, initialPolls, isCoach = false }
           <div key={poll.id} className="p-6 bg-card rounded-xl shadow-sm border border-border">
             <div className="flex items-center gap-3 mb-4">
               {poll.createdBy.image && (
-                <Image src={poll.createdBy.image} alt={poll.createdBy.name} width={32} height={32} className="rounded-full" />
+                <Image src={poll.createdBy.image} alt={poll.createdBy.name} width={32} height={32} className="rounded-full shrink-0" />
               )}
-              <div>
-                <h3 className="text-xl font-heading font-extrabold uppercase tracking-tighter text-foreground">{poll.title}</h3>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-xl font-heading font-extrabold uppercase tracking-tighter text-foreground break-words">{poll.title}</h3>
                 <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Por {poll.createdBy.name}</p>
               </div>
             </div>

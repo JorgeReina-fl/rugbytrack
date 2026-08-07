@@ -95,7 +95,7 @@ export default function ProposalBoard({ teamId, initialProposals, isCoach, curre
                   <div>
                     <h3 className="text-lg font-bold">{proposal.title}</h3>
                     <p className="text-sm text-muted-foreground mt-1 mb-2">{proposal.description}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 gap-y-1 text-xs text-muted-foreground">
                       {proposal.createdBy.image && (
                         <Image src={proposal.createdBy.image} width={16} height={16} className="rounded-full" alt="avatar" />
                       )}
