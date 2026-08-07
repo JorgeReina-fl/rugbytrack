@@ -40,6 +40,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
         select: { isCoach: true },
       },
     },
+    orderBy: { name: "asc" },
   });
 
   if (teams.length === 0) {

@@ -47,6 +47,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
         select: { isCoach: true },
       },
     },
+    orderBy: { name: "asc" },
   });
 
   if (teams.length === 0) {
