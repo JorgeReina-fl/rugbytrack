@@ -156,8 +156,8 @@ export default function AnalyticsClient({
 
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Heatmap & Grid Section */}
-        <div className="lg:col-span-2 space-y-8">
-          <div className="border border-border bg-card shadow-sm">
+        <div className="lg:col-span-2 space-y-8 min-w-0">
+          <div className="border border-border bg-card shadow-sm min-w-0">
             <div className="border-b border-border bg-secondary px-6 py-4 flex flex-wrap items-center justify-between gap-y-2">
               <h2 className="font-mono font-bold text-sm uppercase tracking-widest text-foreground">
                 Heatmap de Intensidad (RPE Medio)
@@ -171,7 +171,7 @@ export default function AnalyticsClient({
                 <span>Fuerte</span>
               </div>
             </div>
-            <div className="p-6 overflow-x-auto">
+            <div className="p-6 overflow-x-auto w-full max-w-full">
               <div className="min-w-[700px]">
                 {/* Heatmap Grid */}
                 <div
@@ -298,7 +298,7 @@ export default function AnalyticsClient({
         </div>
 
         {/* Sidebar / Alert Panel */}
-        <div className="space-y-8">
+        <div className="space-y-8 min-w-0">
           <div className="border border-border bg-card shadow-sm">
             <div className="border-b border-border bg-secondary px-6 py-4 flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-rose-500" />
