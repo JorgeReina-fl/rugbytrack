@@ -172,10 +172,10 @@ export async function GET(req: NextRequest) {
         const currentWeekStats = allWeeksData[indexInAll] || { workload: 0, avgRpe: 0 };
         const acute = currentWeekStats.workload;
 
-        // Chronic is avg of last 4 weeks (indexInAll, indexInAll - 1, indexInAll - 2, indexInAll - 3)
+        // Chronic = mean of previous 4 weeks (t-1..t-4), excluding acute (standard ACWR definition)
         let sumChronic = 0;
         let countChronic = 0;
-        for (let j = 0; j < 4; j++) {
+        for (let j = 1; j <= 4; j++) {
           const idx = indexInAll - j;
           if (idx >= 0) {
             const wData = allWeeksData[idx];
@@ -186,7 +186,7 @@ export async function GET(req: NextRequest) {
           }
         }
         const chronic = countChronic > 0 ? sumChronic / countChronic : 0;
-        const acwr = chronic > 0 ? Math.round((acute / chronic) * 100) / 100 : 0;
+        const acwr = chronic > 0 && acute > 0 ? Math.round((acute / chronic) * 100) / 100 : 0;
 
         return {
           week,
@@ -196,11 +196,19 @@ export async function GET(req: NextRequest) {
         };
       });
 
-      const latestStats = weeklyData[weeklyData.length - 1] || {
+      // "Latest" = most recent active week with actual load; avoids ACWR=0 when current ISO week is empty/incomplete
+      let latestStats: { workload: number; avgRpe: number; acwr: number } = {
         workload: 0,
         avgRpe: 0,
         acwr: 0,
       };
+      for (let i = weeklyData.length - 1; i >= 0; i--) {
+        const w = weeklyData[i];
+        if (w && w.workload > 0) {
+          latestStats = w;
+          break;
+        }
+      }
 
       return {
         userId: u.id,
