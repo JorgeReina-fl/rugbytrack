@@ -9,10 +9,33 @@ import { LogoStacked } from "@/components/icons/Logo";
 const DEMO_EMAIL = "demo@rugbytrack.es";
 const DEMO_PASSWORD = "rugby2026demo";
 
+const DEFAULT_POST_LOGIN = "/dashboard";
+// Prefijos internos válidos como destino tras login. Rutas fuera de esta lista
+// (o absolutas / protocol-relative) caen a DEFAULT_POST_LOGIN.
+const ALLOWED_CALLBACK_PREFIXES = [
+  "/dashboard",
+  "/teams",
+  "/events",
+  "/trainings",
+  "/forum",
+  "/rsvp",
+];
+
+function safeCallbackUrl(raw: string | null): string {
+  if (!raw) return DEFAULT_POST_LOGIN;
+  // Rechazar absolutas y protocol-relative
+  if (!raw.startsWith("/") || raw.startsWith("//")) return DEFAULT_POST_LOGIN;
+  const path = raw.split("?")[0]?.split("#")[0] ?? "";
+  const ok = ALLOWED_CALLBACK_PREFIXES.some(
+    (p) => path === p || path.startsWith(`${p}/`)
+  );
+  return ok ? raw : DEFAULT_POST_LOGIN;
+}
+
 function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
+  const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -128,6 +151,12 @@ function LoginFormContent() {
             >
               {loading ? "INICIANDO SESIÓN..." : "INICIAR SESIÓN"}
             </button>
+
+            <p className="text-center text-xs text-muted-foreground font-mono uppercase tracking-tight">
+              <Link href="/forgot-password" className="text-primary font-bold hover:underline">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </p>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground font-mono uppercase tracking-tight">

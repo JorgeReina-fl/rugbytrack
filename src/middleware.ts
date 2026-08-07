@@ -8,6 +8,7 @@ const PUBLIC_PATHS = new Set([
   "/",
   "/login",
   "/register",
+  "/forgot-password",
   "/api/auth",
   "/legal",
   "/terminos",
@@ -19,6 +20,7 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/api/auth")) return true;
   if (pathname.startsWith("/join/")) return true;
   if (pathname.startsWith("/rsvp/")) return true;
+  if (pathname.startsWith("/reset-password/")) return true;
   if (pathname.startsWith("/_next")) return true;
   if (pathname.startsWith("/favicon")) return true;
   return false;

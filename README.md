@@ -49,6 +49,60 @@ Puedes iniciar sesión directamente en la plataforma usando las siguientes cuent
 
 ---
 
+## 🔐 Recuperación de contraseña
+
+Rutas: `/forgot-password` y `/reset-password/[token]`. Motor: [`packages/auth-reset`](./packages/auth-reset/README.md) (paquete propio, reutilizable en otras apps de mivia.es).
+
+- Tokens HMAC-SHA256 firmados con `AUTH_RESET_SECRET`, expiran a los 60 minutos.
+- Single-use: campo `User.passwordResetAt` — un token con `iat ≤ passwordResetAt` se rechaza.
+- Envío por SMTP (`mail.jorgereina.com:587`, cuenta `rugbytrack@mivia.es`).
+- Respuesta neutra en `/api/auth/forgot-password` (no filtra si el email existe).
+- Rate limit Redis: 3 solicitudes/hora por IP+email.
+
+**Limitación conocida — sesiones activas:** con `session.strategy = "jwt"` (patrón por defecto), las sesiones ya emitidas no pueden invalidarse desde el backend; seguirán vivas hasta expirar. Si necesitas invalidación inmediata tras un reset, migra a `session.strategy = "database"` y borra las filas `Session` del usuario en el mismo handler.
+
+---
+
+## 🧪 Club Demo "Urbanova Rugby Club" (auto-reset diario)
+
+Un segundo seed provisiona un club demo completo con 12 equipos, 250-300 jugadores, ~150 entrenamientos, ~50 partidos, RPE realista y foro poblado.
+
+* **Coach demo**: `demo@rugbytrack.es` / `rugby2026demo` (accesible también desde el desplegable "Cuenta de demostración" en `/login`).
+* **Jugadores demo**: `jugadorNNN@demo.rugbytrack` / `player2026demo`.
+
+### Qué resetea
+
+Sólo datos identificados como demo — el resto de la BD no se toca:
+
+* Usuarios con email `demo@rugbytrack.es` o `%@demo.rugbytrack`.
+* Equipos con `slug` que empieza por `urbanova-` (nombre `Urbanova Rugby Club — *`).
+* Sus membresías, eventos, asistencias y RPE (cascada Prisma).
+* Hilos y comentarios de foro (MongoDB) filtrados por `teamId` de esos equipos.
+
+### Cuándo se resetea
+
+Cronjob del usuario `ubuntu` en la VM (`crontab -l`):
+
+```
+0 5 * * * /home/ubuntu/scripts/reset-rugbytrack-demo.sh
+```
+
+El script hace `docker exec rugbytrack-app node --experimental-strip-types /app/prisma/seed-demo.ts` y añade la salida (con timestamp ISO) a `/home/ubuntu/logs/seed-demo.log`.
+
+### Cómo lanzarlo a mano
+
+```bash
+# Producción (VM, contra la BD real vía docker exec)
+/home/ubuntu/scripts/reset-rugbytrack-demo.sh
+
+# Local (contra tu docker-compose local, requiere tsx)
+pnpm db:seed-demo
+```
+
+El script es idempotente: cada ejecución borra los datos demo anteriores y regenera valores nuevos (asistencia/RPE/foro aleatorios).
+
+---
+
 ## 🚀 Setup Local de Desarrollo
 
 ### 1. Requisitos previos
