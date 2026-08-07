@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -43,6 +44,121 @@ interface AnalyticsClientProps {
   };
 }
 
+interface HeatmapCellProps {
+  playerName: string;
+  week: string;
+  avgRpe: number;
+  workload: number;
+  acwr: number;
+  colorClass: string;
+}
+
+const TOOLTIP_WIDTH = 200;
+const TOOLTIP_GAP = 8;
+const VIEWPORT_MARGIN = 8;
+
+function HeatmapCell({ playerName, week, avgRpe, workload, acwr, colorClass }: HeatmapCellProps) {
+  const cellRef = useRef<HTMLDivElement | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const computePosition = useCallback(() => {
+    const cell = cellRef.current;
+    if (!cell) return;
+    const rect = cell.getBoundingClientRect();
+    const tooltipHeight = tooltipRef.current?.offsetHeight ?? 110;
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+
+    let left = rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2;
+    left = Math.max(VIEWPORT_MARGIN, Math.min(left, viewportW - TOOLTIP_WIDTH - VIEWPORT_MARGIN));
+
+    let top = rect.top - tooltipHeight - TOOLTIP_GAP;
+    if (top < VIEWPORT_MARGIN) {
+      top = rect.bottom + TOOLTIP_GAP;
+    }
+    if (top + tooltipHeight > viewportH - VIEWPORT_MARGIN) {
+      top = Math.max(VIEWPORT_MARGIN, viewportH - tooltipHeight - VIEWPORT_MARGIN);
+    }
+
+    setPos({ top, left });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    computePosition();
+    const onScrollOrResize = () => computePosition();
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, [open, computePosition]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (cellRef.current?.contains(target)) return;
+      if (tooltipRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDocPointerDown);
+    return () => document.removeEventListener("pointerdown", onDocPointerDown);
+  }, [open]);
+
+  const handleMouseEnter = () => setOpen(true);
+  const handleMouseLeave = () => setOpen(false);
+  const handleClick = () => setOpen((v) => !v);
+
+  return (
+    <div
+      ref={cellRef}
+      className={`relative flex flex-col items-center justify-center py-2 text-center text-xs font-mono font-bold transition-all cursor-pointer ${colorClass}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
+    >
+      <span>{avgRpe || "—"}</span>
+      {workload > 0 && (
+        <span className="text-[9px] opacity-75 font-normal">
+          w:{workload}
+        </span>
+      )}
+
+      {mounted && open && pos && createPortal(
+        <div
+          ref={tooltipRef}
+          role="tooltip"
+          style={{
+            position: "fixed",
+            top: pos.top,
+            left: pos.left,
+            width: TOOLTIP_WIDTH,
+          }}
+          className="pointer-events-none z-50 border border-border bg-card p-2 text-left text-[11px] font-normal leading-normal text-card-foreground shadow-md"
+        >
+          <p className="font-bold text-xs uppercase tracking-wider mb-1 text-primary">
+            {playerName}
+          </p>
+          <p>Semana: {week}</p>
+          <p>RPE Medio: <strong className="text-foreground">{avgRpe || "N/A"}</strong></p>
+          <p>Carga Semanal: <strong className="text-foreground">{workload}</strong></p>
+          <p>ACWR Ratio: <strong className={acwr > 1.5 ? "text-rose-400 font-bold" : "text-foreground"}>{acwr || "N/A"}</strong></p>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 export default function AnalyticsClient({
   teamId,
   teamName,
@@ -52,6 +168,16 @@ export default function AnalyticsClient({
 
   // Filter players by alerts
   const alertPlayers = players.filter((p) => p.hasAlert);
+
+  // ACWR zone distribution (colors must match "¿Qué es el ACWR?" legend)
+  const rated = players.filter((p) => p.latestACWR > 0);
+  const zoneCounts = {
+    low: rated.filter((p) => p.latestACWR < 0.8).length,
+    sweet: rated.filter((p) => p.latestACWR >= 0.8 && p.latestACWR <= 1.3).length,
+    caution: rated.filter((p) => p.latestACWR > 1.3 && p.latestACWR <= 1.5).length,
+    danger: rated.filter((p) => p.latestACWR > 1.5).length,
+  };
+  const noData = players.length - rated.length;
 
   // Group data by week for the team trend chart
   const chartData = weeks.map((week) => {
@@ -73,9 +199,8 @@ export default function AnalyticsClient({
 
   const getRpeColor = (rpe: number) => {
     if (rpe === 0) return "bg-secondary/40 text-muted-foreground/40 border border-border/50";
-    if (rpe <= 3) return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-    if (rpe <= 6) return "bg-amber-500/15 text-amber-400 border border-amber-500/25";
-    if (rpe <= 8) return "bg-orange-500/20 text-orange-400 border border-orange-500/30";
+    if (rpe <= 4) return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+    if (rpe <= 7) return "bg-amber-500/15 text-amber-400 border border-amber-500/25";
     return "bg-rose-500/30 text-rose-400 border border-rose-500/40";
   };
 
@@ -164,11 +289,11 @@ export default function AnalyticsClient({
               </h2>
               <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
                 <span className="h-2.5 w-2.5 bg-emerald-500/20 border border-emerald-500/30"></span>
-                <span>Suave</span>
+                <span>Suave (≤4)</span>
                 <span className="h-2.5 w-2.5 bg-amber-500/20 border border-amber-500/30 ml-2"></span>
-                <span>Medio</span>
+                <span>Medio (5-7)</span>
                 <span className="h-2.5 w-2.5 bg-rose-500/30 border border-rose-500/40 ml-2"></span>
-                <span>Fuerte</span>
+                <span>Fuerte (8+)</span>
               </div>
             </div>
             <div className="p-6 overflow-x-auto w-full max-w-full">
@@ -222,30 +347,15 @@ export default function AnalyticsClient({
                           (wd) => wd.week === week
                         ) || { workload: 0, avgRpe: 0, acwr: 0 };
                         return (
-                          <div
+                          <HeatmapCell
                             key={week}
-                            className={`group relative flex flex-col items-center justify-center py-2 text-center text-xs font-mono font-bold transition-all ${getRpeColor(
-                              weekData.avgRpe
-                            )}`}
-                          >
-                            <span>{weekData.avgRpe || "—"}</span>
-                            {weekData.workload > 0 && (
-                              <span className="text-[9px] opacity-75 font-normal">
-                                w:{weekData.workload}
-                              </span>
-                            )}
-
-                            {/* Tooltip Overlay */}
-                            <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-48 -translate-x-1/2 scale-90 border border-border bg-popover p-2 text-left text-[11px] font-normal leading-normal text-popover-foreground opacity-0 shadow-lg transition-all group-hover:scale-100 group-hover:opacity-100">
-                              <p className="font-bold text-xs uppercase tracking-wider mb-1 text-primary">
-                                {player.name}
-                              </p>
-                              <p>Semana: {week}</p>
-                              <p>RPE Medio: <strong className="text-foreground">{weekData.avgRpe || "N/A"}</strong></p>
-                              <p>Carga Semanal: <strong className="text-foreground">{weekData.workload}</strong></p>
-                              <p>ACWR Ratio: <strong className={weekData.acwr > 1.5 ? "text-rose-400 font-bold" : "text-foreground"}>{weekData.acwr || "N/A"}</strong></p>
-                            </div>
-                          </div>
+                            playerName={player.name}
+                            week={week}
+                            avgRpe={weekData.avgRpe}
+                            workload={weekData.workload}
+                            acwr={weekData.acwr}
+                            colorClass={getRpeColor(weekData.avgRpe)}
+                          />
                         );
                       })}
                     </React.Fragment>
@@ -256,7 +366,7 @@ export default function AnalyticsClient({
           </div>
 
           {/* Recharts Carga Trend */}
-          <div className="border border-border bg-card shadow-sm">
+          <div className="border border-border bg-card shadow-sm min-w-0">
             <div className="border-b border-border bg-secondary px-6 py-4">
               <h2 className="font-mono font-bold text-sm uppercase tracking-widest text-foreground">
                 Tendencia de Carga de Entrenamiento
@@ -299,14 +409,44 @@ export default function AnalyticsClient({
 
         {/* Sidebar / Alert Panel */}
         <div className="space-y-8 min-w-0">
-          <div className="border border-border bg-card shadow-sm">
+          <div className="border border-border bg-card shadow-sm min-w-0">
             <div className="border-b border-border bg-secondary px-6 py-4 flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-rose-500" />
               <h2 className="font-mono font-bold text-sm uppercase tracking-widest text-foreground">
                 Riesgo ACWR (&gt; 1.5)
               </h2>
             </div>
-            <div className="p-6">
+            <div className="p-6 space-y-4">
+              {/* Distribución por zona ACWR */}
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
+                  Distribución de la plantilla
+                </p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  <div className="border border-emerald-500/30 bg-emerald-500/5 p-2 text-center">
+                    <div className="font-heading font-black text-lg text-emerald-400 leading-none">{zoneCounts.low}</div>
+                    <div className="text-[9px] font-mono uppercase tracking-wider text-emerald-400 mt-1">&lt;0.8</div>
+                  </div>
+                  <div className="border border-primary/30 bg-primary/5 p-2 text-center">
+                    <div className="font-heading font-black text-lg text-primary leading-none">{zoneCounts.sweet}</div>
+                    <div className="text-[9px] font-mono uppercase tracking-wider text-primary mt-1">0.8-1.3</div>
+                  </div>
+                  <div className="border border-amber-500/30 bg-amber-500/5 p-2 text-center">
+                    <div className="font-heading font-black text-lg text-amber-500 leading-none">{zoneCounts.caution}</div>
+                    <div className="text-[9px] font-mono uppercase tracking-wider text-amber-500 mt-1">1.3-1.5</div>
+                  </div>
+                  <div className="border border-rose-500/30 bg-rose-500/5 p-2 text-center">
+                    <div className="font-heading font-black text-lg text-rose-400 leading-none">{zoneCounts.danger}</div>
+                    <div className="text-[9px] font-mono uppercase tracking-wider text-rose-400 mt-1">&gt;1.5</div>
+                  </div>
+                </div>
+                {noData > 0 && (
+                  <p className="text-[10px] font-mono text-muted-foreground mt-2">
+                    {noData} sin datos recientes
+                  </p>
+                )}
+              </div>
+
               {alertPlayers.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <p className="text-xs font-mono uppercase tracking-wider">
