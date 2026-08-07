@@ -244,32 +244,32 @@ function assignPosition(index: number, category: TeamSpec["category"]): RugbyPos
   return POSITIONS_SENIOR[index % POSITIONS_SENIOR.length] ?? null;
 }
 
-// Distribución típica lun/mié/vie
+// Distribución L/X/V — devuelve las últimas `count` fechas incluyendo la semana ISO
+// actual completa (L/X/V, aunque el día concreto sea futuro respecto al momento del seed)
+// para que el heatmap muestre siempre una semana "cerrada" con ACWR representativo.
 function trainingDates(count: number): Date[] {
-  const dates: Date[] = [];
   const now = new Date();
-  const threeMonthsAgo = new Date();
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  // Fin de la semana ISO actual = domingo próximo (o hoy si ya es domingo)
+  const endOfWeek = new Date(now);
+  const dowNow = endOfWeek.getDay(); // 0=Dom
+  const daysToSunday = dowNow === 0 ? 0 : 7 - dowNow;
+  endOfWeek.setDate(endOfWeek.getDate() + daysToSunday);
+  endOfWeek.setHours(23, 59, 59, 999);
 
-  // Recorremos días desde hace 3 meses hasta hoy, filtrando L/X/V
+  const start = new Date(endOfWeek);
+  start.setDate(start.getDate() - 14 * 7);
+
   const candidates: Date[] = [];
-  const cursor = new Date(threeMonthsAgo);
-  while (cursor < now) {
-    const dow = cursor.getDay(); // 1=Mon, 3=Wed, 5=Fri
+  const cursor = new Date(start);
+  cursor.setHours(19, 0, 0, 0);
+  while (cursor <= endOfWeek) {
+    const dow = cursor.getDay();
     if (dow === 1 || dow === 3 || dow === 5) {
-      const d = new Date(cursor);
-      d.setHours(19, 0, 0, 0);
-      candidates.push(d);
+      candidates.push(new Date(cursor));
     }
     cursor.setDate(cursor.getDate() + 1);
   }
-
-  // Muestreamos "count" fechas distribuidas del pool
-  const step = Math.max(1, Math.floor(candidates.length / count));
-  for (let i = 0; i < count && i * step < candidates.length; i++) {
-    dates.push(candidates[i * step]);
-  }
-  return dates;
+  return candidates.slice(-count);
 }
 
 function matchDates(count: number): Date[] {
@@ -560,13 +560,33 @@ async function main() {
 
   console.log(`Creando eventos, asistencias y RPE...`);
 
+  const nowMs = Date.now();
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const MAIN_CATS = new Set(["senior", "s23", "femenino"]);
+
+  // Perfil por índice de jugador dentro de equipos principales:
+  //   0-1  → high-risk (pico agudo semana actual → ACWR > 1.5)
+  //   2-4  → caution   (elevado semana actual → 1.3-1.5)
+  //   5    → underloaded (falta a semana actual → < 0.8)
+  //   resto → normal (zona dulce)
+  const profileOf = (idx: number, cat: string): "high" | "caution" | "under" | "normal" => {
+    if (!MAIN_CATS.has(cat)) return "normal";
+    if (idx <= 1) return "high";
+    if (idx <= 4) return "caution";
+    if (idx === 5) return "under";
+    return "normal";
+  };
+
   for (const t of teamsCreated) {
-    // Entrenamientos
-    const nTrainings = randomInt(8, 15);
+    // Entrenamientos — cubrir 12+ semanas hasta hoy
+    const nTrainings = MAIN_CATS.has(t.spec.category) ? randomInt(28, 34) : randomInt(18, 24);
     const trainDates = trainingDates(nTrainings);
 
     for (let idx = 0; idx < trainDates.length; idx++) {
       const date = trainDates[idx];
+      const daysAgo = (nowMs - date.getTime()) / (24 * 60 * 60 * 1000);
+      const isCurrentWeek = daysAgo < 7;
+
       const event = await prisma.event.create({
         data: {
           teamId: t.id,
@@ -581,10 +601,15 @@ async function main() {
       counters.events++;
       counters.trainings++;
 
-      // Asistencia 75-95%
-      const attendanceRate = 0.75 + Math.random() * 0.2;
-      for (const p of t.players) {
-        const present = Math.random() < attendanceRate;
+      const attendanceRate = 0.8 + Math.random() * 0.15;
+      for (let pIdx = 0; pIdx < t.players.length; pIdx++) {
+        const p = t.players[pIdx];
+        const profile = profileOf(pIdx, t.spec.category);
+
+        // Semana actual: perfiles fuerzan asistencia (high/caution) o ausencia (under)
+        const forceAbsent = profile === "under" && isCurrentWeek;
+        const forcePresent = isCurrentWeek && (profile === "high" || profile === "caution");
+        const present = forcePresent ? true : !forceAbsent && Math.random() < attendanceRate;
         const status = present
           ? AttendanceStatus.CONFIRMED
           : Math.random() < 0.5
@@ -602,13 +627,20 @@ async function main() {
         });
         counters.attendances++;
 
-        // RPE sólo si presente
         if (present) {
-          // Variabilidad por jugador y sesión: base 5-7, +/- ruido
           const base = 5 + (parseInt(p.id.slice(-2), 36) % 3);
           const noise = randomInt(-1, 2);
-          const rpe = Math.min(9, Math.max(4, base + noise));
-          const duration = randomInt(75, 105);
+          let rpe = Math.min(9, Math.max(4, base + noise));
+          let duration = randomInt(75, 105);
+
+          if (isCurrentWeek && profile === "high") {
+            rpe = Math.min(10, rpe + 3);
+            duration = randomInt(110, 140);
+          } else if (isCurrentWeek && profile === "caution") {
+            rpe = Math.min(9, rpe + 2);
+            duration = randomInt(95, 120);
+          }
+
           await prisma.rpeEntry.create({
             data: {
               eventId: event.id,
