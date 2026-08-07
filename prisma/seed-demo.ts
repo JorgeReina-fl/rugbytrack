@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * seed-demo.ts — Seed idempotente del club demo "Urbanova Rugby Club".
  *
@@ -405,8 +404,8 @@ const commentSchema = new mongoose.Schema(
   { timestamps: true, collection: "comments" }
 );
 
-const Thread = mongoose.models.Thread || mongoose.model("Thread", threadSchema);
-const Comment = mongoose.models.Comment || mongoose.model("Comment", commentSchema);
+const Thread: mongoose.Model<any> = mongoose.models.Thread || mongoose.model("Thread", threadSchema);
+const Comment: mongoose.Model<any> = mongoose.models.Comment || mongoose.model("Comment", commentSchema);
 
 // ---------------------------------------------------------------------------
 // MAIN
@@ -561,7 +560,6 @@ async function main() {
   console.log(`Creando eventos, asistencias y RPE...`);
 
   const nowMs = Date.now();
-  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
   const MAIN_CATS = new Set(["senior", "s23", "femenino"]);
 
   // Perfil por índice de jugador dentro de equipos principales:
@@ -583,7 +581,7 @@ async function main() {
     const trainDates = trainingDates(nTrainings);
 
     for (let idx = 0; idx < trainDates.length; idx++) {
-      const date = trainDates[idx];
+      const date = trainDates[idx]!;
       const daysAgo = (nowMs - date.getTime()) / (24 * 60 * 60 * 1000);
       const isCurrentWeek = daysAgo < 7;
 
@@ -603,7 +601,7 @@ async function main() {
 
       const attendanceRate = 0.8 + Math.random() * 0.15;
       for (let pIdx = 0; pIdx < t.players.length; pIdx++) {
-        const p = t.players[pIdx];
+        const p = t.players[pIdx]!;
         const profile = profileOf(pIdx, t.spec.category);
 
         // Semana actual: perfiles fuerzan asistencia (high/caution) o ausencia (under)
@@ -659,7 +657,7 @@ async function main() {
     const nMatches = randomInt(3, 5);
     const matchDs = matchDates(nMatches);
     for (let idx = 0; idx < matchDs.length; idx++) {
-      const date = matchDs[idx];
+      const date = matchDs[idx]!;
       const event = await prisma.event.create({
         data: {
           teamId: t.id,
@@ -705,7 +703,7 @@ async function main() {
     const topicsToUse = pickN(FORUM_TOPICS, nThreads);
 
     for (let ti = 0; ti < topicsToUse.length; ti++) {
-      const topic = topicsToUse[ti];
+      const topic = topicsToUse[ti]!;
       // Fecha del hilo: entre hace 90 y hace 3 días
       const daysAgo = randomInt(3, 90);
       const threadDate = new Date();
@@ -736,12 +734,12 @@ async function main() {
       let cursor = new Date(threadDate);
       for (let ri = 0; ri < chosen.length; ri++) {
         cursor = new Date(cursor.getTime() + randomInt(30 * 60 * 1000, 24 * 60 * 60 * 1000));
-        const commenter = commenters[ri % commenters.length];
+        const commenter = commenters[ri % commenters.length]!;
         await Comment.create({
           threadId: thread._id,
           authorId: commenter.id,
           authorName: commenter.name,
-          content: chosen[ri],
+          content: chosen[ri]!,
           createdAt: cursor,
           updatedAt: cursor,
         });
@@ -760,7 +758,7 @@ async function main() {
     // ENCUESTAS: 2-3 por equipo principal (1 activa + 1-2 cerradas)
     const nPolls = randomInt(2, 3);
     for (let pi = 0; pi < nPolls; pi++) {
-      const template = pollPool[(pi + mainTeams.indexOf(t) * nPolls) % pollPool.length];
+      const template = pollPool[(pi + mainTeams.indexOf(t) * nPolls) % pollPool.length]!;
       const isActive = pi === 0;
       const daysAgo = isActive ? randomInt(1, 5) : randomInt(20, 60);
       const createdAt = new Date();
@@ -770,7 +768,7 @@ async function main() {
         data: {
           teamId: t.id,
           title: template.title,
-          description: template.description,
+          description: template.description ?? null,
           createdById: coach.id,
           isActive,
           expiresAt: isActive ? null : new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000),
@@ -798,7 +796,7 @@ async function main() {
         try {
           await prisma.pollVote.create({
             data: {
-              pollOptionId: poll.options[optionIdx].id,
+              pollOptionId: poll.options[optionIdx]!.id,
               userId: voter.id,
               createdAt: voteAt,
             },
@@ -818,8 +816,8 @@ async function main() {
     if (nProposals >= 4) statuses.push("PENDING");
 
     for (let qi = 0; qi < nProposals; qi++) {
-      const template = proposalPool[(qi + mainTeams.indexOf(t) * nProposals) % proposalPool.length];
-      const status = statuses[qi];
+      const template = proposalPool[(qi + mainTeams.indexOf(t) * nProposals) % proposalPool.length]!;
+      const status = statuses[qi]!;
       const daysAgo = status === "PENDING" ? randomInt(1, 10) : randomInt(15, 45);
       const createdAt = new Date();
       createdAt.setDate(createdAt.getDate() - daysAgo);

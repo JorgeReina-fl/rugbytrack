@@ -16,7 +16,7 @@ const CONCURRENCY = 8;
 
 class SameOptionError extends Error {}
 
-async function castVote(n: number): Promise<"ok" | "duplicate" | "p2002"> {
+async function castVote(): Promise<"ok" | "duplicate" | "p2002"> {
   try {
     await prisma.$transaction(async (tx) => {
       const existing = await tx.pollVote.findFirst({
@@ -49,7 +49,7 @@ async function main() {
   console.log(`Firing ${CONCURRENCY} concurrent vote requests…`);
 
   const results = await Promise.allSettled(
-    Array.from({ length: CONCURRENCY }, (_, i) => castVote(i))
+    Array.from({ length: CONCURRENCY }, () => castVote())
   );
 
   const summary = { ok: 0, duplicate: 0, p2002: 0, error: 0 };
