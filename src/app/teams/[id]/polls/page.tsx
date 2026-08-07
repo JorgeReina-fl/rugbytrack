@@ -47,7 +47,7 @@ export default async function PollsPage({ params }: PageProps) {
           <p className="text-gray-500 mt-2">Vota y participa en las decisiones del equipo {membership.team.name}</p>
         </div>
       </div>
-      <LivePollClient teamId={id} initialPolls={polls} />
+      <LivePollClient teamId={id} initialPolls={polls} isCoach={membership.isCoach} />
     </div>
   );
 }
