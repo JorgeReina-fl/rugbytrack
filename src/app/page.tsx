@@ -178,7 +178,7 @@ export default async function HomePage() {
               <div className="flex flex-col gap-3 items-center sm:items-start col-span-2 sm:col-span-1">
                 <h5 className="font-heading font-bold text-lg uppercase">Redes</h5>
                 <div className="flex flex-col gap-1 font-sans text-xs underline font-medium">
-                  <a href="https://instagram.com/mivia.es" target="_blank" rel="noopener" className="hover:text-primary">Instagram</a>
+                  <a href="https://instagram.com/jorgereina.fl" target="_blank" rel="noopener" className="hover:text-primary">Instagram</a>
                 </div>
               </div>
             </div>
