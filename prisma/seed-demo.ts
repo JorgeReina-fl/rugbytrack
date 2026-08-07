@@ -291,6 +291,95 @@ function matchDates(count: number): Date[] {
 }
 
 // ---------------------------------------------------------------------------
+// ENCUESTAS — Plantillas
+// ---------------------------------------------------------------------------
+
+type PollTemplate = {
+  title: string;
+  description?: string;
+  options: string[];
+};
+
+const POLL_TEMPLATES: PollTemplate[] = [
+  {
+    title: "¿Cambiamos la hora del entreno del miércoles?",
+    description: "Varios jugadores han pedido adelantarlo. Recogemos preferencias.",
+    options: ["Mantener 19:30", "Adelantar a 19:00", "Retrasar a 20:00"],
+  },
+  {
+    title: "Camiseta alternativa para la temporada",
+    description: "Vota tu diseño favorito para la segunda equipación.",
+    options: ["Negra con franja roja", "Gris con detalles blancos", "Azul marino clásica"],
+  },
+  {
+    title: "Destino de la comida de fin de temporada",
+    options: ["Asador del centro", "Chiringuito de playa", "Sidrería en el puerto", "Comida en el club"],
+  },
+  {
+    title: "¿Hacemos un tercer entreno opcional los viernes?",
+    description: "Sería de skills y opcional para el que quiera afinar.",
+    options: ["Sí, cuento con ello", "Sí pero sólo cada dos semanas", "No, mejor descansar"],
+  },
+  {
+    title: "Capitán/a para el próximo trimestre",
+    description: "Elegimos capitanía por votación abierta.",
+    options: ["Álvaro Ruiz", "Sara Torres", "Marta Delgado", "Diego Núñez"],
+  },
+  {
+    title: "Formato de la pretemporada",
+    options: ["Concentración de fin de semana", "Dos semanas intensivas en casa", "Bolo con equipo amigo"],
+  },
+  {
+    title: "Fisio en el club: ¿qué día viene mejor?",
+    options: ["Lunes tarde", "Miércoles tarde", "Sábado mañana"],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// PROPUESTAS — Plantillas
+// ---------------------------------------------------------------------------
+
+type ProposalTemplate = {
+  title: string;
+  description: string;
+};
+
+const PROPOSAL_TEMPLATES: ProposalTemplate[] = [
+  {
+    title: "Kedada de vídeo-análisis en el club",
+    description: "Propongo montar una tarde de vídeo con pizza para repasar el último partido. Aprendemos y estrechamos vínculos.",
+  },
+  {
+    title: "Cambiar el gimnasio de fuerza",
+    description: "El actual queda lejos y los horarios chocan. Propongo migrar al gimnasio del pabellón municipal, que tiene convenio con clubes.",
+  },
+  {
+    title: "Organizar amistoso vs. Rugby Costa Verde",
+    description: "Tengo contacto con su segundo entrenador. Podríamos jugar en su campo en tres semanas.",
+  },
+  {
+    title: "Ropa de calle común para viajes",
+    description: "Sudadera + chándal con escudo. Sería útil para desplazamientos y da imagen de club.",
+  },
+  {
+    title: "Curso de primeros auxilios para el equipo",
+    description: "Coordinar un curso corto (2 sesiones) con Cruz Roja. Cubriría RCP básica y actuación ante conmoción.",
+  },
+  {
+    title: "Merchandising: sudaderas de temporada",
+    description: "Diseño con lema del año y número personalizado. Encargo a proveedor local.",
+  },
+  {
+    title: "Cambiar el proveedor de protectores bucales",
+    description: "El actual tarda 3 semanas en entregar. Propongo el proveedor del club rival, que sirve en 5 días con precios similares.",
+  },
+  {
+    title: "Torneo interno benéfico en Navidad",
+    description: "Partido a puertas abiertas para recaudar fondos para una ONG local. Familiares y patrocinadores invitados.",
+  },
+];
+
+// ---------------------------------------------------------------------------
 // MONGO — Schemas mínimos
 // ---------------------------------------------------------------------------
 
@@ -402,6 +491,10 @@ async function main() {
     rpeEntries: 0,
     threads: 0,
     posts: 0,
+    polls: 0,
+    pollVotes: 0,
+    proposals: 0,
+    proposalSupports: 0,
   };
 
   console.log(`Creando ${TEAMS.length} equipos y jugadores...`);
@@ -625,6 +718,132 @@ async function main() {
     }
   }
 
+  console.log("Creando encuestas y propuestas (equipos principales)...");
+
+  const mainTeams = teamsCreated.filter((t) => t.spec.main);
+  const pollPool = [...POLL_TEMPLATES];
+  const proposalPool = [...PROPOSAL_TEMPLATES];
+
+  for (const t of mainTeams) {
+    // ENCUESTAS: 2-3 por equipo principal (1 activa + 1-2 cerradas)
+    const nPolls = randomInt(2, 3);
+    for (let pi = 0; pi < nPolls; pi++) {
+      const template = pollPool[(pi + mainTeams.indexOf(t) * nPolls) % pollPool.length];
+      const isActive = pi === 0;
+      const daysAgo = isActive ? randomInt(1, 5) : randomInt(20, 60);
+      const createdAt = new Date();
+      createdAt.setDate(createdAt.getDate() - daysAgo);
+
+      const poll = await prisma.poll.create({
+        data: {
+          teamId: t.id,
+          title: template.title,
+          description: template.description,
+          createdById: coach.id,
+          isActive,
+          expiresAt: isActive ? null : new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000),
+          createdAt,
+          updatedAt: createdAt,
+          options: {
+            create: template.options.map((text) => ({ text })),
+          },
+        },
+        include: { options: true },
+      });
+      counters.polls++;
+
+      // Distribución de votos realista: 40-80% del equipo participa
+      const participationRate = 0.4 + Math.random() * 0.4;
+      const voters = pickN(t.players, Math.floor(t.players.length * participationRate));
+
+      // Elegir opción "ganadora" con sesgo (~60%)
+      const winnerIdx = randomInt(0, poll.options.length - 1);
+      for (const voter of voters) {
+        const optionIdx = Math.random() < 0.6
+          ? winnerIdx
+          : randomInt(0, poll.options.length - 1);
+        const voteAt = new Date(createdAt.getTime() + randomInt(60, 3 * 24 * 3600) * 1000);
+        try {
+          await prisma.pollVote.create({
+            data: {
+              pollOptionId: poll.options[optionIdx].id,
+              userId: voter.id,
+              createdAt: voteAt,
+            },
+          });
+          counters.pollVotes++;
+        } catch {
+          // Duplicado (misma option, mismo user) — ignoramos
+        }
+      }
+    }
+
+    // PROPUESTAS: 2-4 por equipo principal, estados mixtos
+    const nProposals = randomInt(2, 4);
+    const statuses: Array<"PENDING" | "APPROVED" | "REJECTED"> = ["PENDING"];
+    if (nProposals >= 2) statuses.push("APPROVED");
+    if (nProposals >= 3) statuses.push("REJECTED");
+    if (nProposals >= 4) statuses.push("PENDING");
+
+    for (let qi = 0; qi < nProposals; qi++) {
+      const template = proposalPool[(qi + mainTeams.indexOf(t) * nProposals) % proposalPool.length];
+      const status = statuses[qi];
+      const daysAgo = status === "PENDING" ? randomInt(1, 10) : randomInt(15, 45);
+      const createdAt = new Date();
+      createdAt.setDate(createdAt.getDate() - daysAgo);
+
+      const proposalAuthor = pick(t.players);
+
+      const proposal = await prisma.proposal.create({
+        data: {
+          teamId: t.id,
+          createdById: proposalAuthor.id,
+          title: template.title,
+          description: template.description,
+          status,
+          createdAt,
+        },
+      });
+      counters.proposals++;
+
+      // Apoyos: PENDING/APPROVED reciben más apoyos; REJECTED menos
+      const supportRate = status === "REJECTED" ? 0.1 + Math.random() * 0.15
+        : status === "APPROVED" ? 0.5 + Math.random() * 0.35
+        : 0.2 + Math.random() * 0.4;
+      const supporters = pickN(t.players, Math.floor(t.players.length * supportRate));
+
+      for (const s of supporters) {
+        try {
+          await prisma.proposalSupport.create({
+            data: {
+              proposalId: proposal.id,
+              userId: s.id,
+              createdAt: new Date(createdAt.getTime() + randomInt(60, 5 * 24 * 3600) * 1000),
+            },
+          });
+          counters.proposalSupports++;
+        } catch {
+          // duplicado, ignoramos
+        }
+      }
+
+      // Si APPROVED, generar Event asociado (mismo criterio que la ruta status)
+      if (status === "APPROVED") {
+        await prisma.event.create({
+          data: {
+            teamId: t.id,
+            title: proposal.title,
+            description: proposal.description,
+            type: EventType.OTHER,
+            startDate: new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000),
+            createdById: coach.id,
+          },
+        });
+        counters.events++;
+      }
+    }
+  }
+
   console.log("");
   console.log("=== RESUMEN ===");
   console.log(`Usuarios totales:    ${counters.users}`);
@@ -639,6 +858,10 @@ async function main() {
   console.log(`Registros RPE:       ${counters.rpeEntries}`);
   console.log(`Hilos foro:          ${counters.threads}`);
   console.log(`Posts foro:          ${counters.posts}`);
+  console.log(`Encuestas:           ${counters.polls}`);
+  console.log(`Votos encuesta:      ${counters.pollVotes}`);
+  console.log(`Propuestas:          ${counters.proposals}`);
+  console.log(`Apoyos propuesta:    ${counters.proposalSupports}`);
   console.log("");
   console.log(`Coach demo: ${COACH_EMAIL} / ${COACH_PASSWORD}`);
 }
