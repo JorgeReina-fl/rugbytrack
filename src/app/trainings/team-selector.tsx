@@ -11,13 +11,13 @@ export default function TeamSelector({ teams, selectedTeamId }: Props) {
   const router = useRouter();
 
   return (
-    <div className="relative">
+    <div className="relative max-w-full">
       <select
         defaultValue={selectedTeamId}
         onChange={(e) => {
           router.push(`/trainings?teamId=${e.target.value}`);
         }}
-        className="appearance-none border border-border bg-card px-4 py-2.5 pr-10 text-sm font-mono font-bold text-foreground uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all rounded-none"
+        className="w-full max-w-full truncate appearance-none border border-border bg-card px-4 py-2.5 pr-10 text-sm font-mono font-bold text-foreground uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all rounded-none"
       >
         {teams.map((t) => (
           <option key={t.id} value={t.id}>
