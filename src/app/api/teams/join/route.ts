@@ -31,7 +31,20 @@ export async function POST(request: Request) {
     });
 
     if (existing) {
-      return apiError("Ya eres miembro de este equipo", 409);
+      if (!existing.leftAt) {
+        return apiError("Ya eres miembro activo de este equipo", 409);
+      }
+      // Re-joining after leaving: reactivate membership
+      const member = await prisma.teamMember.update({
+        where: { id: existing.id },
+        data: {
+          leftAt: null,
+          isCoach: false,
+          position: data.position ?? existing.position,
+          jerseyNumber: data.jerseyNumber ?? existing.jerseyNumber,
+        },
+      });
+      return apiSuccess({ team, member }, 200);
     }
 
     const member = await prisma.teamMember.create({

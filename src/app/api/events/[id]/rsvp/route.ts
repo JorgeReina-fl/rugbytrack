@@ -30,9 +30,9 @@ export async function POST(
       return apiNotFound("Evento");
     }
 
-    // Valida que el jugador sea miembro del equipo del evento
+    // Valida que el jugador sea miembro activo del equipo del evento
     const membership = await prisma.teamMember.findFirst({
-      where: { userId: session.user.id, teamId: event.teamId },
+      where: { userId: session.user.id, teamId: event.teamId, leftAt: null },
     });
 
     if (!membership) {

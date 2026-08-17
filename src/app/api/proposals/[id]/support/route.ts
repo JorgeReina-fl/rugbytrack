@@ -28,7 +28,7 @@ export async function POST(_req: Request, { params }: Params) {
     if (!proposal) return apiNotFound("Propuesta");
 
     const membership = await prisma.teamMember.findFirst({
-      where: { userId, teamId: proposal.teamId },
+      where: { userId, teamId: proposal.teamId, leftAt: null },
     });
     if (!membership) return apiForbidden();
 

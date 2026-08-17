@@ -23,18 +23,18 @@ export default async function NewEventPage({ searchParams }: PageProps) {
     redirect("/events");
   }
 
-  // Valida que el usuario sea COACH en el equipo
+  // Valida que el usuario sea COACH activo en el equipo
   const membership = await prisma.teamMember.findFirst({
-    where: { userId: session.user.id, teamId, isCoach: true },
+    where: { userId: session.user.id, teamId, isCoach: true, leftAt: null },
   });
 
   if (!membership) {
     redirect("/events");
   }
 
-  // Obtiene los miembros del equipo para la lista de convocables
+  // Obtiene los miembros activos del equipo para la lista de convocables
   const members = await prisma.teamMember.findMany({
-    where: { teamId },
+    where: { teamId, leftAt: null },
     include: {
       user: {
         select: {

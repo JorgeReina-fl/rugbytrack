@@ -27,7 +27,7 @@ export async function GET(_req: Request, { params }: Params) {
 
   try {
     const membership = await prisma.teamMember.findFirst({
-      where: { userId: session.user.id, teamId: id },
+      where: { userId: session.user.id, teamId: id, leftAt: null },
     });
     if (!membership) return apiForbidden();
 
@@ -59,7 +59,7 @@ export async function POST(req: Request, { params }: Params) {
   const { id } = await params;
 
   const membership = await prisma.teamMember.findFirst({
-    where: { userId: session.user.id, teamId: id, isCoach: true },
+    where: { userId: session.user.id, teamId: id, isCoach: true, leftAt: null },
   });
   if (!membership) return apiForbidden();
 

@@ -43,7 +43,7 @@ export async function GET() {
   try {
     const teams = await prisma.team.findMany({
       where: {
-        members: { some: { userId: session.user.id } },
+        members: { some: { userId: session.user.id, leftAt: null } },
       },
       select: {
         id: true,
@@ -51,9 +51,9 @@ export async function GET() {
         slug: true,
         logoUrl: true,
         inviteToken: true,
-        _count: { select: { members: true } },
+        _count: { select: { members: { where: { leftAt: null } } } },
         members: {
-          where: { userId: session.user.id },
+          where: { userId: session.user.id, leftAt: null },
           select: { isCoach: true, position: true },
         },
       },

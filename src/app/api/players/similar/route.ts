@@ -66,9 +66,9 @@ export async function GET(req: NextRequest) {
     const targetRow = targetRows[0]!;
     const { teamId, embedding: targetEmbedding } = targetRow;
 
-    // Verify requester belongs to the same team
+    // Verify requester is an active member of the same team
     const membership = await prisma.teamMember.findFirst({
-      where: { userId: session.user.id, teamId },
+      where: { userId: session.user.id, teamId, leftAt: null },
     });
     if (!membership) return apiForbidden();
 

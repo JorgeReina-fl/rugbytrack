@@ -47,7 +47,7 @@ export async function GET(
 
     // Valida que el usuario sea miembro del equipo del evento
     const membership = await prisma.teamMember.findFirst({
-      where: { userId: session.user.id, teamId: event.teamId },
+      where: { userId: session.user.id, teamId: event.teamId, leftAt: null },
     });
 
     if (!membership) {
@@ -87,7 +87,7 @@ export async function PATCH(
 
     // Valida que el usuario sea COACH en el equipo del evento
     const membership = await prisma.teamMember.findFirst({
-      where: { userId: session.user.id, teamId: event.teamId, isCoach: true },
+      where: { userId: session.user.id, teamId: event.teamId, isCoach: true, leftAt: null },
     });
 
     // Control de propiedad (ownership check): solo el creador (que debe ser coach)
@@ -138,7 +138,7 @@ export async function DELETE(
 
     // Valida que el usuario sea COACH en el equipo del evento
     const membership = await prisma.teamMember.findFirst({
-      where: { userId: session.user.id, teamId: event.teamId, isCoach: true },
+      where: { userId: session.user.id, teamId: event.teamId, isCoach: true, leftAt: null },
     });
 
     // Control de propiedad (ownership check): solo el creador

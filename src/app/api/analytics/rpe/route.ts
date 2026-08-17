@@ -65,25 +65,26 @@ export async function GET(req: NextRequest) {
 
     const { teamId, weeks } = parsed.data;
 
-    // Check if the user is a coach of this team
-    const membership = await prisma.teamMember.findUnique({
+    // Check if the user is an active coach of this team
+    const membership = await prisma.teamMember.findFirst({
       where: {
-        userId_teamId: {
-          userId: session.user.id,
-          teamId,
-        },
+        userId: session.user.id,
+        teamId,
+        isCoach: true,
+        leftAt: null,
       },
     });
 
-    if (!membership || !membership.isCoach) {
+    if (!membership) {
       return apiForbidden();
     }
 
-    // Get all players (isCoach: false)
+    // Get all active players (isCoach: false)
     const teamPlayers = await prisma.teamMember.findMany({
       where: {
         teamId,
         isCoach: false,
+        leftAt: null,
       },
       include: {
         user: {

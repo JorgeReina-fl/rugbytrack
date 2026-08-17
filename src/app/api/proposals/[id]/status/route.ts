@@ -34,7 +34,7 @@ export async function PUT(req: Request, { params }: Params) {
     if (!proposal) return apiNotFound("Propuesta");
 
     const membership = await prisma.teamMember.findFirst({
-      where: { userId: session.user.id, teamId: proposal.teamId, isCoach: true },
+      where: { userId: session.user.id, teamId: proposal.teamId, isCoach: true, leftAt: null },
     });
     if (!membership) return apiForbidden(); // Only coaches can change status
 

@@ -27,9 +27,9 @@ export async function GET(request: Request) {
       return apiError("El parámetro teamId es obligatorio", 400);
     }
 
-    // Valida que el usuario sea miembro del equipo
+    // Valida que el usuario sea miembro activo del equipo
     const membership = await prisma.teamMember.findFirst({
-      where: { userId: session.user.id, teamId },
+      where: { userId: session.user.id, teamId, leftAt: null },
     });
 
     if (!membership) {
@@ -55,9 +55,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = createEventSchema.parse(body);
 
-    // Valida que el creador sea COACH en el equipo
+    // Valida que el creador sea COACH activo en el equipo
     const membership = await prisma.teamMember.findFirst({
-      where: { userId: session.user.id, teamId: data.teamId, isCoach: true },
+      where: { userId: session.user.id, teamId: data.teamId, isCoach: true, leftAt: null },
     });
 
     if (!membership) {

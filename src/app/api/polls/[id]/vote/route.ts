@@ -48,7 +48,7 @@ export async function POST(req: Request, { params }: Params) {
 
     // Verify user belongs to the team
     const membership = await prisma.teamMember.findFirst({
-      where: { userId, teamId: poll.teamId },
+      where: { userId, teamId: poll.teamId, leftAt: null },
     });
     if (!membership) return apiForbidden();
 

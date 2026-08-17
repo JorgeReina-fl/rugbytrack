@@ -38,8 +38,8 @@ export async function GET(
     const thread = await Thread.findById(threadId).lean();
     if (!thread) return apiNotFound("Hilo");
 
-    const membership = await prisma.teamMember.findUnique({
-      where: { userId_teamId: { userId: session.user.id, teamId: thread.teamId } },
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId: session.user.id, teamId: thread.teamId, leftAt: null },
     });
 
     if (!membership) return apiForbidden();
@@ -71,8 +71,8 @@ export async function POST(
     const thread = await Thread.findById(threadId);
     if (!thread) return apiNotFound("Hilo");
 
-    const membership = await prisma.teamMember.findUnique({
-      where: { userId_teamId: { userId: session.user.id, teamId: thread.teamId } },
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId: session.user.id, teamId: thread.teamId, leftAt: null },
     });
 
     if (!membership) return apiForbidden();

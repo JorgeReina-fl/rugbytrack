@@ -60,14 +60,14 @@ export async function POST(req: NextRequest) {
 
     // Coach must belong to the team
     const coachMembership = await prisma.teamMember.findFirst({
-      where: { userId: session.user.id, teamId, isCoach: true },
+      where: { userId: session.user.id, teamId, isCoach: true, leftAt: null },
     });
     if (!coachMembership) return apiForbidden();
 
-    // Fetch members to embed
+    // Fetch active members to embed
     const memberWhere = userId
-      ? { teamId, userId }
-      : { teamId, isCoach: false };
+      ? { teamId, userId, leftAt: null as null }
+      : { teamId, isCoach: false, leftAt: null as null };
 
     const members = await prisma.teamMember.findMany({
       where: memberWhere,

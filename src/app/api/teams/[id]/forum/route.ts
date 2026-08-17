@@ -27,8 +27,8 @@ export async function GET(
     const session = await auth();
     if (!session?.user?.id) return apiUnauthorized();
 
-    const membership = await prisma.teamMember.findUnique({
-      where: { userId_teamId: { userId: session.user.id, teamId } },
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId: session.user.id, teamId, leftAt: null },
     });
 
     if (!membership) return apiForbidden();
@@ -51,8 +51,8 @@ export async function POST(
     const session = await auth();
     if (!session?.user?.id) return apiUnauthorized();
 
-    const membership = await prisma.teamMember.findUnique({
-      where: { userId_teamId: { userId: session.user.id, teamId } },
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId: session.user.id, teamId, leftAt: null },
     });
 
     if (!membership) return apiForbidden();

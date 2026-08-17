@@ -30,7 +30,7 @@ export default async function SimilarPlayersPage({ params }: PageProps) {
   const { id: teamId } = await params;
 
   const membership = await prisma.teamMember.findFirst({
-    where: { userId: session.user.id, teamId },
+    where: { userId: session.user.id, teamId, leftAt: null },
   });
   if (!membership) notFound();
 
@@ -40,9 +40,9 @@ export default async function SimilarPlayersPage({ params }: PageProps) {
   });
   if (!team) notFound();
 
-  // Fetch all non-coach members with their embedding status
+  // Fetch all non-coach active members with their embedding status
   const members = await prisma.teamMember.findMany({
-    where: { teamId, isCoach: false },
+    where: { teamId, isCoach: false, leftAt: null },
     include: {
       user: {
         select: { id: true, name: true },

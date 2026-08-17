@@ -35,7 +35,7 @@ export async function PATCH(
 
     // Valida que el usuario sea COACH en el equipo del evento
     const membership = await prisma.teamMember.findFirst({
-      where: { userId: session.user.id, teamId: event.teamId, isCoach: true },
+      where: { userId: session.user.id, teamId: event.teamId, isCoach: true, leftAt: null },
     });
 
     if (!membership) {
