@@ -3,31 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { TeamRosterClient } from "@/components/teams/TeamRosterClient";
 import type { Metadata } from "next";
-import type { RugbyPosition } from "@prisma/client";
 import { CheckSquare, Lightbulb, ChartBar, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
-
-const POSITION_LABELS: Record<RugbyPosition, string> = {
-  PROP_LOOSEHEAD: "1 - Pilar Zurdo",
-  HOOKER: "2 - Talonador",
-  PROP_TIGHTHEAD: "3 - Pilar Derecho",
-  LOCK: "4/5 - Segundo línea",
-  FLANKER_BLINDSIDE: "6 - Ala Ciega",
-  FLANKER_OPENSIDE: "7 - Ala Abierta",
-  NUMBER_EIGHT: "8 - Octavo",
-  SCRUM_HALF: "9 - Medio Mêlée",
-  FLY_HALF: "10 - Apertura",
-  CENTER_INSIDE: "12 - Centro Interior",
-  CENTER_OUTSIDE: "13 - Centro Exterior",
-  WING_LEFT: "11 - Ala Izquierda",
-  WING_RIGHT: "14 - Ala Derecha",
-  FULLBACK: "15 - Zaguero",
-  REPLACEMENT: "Reserva",
-};
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
@@ -54,6 +36,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
     where: { id },
     include: {
       members: {
+        where: { leftAt: null },
         include: {
           user: { select: { id: true, name: true, image: true } },
         },
@@ -65,7 +48,18 @@ export default async function TeamDetailPage({ params }: PageProps) {
   if (!team) notFound();
 
   const isCoach = membership.isCoach;
+  const activeCoachCount = team.members.filter((m) => m.isCoach).length;
+  const isOnlyCoach = isCoach && activeCoachCount <= 1;
   const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/join/${team.inviteToken}`;
+
+  const rosterMembers = team.members.map((m) => ({
+    memberId: m.id,
+    userId: m.user.id,
+    name: m.user.name ?? "Sin nombre",
+    jerseyNumber: m.jerseyNumber,
+    position: m.position,
+    isCoach: m.isCoach,
+  }));
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-10">
@@ -141,38 +135,13 @@ export default async function TeamDetailPage({ params }: PageProps) {
           </div>
         )}
 
-        <div className="border border-border bg-card shadow-sm overflow-hidden">
-          <div className="border-b border-border bg-secondary px-6 py-4">
-            <h2 className="font-mono font-bold text-sm uppercase tracking-widest text-foreground">Plantilla</h2>
-          </div>
-          <div className="divide-y divide-border">
-            {team.members.map((member) => (
-              <div
-                key={member.id}
-                className="flex items-center gap-4 px-6 py-4 hover:bg-secondary/40 transition-all"
-              >
-                <div className="flex h-10 w-10 items-center justify-center border border-border bg-secondary font-heading font-black text-sm text-foreground">
-                  {member.jerseyNumber ?? "—"}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-foreground">
-                    {member.user.name}
-                    {member.isCoach && (
-                      <span className="ml-2 bg-primary/10 border border-primary/20 px-2 py-0.5 text-xs font-mono font-bold uppercase tracking-widest text-primary">
-                        Entrenador
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mt-0.5">
-                    {member.position
-                      ? POSITION_LABELS[member.position]
-                      : "Sin posición asignada"}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <TeamRosterClient
+          teamId={team.id}
+          currentUserId={session.user.id}
+          isCoach={isCoach}
+          isOnlyCoach={isOnlyCoach}
+          members={rosterMembers}
+        />
       </div>
     </div>
   );
