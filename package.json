@@ -2,6 +2,10 @@
   "name": "rugbytrack",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "packageManager": "pnpm@11.5.2",
   "scripts": {
     "dev": "tsx server.ts",
     "build": "tsc server.ts --outDir . --module commonjs --target es2017 --noEmit false --esModuleInterop --skipLibCheck && next build",
@@ -64,6 +68,5 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.22.4",
     "typescript": "^5"
-  },
-  "packageManager": "pnpm@11.5.2"
+  }
 }
