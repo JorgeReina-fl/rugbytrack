@@ -8,6 +8,8 @@ import {
   handleUnknownError,
 } from "@/lib/api-response";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
+import { sendProposalNotification } from "@/lib/resend";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -78,7 +80,33 @@ export async function POST(req: Request, { params }: Params) {
       },
     });
 
-    return apiSuccess(proposal);
+    const response = apiSuccess(proposal);
+
+    // Fire-and-forget: notificar a miembros activos excluyendo al autor
+    prisma.team
+      .findUnique({
+        where: { id },
+        select: {
+          name: true,
+          members: {
+            where: { leftAt: null, userId: { not: session.user.id } },
+            select: { user: { select: { email: true, name: true } } },
+          },
+        },
+      })
+      .then((team) => {
+        if (!team) return;
+        return sendProposalNotification({
+          members: team.members.map((m) => m.user),
+          teamName: team.name,
+          teamId: id,
+          proposalTitle: proposal.title,
+          authorName: session.user.name ?? "Un compañero",
+        });
+      })
+      .catch((err) => logger.error({ err, teamId: id, proposalId: proposal.id }, "Failed to dispatch proposal notification"));
+
+    return response;
   } catch (err) {
     if (err instanceof z.ZodError) return handleZodError(err);
     return handleUnknownError(err, `POST /api/teams/${id}/proposals`);

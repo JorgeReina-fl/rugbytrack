@@ -5,6 +5,8 @@ import { render } from "@react-email/components";
 import { logger } from "@/lib/logger";
 import { CallupCreatedEmail } from "@/emails/callup-created";
 import { ReminderEmail } from "@/emails/reminder";
+import { PollCreatedEmail } from "@/emails/poll-created";
+import { ProposalCreatedEmail } from "@/emails/proposal-created";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
@@ -69,6 +71,99 @@ export async function sendCallupNotification({
       rsvpLink,
     }),
   });
+}
+
+export async function sendPollNotification({
+  members,
+  teamName,
+  teamId,
+  pollTitle,
+}: {
+  members: { email: string; name: string | null }[];
+  teamName: string;
+  teamId: string;
+  pollTitle: string;
+}) {
+  if (!resend || members.length === 0) {
+    logger.info({ teamId, pollTitle, count: members.length }, "Skipping poll notification (no resend or no members)");
+    return;
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const pollLink = `${appUrl}/teams/${teamId}/polls`;
+  const from = process.env.EMAIL_FROM || "RugbyTrack <rugbytrack@mivia.es>";
+  const subject = `Nueva encuesta en ${teamName}: ${pollTitle}`;
+
+  try {
+    const messages = await Promise.all(
+      members.map(async ({ email, name }) => ({
+        from,
+        to: email,
+        subject,
+        html: await render(
+          React.createElement(PollCreatedEmail, {
+            userName: name ?? "Miembro",
+            teamName,
+            pollTitle,
+            pollLink,
+          })
+        ),
+      }))
+    );
+
+    const result = await resend.batch.send(messages);
+    logger.info({ teamId, pollTitle, count: members.length, ids: result.data?.data?.map((r: { id: string }) => r.id) }, "Poll notification batch sent");
+  } catch (err) {
+    logger.error({ err, teamId, pollTitle }, "Failed to send poll notification batch");
+  }
+}
+
+export async function sendProposalNotification({
+  members,
+  teamName,
+  teamId,
+  proposalTitle,
+  authorName,
+}: {
+  members: { email: string; name: string | null }[];
+  teamName: string;
+  teamId: string;
+  proposalTitle: string;
+  authorName: string;
+}) {
+  if (!resend || members.length === 0) {
+    logger.info({ teamId, proposalTitle, count: members.length }, "Skipping proposal notification (no resend or no members)");
+    return;
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const proposalLink = `${appUrl}/teams/${teamId}/proposals`;
+  const from = process.env.EMAIL_FROM || "RugbyTrack <rugbytrack@mivia.es>";
+  const subject = `Nueva propuesta en ${teamName}: ${proposalTitle}`;
+
+  try {
+    const messages = await Promise.all(
+      members.map(async ({ email, name }) => ({
+        from,
+        to: email,
+        subject,
+        html: await render(
+          React.createElement(ProposalCreatedEmail, {
+            userName: name ?? "Miembro",
+            teamName,
+            proposalTitle,
+            proposalLink,
+            authorName,
+          })
+        ),
+      }))
+    );
+
+    const result = await resend.batch.send(messages);
+    logger.info({ teamId, proposalTitle, count: members.length, ids: result.data?.data?.map((r: { id: string }) => r.id) }, "Proposal notification batch sent");
+  } catch (err) {
+    logger.error({ err, teamId, proposalTitle }, "Failed to send proposal notification batch");
+  }
 }
 
 export async function sendReminderNotification({

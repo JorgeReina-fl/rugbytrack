@@ -8,6 +8,8 @@ import {
   handleUnknownError,
 } from "@/lib/api-response";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
+import { sendPollNotification } from "@/lib/resend";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -89,7 +91,32 @@ export async function POST(req: Request, { params }: Params) {
       },
     });
 
-    return apiSuccess(poll);
+    const response = apiSuccess(poll);
+
+    // Fire-and-forget: notificar a miembros activos excluyendo al autor
+    prisma.team
+      .findUnique({
+        where: { id },
+        select: {
+          name: true,
+          members: {
+            where: { leftAt: null, userId: { not: session.user.id } },
+            select: { user: { select: { email: true, name: true } } },
+          },
+        },
+      })
+      .then((team) => {
+        if (!team) return;
+        return sendPollNotification({
+          members: team.members.map((m) => m.user),
+          teamName: team.name,
+          teamId: id,
+          pollTitle: poll.title,
+        });
+      })
+      .catch((err) => logger.error({ err, teamId: id, pollId: poll.id }, "Failed to dispatch poll notification"));
+
+    return response;
   } catch (err) {
     if (err instanceof z.ZodError) return handleZodError(err);
     return handleUnknownError(err, `POST /api/teams/${id}/polls`);
