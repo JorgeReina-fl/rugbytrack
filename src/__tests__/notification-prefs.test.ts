@@ -83,7 +83,7 @@ describe("Preferencias de notificación — filtrado de batch de encuestas", () 
 
     const { members } = sendPollNotification.mock.calls[0][0] as { members: { email: string }[] };
     expect(members).toHaveLength(1);
-    expect(members[0].email).toBe("alice@test.com");
+    expect(members[0]!.email).toBe("alice@test.com");
     expect(members.find((m) => m.email === "bob@test.com")).toBeUndefined();
   });
 
