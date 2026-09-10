@@ -46,6 +46,10 @@ export async function POST(req: Request, { params }: Params) {
       return apiError("La encuesta ya no está activa", 400);
     }
 
+    if (poll.expiresAt && poll.expiresAt < new Date()) {
+      return apiError("Esta encuesta ha finalizado", 400);
+    }
+
     // Verify user belongs to the team
     const membership = await prisma.teamMember.findFirst({
       where: { userId, teamId: poll.teamId, leftAt: null },

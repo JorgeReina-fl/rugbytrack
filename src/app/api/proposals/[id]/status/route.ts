@@ -55,18 +55,24 @@ export async function PUT(req: Request, { params }: Params) {
       },
     });
 
-    // Automatically create an Event if APPROVED
+    // Automatically create an Event if APPROVED (guard: skip if event already exists for this proposal)
     if (status === "APPROVED") {
-      await prisma.event.create({
-        data: {
-          teamId: proposal.teamId,
-          title: proposal.title,
-          description: proposal.description,
-          type: "OTHER", // Default type
-          startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default 1 week from now
-          createdById: session.user.id,
-        },
+      const existingEvent = await prisma.event.findFirst({
+        where: { proposalId: id },
       });
+      if (!existingEvent) {
+        await prisma.event.create({
+          data: {
+            teamId: proposal.teamId,
+            title: proposal.title,
+            description: proposal.description,
+            type: "OTHER",
+            startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            createdById: session.user.id,
+            proposalId: id,
+          },
+        });
+      }
     }
 
     await redis.publish(

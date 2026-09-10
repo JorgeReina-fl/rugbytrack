@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { ChartBar, Plus, Calendar, Chats } from "@phosphor-icons/react/dist/ssr";
+import { ChartBar, Plus, Calendar, Chats, Checks, Lightbulb } from "@phosphor-icons/react/dist/ssr";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -101,6 +101,36 @@ export default async function DashboardPage() {
             </h2>
             <p className="mt-1 text-xs font-mono uppercase tracking-widest text-muted-foreground">
               Discusión táctica y comunicación
+            </p>
+          </Link>
+
+          {/* Tarjeta: Encuestas */}
+          <Link
+            href="/polls"
+            id="dashboard-polls-card"
+            className="group border border-border bg-card p-6 transition-all hover:border-primary hover:shadow-md rounded-none"
+          >
+            <div className="mb-4 text-3xl"><Checks size={32} weight="regular" /></div>
+            <h2 className="font-heading font-extrabold uppercase tracking-tighter text-foreground group-hover:text-primary transition-colors">
+              Encuestas
+            </h2>
+            <p className="mt-1 text-xs font-mono uppercase tracking-widest text-muted-foreground">
+              Vota en las decisiones del equipo
+            </p>
+          </Link>
+
+          {/* Tarjeta: Propuestas */}
+          <Link
+            href="/proposals"
+            id="dashboard-proposals-card"
+            className="group border border-border bg-card p-6 transition-all hover:border-primary hover:shadow-md rounded-none"
+          >
+            <div className="mb-4 text-3xl"><Lightbulb size={32} weight="regular" /></div>
+            <h2 className="font-heading font-extrabold uppercase tracking-tighter text-foreground group-hover:text-primary transition-colors">
+              Propuestas
+            </h2>
+            <p className="mt-1 text-xs font-mono uppercase tracking-widest text-muted-foreground">
+              Sugiere actividades para tu equipo
             </p>
           </Link>
         </div>

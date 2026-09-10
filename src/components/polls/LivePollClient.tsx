@@ -23,6 +23,7 @@ export default function LivePollClient({ teamId, initialPolls, isCoach = false }
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [options, setOptions] = useState<string[]>(["", ""]);
+  const [expiresAt, setExpiresAt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -79,6 +80,7 @@ export default function LivePollClient({ teamId, initialPolls, isCoach = false }
     setTitle("");
     setDescription("");
     setOptions(["", ""]);
+    setExpiresAt("");
     setFormError(null);
     setSubmitting(false);
   };
@@ -123,6 +125,7 @@ export default function LivePollClient({ teamId, initialPolls, isCoach = false }
           title: title.trim(),
           description: description.trim() || undefined,
           options: cleanOptions,
+          expiresAt: expiresAt || undefined,
         }),
       });
       if (res.ok) {
@@ -163,15 +166,23 @@ export default function LivePollClient({ teamId, initialPolls, isCoach = false }
       )}
       {polls.map((poll: any) => {
         const totalVotes = poll.options.reduce((acc: number, opt: any) => acc + opt._count.votes, 0);
+        const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
 
         return (
-          <div key={poll.id} className="p-6 bg-card rounded-xl shadow-sm border border-border">
-            <div className="flex items-center gap-3 mb-4">
+          <div key={poll.id} className={`p-6 bg-card rounded-xl shadow-sm border ${isExpired ? "border-border opacity-75" : "border-border"}`}>
+            <div className="flex items-start gap-3 mb-4">
               {poll.createdBy.image && (
                 <Image src={poll.createdBy.image} alt={poll.createdBy.name} width={32} height={32} className="rounded-full shrink-0" />
               )}
               <div className="min-w-0 flex-1">
-                <h3 className="text-xl font-heading font-extrabold uppercase tracking-tighter text-foreground break-words">{poll.title}</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-xl font-heading font-extrabold uppercase tracking-tighter text-foreground break-words">{poll.title}</h3>
+                  {isExpired && (
+                    <span className="shrink-0 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest bg-muted text-muted-foreground border border-border">
+                      Finalizada
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Por {poll.createdBy.name}</p>
               </div>
             </div>
@@ -180,12 +191,16 @@ export default function LivePollClient({ teamId, initialPolls, isCoach = false }
               {poll.options.map((opt: any) => {
                 const percentage = totalVotes === 0 ? 0 : Math.round((opt._count.votes / totalVotes) * 100);
                 return (
-                  <div key={opt.id} className="relative group cursor-pointer" onClick={() => handleVote(poll.id, opt.id)}>
+                  <div
+                    key={opt.id}
+                    className={`relative group ${isExpired ? "cursor-not-allowed" : "cursor-pointer"}`}
+                    onClick={() => !isExpired && handleVote(poll.id, opt.id)}
+                  >
                     <div
                       className="absolute top-0 left-0 h-full bg-primary/15 rounded-lg transition-all duration-500 ease-out"
                       style={{ width: `${percentage}%` }}
                     ></div>
-                    <div className="relative p-3 flex justify-between items-center z-10 border border-border rounded-lg hover:border-primary transition-all">
+                    <div className={`relative p-3 flex justify-between items-center z-10 border rounded-lg transition-all ${isExpired ? "border-border" : "border-border hover:border-primary"}`}>
                       <span className="font-medium text-foreground">{opt.text}</span>
                       <span className="text-sm font-mono font-bold text-primary">{opt._count.votes} ({percentage}%)</span>
                     </div>
@@ -223,6 +238,17 @@ export default function LivePollClient({ teamId, initialPolls, isCoach = false }
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full border p-2 rounded bg-background h-20"
                   ></textarea>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold mb-1">
+                    Fecha límite <span className="text-muted-foreground font-normal">(opcional)</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={expiresAt}
+                    onChange={(e) => setExpiresAt(e.target.value)}
+                    className="w-full border p-2 rounded bg-background"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-bold mb-2">

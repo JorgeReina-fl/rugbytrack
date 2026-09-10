@@ -19,6 +19,7 @@ const createPollSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   options: z.array(z.string().min(1)).min(2, "At least two options are required"),
+  expiresAt: z.coerce.date().optional(),
 });
 
 export async function GET(_req: Request, { params }: Params) {
@@ -74,6 +75,7 @@ export async function POST(req: Request, { params }: Params) {
         teamId: id,
         title: data.title,
         description: data.description ?? null,
+        expiresAt: data.expiresAt ?? null,
         createdById: session.user.id,
         options: {
           create: data.options.map((text) => ({ text })),

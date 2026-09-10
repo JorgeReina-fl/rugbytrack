@@ -60,6 +60,9 @@ export default async function EventDetailPage({ params }: PageProps) {
       attendances: {
         where: { userId: session.user.id },
       },
+      proposal: {
+        select: { id: true, title: true },
+      },
     },
   });
 
@@ -140,6 +143,20 @@ export default async function EventDetailPage({ params }: PageProps) {
                   <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground mb-2">Indicaciones</h3>
                   <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
                     {event.description}
+                  </p>
+                </div>
+              )}
+
+              {event.proposal && (
+                <div className="mt-4 border-t border-border pt-4">
+                  <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
+                    Generado desde la propuesta:{" "}
+                    <Link
+                      href={`/teams/${event.teamId}/proposals`}
+                      className="font-bold text-primary hover:underline"
+                    >
+                      {event.proposal.title}
+                    </Link>
                   </p>
                 </div>
               )}
