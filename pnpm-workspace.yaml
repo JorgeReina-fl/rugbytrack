@@ -14,7 +14,10 @@ ignoredBuiltDependencies:
   - unrs-resolver
 minimumReleaseAgeExclude:
   - mongoose@9.9.2
+  - nodemailer@10.0.3
 onlyBuiltDependencies: argon2,sharp,unrs-resolver,@prisma/client,prisma
 overrides:
   socket.io-parser: '>=4.2.7'
   '@auth/core': 0.41.3
+  nodemailer: ^10.0.3
+  sharp: ^0.35.4
