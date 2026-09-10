@@ -145,3 +145,19 @@ El script es idempotente: cada ejecución borra los datos demo anteriores y rege
 - En desarrollo local, las imágenes se guardan directamente en `public/uploads/` del sistema de archivos (no se usa Docker volume).
 - La API de subida (`POST /api/upload`) valida tipo (JPG/PNG/WEBP) y tamaño (máx. 5 MB) antes de escribir en el volumen.
 - Para inspeccionar el contenido del volumen en producción: `docker exec rugbytrack-app ls /app/public/uploads/`
+
+---
+
+## 🔒 Hardening: Rootfs de solo lectura
+
+El contenedor de producción arranca con `read_only: true` en el docker-compose del docker-lab. Motivación: el incidente de agosto 2026 (CVE-2025-55182 / Next.js RCE) demostró que un exploit podía escribir archivos arbitrarios (`cox.txt`) porque el filesystem del contenedor era de escritura libre. Con rootfs de solo lectura, un RCE similar no puede persistir nada fuera de las rutas montadas explícitamente.
+
+**Rutas con escritura habilitada:**
+
+| Ruta | Tipo | Razón |
+|------|------|-------|
+| `/app/public/uploads` | Docker named volume | Imágenes subidas por usuarios — deben persistir entre reinicios |
+| `/tmp` | tmpfs (en memoria) | Node.js temp files; se pierde al reiniciar el contenedor |
+| `/app/.next/cache` | tmpfs (en memoria) | Caché ISR/fetch de Next.js; se regenera en runtime |
+
+Cualquier intento de escritura fuera de estas rutas falla con `Read-only file system` (probado vía `docker exec`). El logger (pino) escribe solo a stdout, sin ficheros en disco.
