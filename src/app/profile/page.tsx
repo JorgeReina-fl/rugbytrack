@@ -126,31 +126,33 @@ export default async function ProfilePage() {
                       <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1 leading-tight">
                         RPE medio
                       </p>
-                      <p className="text-2xl font-heading font-bold text-foreground">
-                        {s.avgRpe !== null ? s.avgRpe : "—"}
-                      </p>
+                      {s.avgRpe !== null ? (
+                        <p className="text-2xl font-heading font-bold text-foreground">{s.avgRpe}</p>
+                      ) : (
+                        <p className="text-xs font-mono text-muted-foreground mt-2">Sin datos</p>
+                      )}
                     </div>
                     <div className="bg-muted p-3 text-center">
                       <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1 leading-tight">
                         Asistencia
                       </p>
-                      <p className="text-2xl font-heading font-bold text-foreground">
-                        {s.attendanceRate !== null ? `${s.attendanceRate}%` : "—"}
-                      </p>
+                      {s.attendanceRate !== null ? (
+                        <p className="text-2xl font-heading font-bold text-foreground">{s.attendanceRate}%</p>
+                      ) : (
+                        <p className="text-xs font-mono text-muted-foreground mt-2">Sin entrenos</p>
+                      )}
                     </div>
                     <div className="bg-muted p-3 text-center">
                       <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1 leading-tight">
                         ACWR
                       </p>
-                      <p
-                        className={`text-2xl font-heading font-bold ${
-                          s.acwr !== null && s.acwr > 1.5
-                            ? "text-destructive"
-                            : "text-foreground"
-                        }`}
-                      >
-                        {s.acwr !== null ? s.acwr : "—"}
-                      </p>
+                      {s.acwr !== null ? (
+                        <p className={`text-2xl font-heading font-bold ${s.acwr > 1.5 ? "text-destructive" : "text-foreground"}`}>
+                          {s.acwr}
+                        </p>
+                      ) : (
+                        <p className="text-xs font-mono text-muted-foreground mt-2">Sin datos</p>
+                      )}
                     </div>
                   </div>
                 </div>
