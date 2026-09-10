@@ -4,6 +4,7 @@ import { dbConnect } from "@/lib/mongoose";
 import { Thread } from "@/models/Thread";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { sendThreadNotification } from "@/lib/resend";
 import {
   apiSuccess,
   apiUnauthorized,
@@ -72,6 +73,32 @@ export async function POST(
       content: result.data.content,
       ...(result.data.imageUrl ? { imageUrl: result.data.imageUrl } : {}),
     });
+
+    // Fire-and-forget: notify active members except the author
+    prisma.team
+      .findUnique({
+        where: { id: teamId },
+        select: {
+          name: true,
+          members: {
+            where: { leftAt: null, userId: { not: session.user.id } },
+            select: { user: { select: { email: true, name: true } } },
+          },
+        },
+      })
+      .then((team) => {
+        if (!team) return;
+        const members = team.members.map((m) => m.user);
+        return sendThreadNotification({
+          members,
+          teamName: team.name,
+          teamId,
+          threadId: String(newThread._id),
+          threadTitle: result.data.title,
+          authorName: session.user.name || "Un miembro",
+        });
+      })
+      .catch(() => undefined);
 
     return apiSuccess(newThread, 201);
   } catch (error) {

@@ -3,10 +3,12 @@ import * as React from "react";
 import { Resend } from "resend";
 import { render } from "@react-email/components";
 import { logger } from "@/lib/logger";
+import { trackEmailBudget } from "@/lib/email-budget";
 import { CallupCreatedEmail } from "@/emails/callup-created";
 import { ReminderEmail } from "@/emails/reminder";
 import { PollCreatedEmail } from "@/emails/poll-created";
 import { ProposalCreatedEmail } from "@/emails/proposal-created";
+import { ThreadCreatedEmail } from "@/emails/thread-created";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
@@ -60,6 +62,9 @@ export async function sendCallupNotification({
   eventLocation: string;
   rsvpLink: string;
 }) {
+  const allowed = await trackEmailBudget(1, "HIGH", "callup");
+  if (!allowed) return null;
+
   return sendEmail({
     to,
     subject: `📋 Nueva Convocatoria: ${eventTitle}`,
@@ -89,6 +94,9 @@ export async function sendPollNotification({
     return;
   }
 
+  const allowed = await trackEmailBudget(members.length, "LOW", "poll-notification");
+  if (!allowed) return;
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
   const pollLink = `${appUrl}/teams/${teamId}/polls`;
   const from = process.env.EMAIL_FROM || "RugbyTrack <rugbytrack@mivia.es>";
@@ -112,7 +120,11 @@ export async function sendPollNotification({
     );
 
     const result = await resend.batch.send(messages);
-    logger.info({ teamId, pollTitle, count: members.length, ids: result.data?.data?.map((r: { id: string }) => r.id) }, "Poll notification batch sent");
+    if (result.error) {
+      logger.error({ teamId, pollTitle, resendError: result.error }, "Resend batch returned error");
+      return;
+    }
+    logger.info({ teamId, pollTitle, count: members.length, ids: result.data?.data?.map((r) => r.id) }, "Poll notification batch sent");
   } catch (err) {
     logger.error({ err, teamId, pollTitle }, "Failed to send poll notification batch");
   }
@@ -135,6 +147,9 @@ export async function sendProposalNotification({
     logger.info({ teamId, proposalTitle, count: members.length }, "Skipping proposal notification (no resend or no members)");
     return;
   }
+
+  const allowed = await trackEmailBudget(members.length, "LOW", "proposal-notification");
+  if (!allowed) return;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
   const proposalLink = `${appUrl}/teams/${teamId}/proposals`;
@@ -160,7 +175,11 @@ export async function sendProposalNotification({
     );
 
     const result = await resend.batch.send(messages);
-    logger.info({ teamId, proposalTitle, count: members.length, ids: result.data?.data?.map((r: { id: string }) => r.id) }, "Proposal notification batch sent");
+    if (result.error) {
+      logger.error({ teamId, proposalTitle, resendError: result.error }, "Resend batch returned error");
+      return;
+    }
+    logger.info({ teamId, proposalTitle, count: members.length, ids: result.data?.data?.map((r) => r.id) }, "Proposal notification batch sent");
   } catch (err) {
     logger.error({ err, teamId, proposalTitle }, "Failed to send proposal notification batch");
   }
@@ -179,6 +198,9 @@ export async function sendReminderNotification({
   eventDate: string;
   rsvpLink: string;
 }) {
+  const allowed = await trackEmailBudget(1, "LOW", "reminder");
+  if (!allowed) return null;
+
   return sendEmail({
     to,
     subject: `⏰ Recordatorio: Confirma tu asistencia para ${eventTitle}`,
@@ -189,4 +211,61 @@ export async function sendReminderNotification({
       rsvpLink,
     }),
   });
+}
+
+export async function sendThreadNotification({
+  members,
+  teamName,
+  teamId,
+  threadId,
+  threadTitle,
+  authorName,
+}: {
+  members: { email: string; name: string | null }[];
+  teamName: string;
+  teamId: string;
+  threadId: string;
+  threadTitle: string;
+  authorName: string;
+}) {
+  if (!resend || members.length === 0) {
+    logger.info({ teamId, threadId, count: members.length }, "Skipping thread notification (no resend or no members)");
+    return;
+  }
+
+  const allowed = await trackEmailBudget(members.length, "LOW", "thread-notification");
+  if (!allowed) return;
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const threadLink = `${appUrl}/teams/${teamId}/forum/${threadId}`;
+  const from = process.env.EMAIL_FROM || "RugbyTrack <rugbytrack@mivia.es>";
+  const subject = `Nuevo hilo en ${teamName}: ${threadTitle}`;
+
+  try {
+    const messages = await Promise.all(
+      members.map(async ({ email, name }) => ({
+        from,
+        to: email,
+        subject,
+        html: await render(
+          React.createElement(ThreadCreatedEmail, {
+            userName: name ?? "Miembro",
+            teamName,
+            threadTitle,
+            authorName,
+            threadLink,
+          })
+        ),
+      }))
+    );
+
+    const result = await resend.batch.send(messages);
+    if (result.error) {
+      logger.error({ teamId, threadId, resendError: result.error }, "Resend batch returned error");
+      return;
+    }
+    logger.info({ teamId, threadId, count: members.length, ids: result.data?.data?.map((r) => r.id) }, "Thread notification batch sent");
+  } catch (err) {
+    logger.error({ err, teamId, threadId }, "Failed to send thread notification batch");
+  }
 }
