@@ -13,7 +13,7 @@ import {
 } from "@/lib/api-response";
 import { ZodError } from "zod";
 import { logger } from "@/lib/logger";
-import { sendCallupNotification } from "@/lib/resend";
+import { sendRsvpNotifications } from "@/lib/rsvp-notify";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -104,31 +104,11 @@ export async function POST(request: Request) {
       return newEvent;
     });
 
-    // Envío asíncrono de notificaciones por correo (fire-and-forget)
+    // Fire-and-forget: enviar RSVP con magic link a todos los convocados
     if (data.callups && data.callups.length > 0) {
-      prisma.user
-        .findMany({
-          where: { id: { in: data.callups.map((c) => c.userId) } },
-          select: { id: true, email: true, name: true },
-        })
-        .then((users: Array<{ id: string; email: string; name: string }>) => {
-          users.forEach((user: { id: string; email: string; name: string }) => {
-            const rsvpLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/events/${event.id}`;
-            sendCallupNotification({
-              to: user.email,
-              userName: user.name,
-              eventTitle: event.title,
-              eventDate: event.startDate.toLocaleString("es-ES"),
-              eventLocation: event.location || "No especificado",
-              rsvpLink,
-            }).catch((emailErr: unknown) => {
-              logger.error({ err: emailErr, userId: user.id, eventId: event.id }, "Failed to send callup notification email");
-            });
-          });
-        })
-        .catch((dbErr: unknown) => {
-          logger.error({ err: dbErr, eventId: event.id }, "Failed to query users for async callup notification emails");
-        });
+      sendRsvpNotifications(event.id).catch((err: unknown) => {
+        logger.error({ err, eventId: event.id }, "Failed to dispatch RSVP notifications on event create");
+      });
     }
 
     return apiSuccess(event, 201);
