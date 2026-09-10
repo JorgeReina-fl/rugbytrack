@@ -2,30 +2,33 @@ import * as React from "react";
 import { BaseEmail, detailRow } from "./base";
 import { Text } from "@react-email/components";
 
-interface ReminderEmailProps {
+interface RsvpRequestEmailProps {
   userName: string;
   eventTitle: string;
   eventDate: string;
+  eventLocation: string;
   rsvpLink: string;
 }
 
-export const ReminderEmail = ({
+export const RsvpRequestEmail = ({
   userName = "Jugador",
-  eventTitle = "Entrenamiento",
-  eventDate = "Mañana",
+  eventTitle = "Evento",
+  eventDate = "Próximamente",
+  eventLocation = "Por confirmar",
   rsvpLink = "http://localhost:3000",
-}: ReminderEmailProps) => (
+}: RsvpRequestEmailProps) => (
   <BaseEmail
-    preview={`Recordatorio: Confirma tu asistencia para ${eventTitle}`}
+    preview={`Convocatoria: ${eventTitle} — confirma tu asistencia`}
     greeting={`Hola ${userName},`}
-    body="Aún no has confirmado tu asistencia. El entrenador necesita saber si cuentan contigo:"
+    body="Has sido convocado al siguiente evento. Confirma tu asistencia antes de la fecha límite:"
     details={
       <>
         <Text style={detailRow}><strong>Evento:</strong> {eventTitle}</Text>
         <Text style={detailRow}><strong>Fecha:</strong> {eventDate}</Text>
+        <Text style={detailRow}><strong>Lugar:</strong> {eventLocation}</Text>
       </>
     }
-    ctaText="Responder convocatoria →"
+    ctaText="Confirmar / declinar asistencia →"
     ctaHref={rsvpLink}
   />
 );
