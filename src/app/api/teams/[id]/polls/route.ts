@@ -95,7 +95,7 @@ export async function POST(req: Request, { params }: Params) {
 
     const response = apiSuccess(poll);
 
-    // Fire-and-forget: notificar a miembros activos excluyendo al autor
+    // Fire-and-forget: notificar a miembros activos, excluyendo al autor y a quienes desactivaron notifyPolls
     prisma.team
       .findUnique({
         where: { id },
@@ -103,14 +103,15 @@ export async function POST(req: Request, { params }: Params) {
           name: true,
           members: {
             where: { leftAt: null, userId: { not: session.user.id } },
-            select: { user: { select: { email: true, name: true } } },
+            select: { user: { select: { email: true, name: true, notifyPolls: true } } },
           },
         },
       })
       .then((team) => {
         if (!team) return;
+        const recipients = team.members.map((m) => m.user).filter((u) => u.notifyPolls);
         return sendPollNotification({
-          members: team.members.map((m) => m.user),
+          members: recipients,
           teamName: team.name,
           teamId: id,
           pollTitle: poll.title,

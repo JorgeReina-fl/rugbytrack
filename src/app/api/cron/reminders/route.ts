@@ -35,6 +35,7 @@ export async function GET(request: Request) {
         attendances: {
           where: {
             status: "PENDING",
+            user: { notifyRsvpReminders: true },
           },
           include: {
             user: {

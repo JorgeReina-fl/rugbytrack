@@ -38,11 +38,19 @@ export interface TeamStat {
   acwr: number | null;
 }
 
+export interface NotificationPrefs {
+  notifyPolls: boolean;
+  notifyProposals: boolean;
+  notifyForumThreads: boolean;
+  notifyRsvpReminders: boolean;
+}
+
 export interface ProfileData {
   account: {
     email: string;
     name: string;
     createdAt: Date;
+    notifications: NotificationPrefs;
   };
   teams: Array<{
     id: string;
@@ -68,6 +76,10 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
       email: true,
       name: true,
       createdAt: true,
+      notifyPolls: true,
+      notifyProposals: true,
+      notifyForumThreads: true,
+      notifyRsvpReminders: true,
       memberships: {
         where: { leftAt: null },
         orderBy: { joinedAt: "asc" },
@@ -198,7 +210,17 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
   }
 
   return {
-    account: { email: user.email, name: user.name, createdAt: user.createdAt },
+    account: {
+      email: user.email,
+      name: user.name,
+      createdAt: user.createdAt,
+      notifications: {
+        notifyPolls: user.notifyPolls,
+        notifyProposals: user.notifyProposals,
+        notifyForumThreads: user.notifyForumThreads,
+        notifyRsvpReminders: user.notifyRsvpReminders,
+      },
+    },
     teams: user.memberships.map((m) => ({
       id: m.team.id,
       name: m.team.name,

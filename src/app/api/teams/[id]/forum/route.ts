@@ -74,7 +74,7 @@ export async function POST(
       ...(result.data.imageUrl ? { imageUrl: result.data.imageUrl } : {}),
     });
 
-    // Fire-and-forget: notify active members except the author
+    // Fire-and-forget: notify active members except the author, respecting notifyForumThreads preference
     prisma.team
       .findUnique({
         where: { id: teamId },
@@ -82,15 +82,15 @@ export async function POST(
           name: true,
           members: {
             where: { leftAt: null, userId: { not: session.user.id } },
-            select: { user: { select: { email: true, name: true } } },
+            select: { user: { select: { email: true, name: true, notifyForumThreads: true } } },
           },
         },
       })
       .then((team) => {
         if (!team) return;
-        const members = team.members.map((m) => m.user);
+        const recipients = team.members.map((m) => m.user).filter((u) => u.notifyForumThreads);
         return sendThreadNotification({
-          members,
+          members: recipients,
           teamName: team.name,
           teamId,
           threadId: String(newThread._id),

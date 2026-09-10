@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import ChangePasswordForm from "./ChangePasswordForm";
+import NotificationsForm from "./NotificationsForm";
 
 export const metadata: Metadata = {
   title: "Mi perfil",
@@ -96,6 +97,14 @@ export default async function ProfilePage() {
               ))}
             </ul>
           )}
+        </section>
+
+        {/* Notificaciones */}
+        <section className="mb-6 border border-border p-6">
+          <h2 className="text-lg font-heading font-bold uppercase tracking-tight mb-5 text-foreground">
+            Notificaciones
+          </h2>
+          <NotificationsForm initial={account.notifications} />
         </section>
 
         {/* Cambiar contraseña */}

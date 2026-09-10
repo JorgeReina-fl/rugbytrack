@@ -113,7 +113,11 @@ model User {
   role         Role     @default(PLAYER)
   /// Marca de último reset de password. Un token de reset con iat < passwordResetAt
   /// se considera consumido (single-use) — invalida además tokens en vuelo.
-  passwordResetAt DateTime?
+  passwordResetAt     DateTime?
+  notifyPolls         Boolean  @default(true)
+  notifyProposals     Boolean  @default(true)
+  notifyForumThreads  Boolean  @default(true)
+  notifyRsvpReminders Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
