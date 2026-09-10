@@ -19,6 +19,15 @@ export function DashboardHeader({ badgeLabel }: DashboardHeaderProps = {}) {
       : badgeLabel ??
         (user?.role === "COACH" ? "Entrenador" : user ? "Jugador" : null);
 
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .map((p) => p[0] ?? "")
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "?";
+
   return (
     <nav className="border-b border-border bg-background/80 backdrop-blur-sm shadow-sm sticky top-0 z-10">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
@@ -39,6 +48,14 @@ export function DashboardHeader({ badgeLabel }: DashboardHeaderProps = {}) {
               <div className="w-px h-4 bg-border hidden md:block" />
             </>
           )}
+          <Link
+            href="/profile"
+            aria-label="Mi perfil"
+            title="Mi perfil"
+            className="flex h-8 w-8 items-center justify-center bg-secondary text-xs font-mono font-bold text-foreground hover:bg-primary hover:text-primary-foreground transition-all"
+          >
+            {initials}
+          </Link>
           <LogoutButton />
         </div>
       </div>
