@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import TeamSelector from "./team-selector";
-import { LogoutButton } from "@/components/auth/LogoutButton";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { prisma } from "@/lib/prisma";
 import {
   format,
@@ -53,16 +53,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
   if (teams.length === 0) {
     return (
       <div className="min-h-screen bg-background text-foreground pb-10">
-        <nav className="border-b border-border bg-background/80 backdrop-blur-sm shadow-sm sticky top-0 z-10">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-            <Link href="/dashboard" className="text-xl font-heading font-extrabold tracking-tighter uppercase">
-              Rugby<span className="text-primary">Track</span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <LogoutButton />
-            </div>
-          </div>
-        </nav>
+        <DashboardHeader badgeLabel={null} />
         <main className="mx-auto max-w-3xl px-4 py-16 text-center">
           <div className="text-6xl mb-6"><RugbyBallIcon size={24} weight="regular" className="inline mr-2" /></div>
           <h1 className="text-3xl font-heading font-extrabold uppercase tracking-tighter text-foreground">No tienes equipos todavía</h1>
@@ -138,23 +129,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-10">
-      <nav className="border-b border-border bg-background/80 backdrop-blur-sm shadow-sm sticky top-0 z-10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-          <Link href="/dashboard" className="text-xl font-heading font-extrabold tracking-tighter uppercase">
-            Rugby<span className="text-primary">Track</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-mono uppercase tracking-widest font-semibold text-muted-foreground">
-              {session.user.name}
-            </span>
-            <span className="rounded-full bg-secondary px-3 py-1 text-xs font-mono font-bold uppercase tracking-widest text-foreground hidden sm:inline-block">
-              {isCoach ? "Entrenador" : "Jugador"}
-            </span>
-            <div className="w-px h-4 bg-border hidden sm:block"></div>
-            <LogoutButton />
-          </div>
-        </div>
-      </nav>
+      <DashboardHeader badgeLabel={isCoach ? "Entrenador" : "Jugador"} />
 
       <main className="mx-auto max-w-7xl px-4 py-10">
         {/* Encabezado y Selector de Equipos */}
