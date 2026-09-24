@@ -57,3 +57,7 @@ replace_*.js
 run_replace.js
 table_output.json
 packages/*/node_modules
+
+# local backups
+*.bak-*
+*.bak.*
