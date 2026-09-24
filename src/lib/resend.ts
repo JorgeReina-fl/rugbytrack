@@ -5,7 +5,6 @@ import { render } from "@react-email/components";
 import { logger } from "@/lib/logger";
 import { trackEmailBudget } from "@/lib/email-budget";
 import { CallupCreatedEmail } from "@/emails/callup-created";
-import { ReminderEmail } from "@/emails/reminder";
 import { PollCreatedEmail } from "@/emails/poll-created";
 import { ProposalCreatedEmail } from "@/emails/proposal-created";
 import { ThreadCreatedEmail } from "@/emails/thread-created";
@@ -183,34 +182,6 @@ export async function sendProposalNotification({
   } catch (err) {
     logger.error({ err, teamId, proposalTitle }, "Failed to send proposal notification batch");
   }
-}
-
-export async function sendReminderNotification({
-  to,
-  userName,
-  eventTitle,
-  eventDate,
-  rsvpLink,
-}: {
-  to: string;
-  userName: string;
-  eventTitle: string;
-  eventDate: string;
-  rsvpLink: string;
-}) {
-  const allowed = await trackEmailBudget(1, "LOW", "reminder");
-  if (!allowed) return null;
-
-  return sendEmail({
-    to,
-    subject: `⏰ Recordatorio: Confirma tu asistencia para ${eventTitle}`,
-    react: React.createElement(ReminderEmail, {
-      userName,
-      eventTitle,
-      eventDate,
-      rsvpLink,
-    }),
-  });
 }
 
 export async function sendThreadNotification({

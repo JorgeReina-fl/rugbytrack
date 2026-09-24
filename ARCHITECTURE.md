@@ -50,7 +50,6 @@ Este documento describe la arquitectura técnica, la distribución por módulos 
   - `MONGO_PASSWORD`
   - `MONGO_DB`
   - `REDIS_PASSWORD`
-  - `CRON_SECRET`
   - `NEXT_PUBLIC_WS_URL`
   - `RESEND_API_KEY`
   - `GEMINI_API_KEY`

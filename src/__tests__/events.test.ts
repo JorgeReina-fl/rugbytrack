@@ -36,7 +36,6 @@ jest.mock("@/lib/prisma", () => ({
 
 jest.mock("@/lib/resend", () => ({
   sendCallupNotification: jest.fn().mockResolvedValue({ id: "mock-email-id" }),
-  sendReminderNotification: jest.fn().mockResolvedValue({ id: "mock-email-id" }),
 }));
 
 jest.mock("ioredis", () => {
