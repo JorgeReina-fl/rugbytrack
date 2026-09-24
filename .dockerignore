@@ -13,5 +13,5 @@ docker-compose*.yml
 coverage
 .turbo
 prisma/migrations
-*.bak-*
-*.bak.*
+**/*.bak-*
+**/*.bak.*
