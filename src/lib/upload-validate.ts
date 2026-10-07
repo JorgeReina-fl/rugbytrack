@@ -1,5 +1,7 @@
 // Validación de subidas por los BYTES reales del fichero. Nunca por file.type ni por file.name (los controla el cliente).
-// Función pura: sin dependencias de Node ni de Next.
+// Funciones puras: sin dependencias de Node ni de Next (solo zod para el esquema de URLs).
+
+import { z } from "zod";
 
 export type ImageType = "jpeg" | "png" | "webp";
 
@@ -13,6 +15,15 @@ const EXTENSION: Record<ImageType, string> = { jpeg: "jpg", png: "png", webp: "w
 export function extensionFor(type: ImageType): string {
   return EXTENSION[type];
 }
+
+/**
+ * Única forma aceptada de URL de imagen subida: la ruta que devuelve POST /api/upload
+ * (`/uploads/<uuid>.jpg|png|webp`). Sin esquema, sin host, sin query, sin `..`.
+ */
+export const UPLOAD_URL_RE = /^\/uploads\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
+
+/** Esquema zod para campos que guardan una imagen subida (compónlo con .optional()/.nullable() según el campo). */
+export const uploadUrl = z.string().regex(UPLOAD_URL_RE, "URL de imagen no válida");
 
 const startsWith = (buf: Uint8Array, sig: number[], at = 0): boolean =>
   sig.every((b, i) => buf[at + i] === b);

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { uploadUrl } from "@/lib/upload-validate";
 import { RugbyPosition } from "@prisma/client";
 
 export const createTeamSchema = z.object({
@@ -8,7 +9,7 @@ export const createTeamSchema = z.object({
     .max(80, "El nombre no puede superar 80 caracteres")
     .trim(),
   description: z.string().max(500).trim().optional(),
-  logoUrl: z.string().url("URL de logo no válida").optional(),
+  logoUrl: uploadUrl.optional(),
 });
 
 export const updateTeamSchema = z.object({
@@ -19,7 +20,7 @@ export const updateTeamSchema = z.object({
     .trim()
     .optional(),
   description: z.string().max(500).trim().optional().nullable(),
-  logoUrl: z.string().url().optional().nullable(),
+  logoUrl: uploadUrl.optional().nullable(),
 });
 
 export const joinTeamSchema = z.object({
