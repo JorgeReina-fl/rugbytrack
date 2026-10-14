@@ -1,3 +1,9 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -19,6 +25,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    logging: *default-logging
 
   mongodb:
     image: mongo:7
@@ -40,6 +47,7 @@ services:
       timeout: 10s
       retries: 5
       start_period: 20s
+    logging: *default-logging
 
   redis:
     image: redis:7-alpine
@@ -59,6 +67,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
 
 volumes:
   postgres_data:
