@@ -6,16 +6,8 @@ import Link from "next/link";
 import TeamSelector from "./team-selector";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { prisma } from "@/lib/prisma";
-import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  isSameDay,
-  startOfWeek,
-  endOfWeek,
-} from "date-fns";
-import { es } from "date-fns/locale";
+import { dayKeyInTz, formatInTz, safeTz } from "@/lib/datetime";
+import { buildMonthGrid, gridRangeUtc } from "@/lib/calendar";
 
 interface PageProps {
   searchParams: Promise<{
@@ -42,6 +34,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
     select: {
       id: true,
       name: true,
+      timezone: true,
       members: {
         where: { userId: session.user.id },
         select: { isCoach: true },
@@ -88,27 +81,23 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
   const isCoach = selectedTeam.members[0]?.isCoach ?? false;
 
-  // 2. Determina el mes y año actual/seleccionado para el calendario
+  // 2. Determina el mes y año actual/seleccionado para el calendario (en la zona del equipo)
+  const tz = safeTz(selectedTeam.timezone);
   const now = new Date();
-  const year = yearParam ? parseInt(yearParam, 10) : now.getFullYear();
-  const month = monthParam ? parseInt(monthParam, 10) - 1 : now.getMonth();
-  const currentCalendarDate = new Date(year, month, 1);
-
-  // Intervalos del mes para generar la cuadrícula del calendario
-  const monthStart = startOfMonth(currentCalendarDate);
-  const monthEnd = endOfMonth(currentCalendarDate);
-  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 }); // Empezar en Lunes
-  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
-
-  const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+  const [nowYear, nowMonth] = dayKeyInTz(now, tz).split("-").map(Number) as [number, number];
+  const parsedYear = yearParam ? parseInt(yearParam, 10) : NaN;
+  const parsedMonth = monthParam ? parseInt(monthParam, 10) - 1 : NaN;
+  const year = Number.isNaN(parsedYear) ? nowYear : parsedYear;
+  const month = Number.isNaN(parsedMonth) ? nowMonth - 1 : parsedMonth;
 
   // 3. Carga los eventos del mes
+  const range = gridRangeUtc(year, month, tz);
   const events = await prisma.event.findMany({
     where: {
       teamId: selectedTeam.id,
       startDate: {
-        gte: calendarStart,
-        lte: calendarEnd,
+        gte: range.start,
+        lt: range.end,
       },
     },
     include: {
@@ -120,12 +109,16 @@ export default async function EventsPage({ searchParams }: PageProps) {
     orderBy: { startDate: "asc" },
   });
 
-  // Calcular navegación
-  const prevMonthDate = new Date(year, month - 1, 1);
-  const nextMonthDate = new Date(year, month + 1, 1);
+  // Cuadrícula (lunes a domingo) del mes, con los días de las semanas vecinas
+  const weeks = buildMonthGrid(year, month, tz, events, now);
+  const days = weeks.flat();
 
-  const prevLink = `/events?teamId=${selectedTeam.id}&year=${prevMonthDate.getFullYear()}&month=${prevMonthDate.getMonth() + 1}`;
-  const nextLink = `/events?teamId=${selectedTeam.id}&year=${nextMonthDate.getFullYear()}&month=${nextMonthDate.getMonth() + 1}`;
+  // Calcular navegación
+  const prevMonthDate = new Date(Date.UTC(year, month - 1, 1));
+  const nextMonthDate = new Date(Date.UTC(year, month + 1, 1));
+
+  const prevLink = `/events?teamId=${selectedTeam.id}&year=${prevMonthDate.getUTCFullYear()}&month=${prevMonthDate.getUTCMonth() + 1}`;
+  const nextLink = `/events?teamId=${selectedTeam.id}&year=${nextMonthDate.getUTCFullYear()}&month=${nextMonthDate.getUTCMonth() + 1}`;
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-10">
@@ -168,7 +161,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
             ◀ Anterior
           </Link>
           <h2 className="text-2xl font-heading font-extrabold uppercase tracking-tighter">
-            {format(currentCalendarDate, "MMMM yyyy", { locale: es })}
+            {formatInTz(new Date(Date.UTC(year, month, 15, 12)), "UTC", "MMMM yyyy")}
           </h2>
           <Link
             href={nextLink}
@@ -194,8 +187,8 @@ export default async function EventsPage({ searchParams }: PageProps) {
           {/* Días del mes */}
           <div className="grid grid-cols-7 auto-rows-[120px] divide-x divide-y divide-border">
             {days.map((day, idx) => {
-              const isCurrentMonth = day.getMonth() === month;
-              const dayEvents = events.filter((e) => isSameDay(new Date(e.startDate), day));
+              const isCurrentMonth = day.inMonth;
+              const dayEvents = day.events;
 
               return (
                 <div
@@ -204,9 +197,9 @@ export default async function EventsPage({ searchParams }: PageProps) {
                     isCurrentMonth ? "bg-card" : "bg-secondary/50 text-muted-foreground"
                   }`}
                 >
-                  <span className="text-xs font-mono font-bold self-end opacity-70">{day.getDate()}</span>
+                  <span className="text-xs font-mono font-bold self-end opacity-70">{day.day}</span>
                   <div className="flex-1 overflow-y-auto space-y-1">
-                    {dayEvents.map((event) => {
+                    {dayEvents.map(({ event, time }) => {
                       const userAtt = event.attendances[0];
                       let statusColor = "bg-secondary text-foreground border border-border";
                       let typeLabel = event.type === "TRAINING" ? "Entreno" : event.type === "MATCH" ? "Partido" : "Evento";
@@ -233,7 +226,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
                           <div className="flex items-center justify-between mt-1 text-[8px] font-mono font-bold uppercase tracking-widest opacity-80">
                             <span>{typeLabel}</span>
                             <span>
-                              {format(new Date(event.startDate), "HH:mm")}
+                              {time}
                             </span>
                           </div>
                         </Link>
