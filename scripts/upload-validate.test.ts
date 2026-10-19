@@ -1,4 +1,4 @@
-// Ejecutar: npx --yes tsx scripts/upload-validate.test.ts   (sin dependencias nuevas; fixtures en memoria)
+/** @jest-environment node */
 import { detectImageType, extensionFor, MAX_UPLOAD_BYTES, UPLOAD_URL_RE, uploadUrl } from "../src/lib/upload-validate";
 
 const enc = new TextEncoder();
@@ -16,64 +16,83 @@ const SVG = enc.encode('<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/
 const GIF = concat(enc.encode("GIF89a"), pad(16));
 const RIFF_NO_WEBP = concat(enc.encode("RIFF"), bytes(0x24, 0, 0, 0), enc.encode("WAVE"), pad(8));
 
-let fail = 0;
-function t(name: string, got: unknown, want: unknown) {
-  const ok = got === want;
-  if (!ok) fail++;
-  console.log(`${ok ? "OK  " : "FAIL"} | ${name.padEnd(54)} | esperado=${String(want).padEnd(5)} | obtenido=${String(got)}`);
-}
+const UUID = "123e4567-e89b-12d3-a456-426614174000";
+const urlOk = (u: string) => uploadUrl.safeParse(u).success;
 
-t("JPEG válido", detectImageType(JPEG), "jpeg");
-t("PNG válido", detectImageType(PNG), "png");
-t("WEBP válido", detectImageType(WEBP), "webp");
-t("AVIF (ftypavif)", detectImageType(AVIF), null);
-t("HEIC (ftypheic)", detectImageType(HEIC), null);
-t("MIF1 (ftypmif1)", detectImageType(ftyp("mif1")), null);
-t("SVG (con onload)", detectImageType(SVG), null);
-t("GIF89a", detectImageType(GIF), null);
-t("RIFF que no es WEBP (WAVE)", detectImageType(RIFF_NO_WEBP), null);
-t("texto plano", detectImageType(enc.encode("hola, esto no es una imagen")), null);
-t("buffer vacío", detectImageType(new Uint8Array(0)), null);
-t("buffer de 3 bytes (FF D8 FF)", detectImageType(bytes(0xff, 0xd8, 0xff)), null);
-t("buffer de 3 bytes (1,2,3)", detectImageType(bytes(1, 2, 3)), null);
+describe("upload validation", () => {
+  describe("detectImageType (por bytes)", () => {
+    test.each<[string, Uint8Array, string | null]>([
+      ["JPEG válido", JPEG, "jpeg"],
+      ["PNG válido", PNG, "png"],
+      ["WEBP válido", WEBP, "webp"],
+      ["AVIF (ftypavif)", AVIF, null],
+      ["HEIC (ftypheic)", HEIC, null],
+      ["MIF1 (ftypmif1)", ftyp("mif1"), null],
+      ["SVG (con onload)", SVG, null],
+      ["GIF89a", GIF, null],
+      ["RIFF que no es WEBP (WAVE)", RIFF_NO_WEBP, null],
+      ["texto plano", enc.encode("hola, esto no es una imagen"), null],
+      ["buffer vacío", new Uint8Array(0), null],
+      ["buffer de 3 bytes (FF D8 FF)", bytes(0xff, 0xd8, 0xff), null],
+      ["buffer de 3 bytes (1,2,3)", bytes(1, 2, 3), null],
+    ])("%s", (_name, input, want) => {
+      expect(detectImageType(input)).toBe(want);
+    });
 
-async function main() {
-  // AVIF con nombre x.jpg declarado como image/jpeg: el MIME y el nombre del cliente no cuentan.
-  const spoof = new File([AVIF], "x.jpg", { type: "image/jpeg" });
-  t("AVIF 'x.jpg' declarado image/jpeg", detectImageType(new Uint8Array(await spoof.arrayBuffer())), null);
-  // Al revés: un JPEG real con nombre .png y MIME text/plain se acepta por sus bytes.
-  const real = new File([JPEG], "foto.png", { type: "text/plain" });
-  t("JPEG real 'foto.png' declarado text/plain", detectImageType(new Uint8Array(await real.arrayBuffer())), "jpeg");
+    test("AVIF 'x.jpg' declarado image/jpeg: el MIME y el nombre del cliente no cuentan", async () => {
+      const spoof = new File([AVIF], "x.jpg", { type: "image/jpeg" });
+      expect(detectImageType(new Uint8Array(await spoof.arrayBuffer()))).toBeNull();
+    });
 
-  // URLs de imagen: solo las rutas que genera /api/upload.
-  const UUID = "123e4567-e89b-12d3-a456-426614174000";
-  const urlOk = (u: string) => uploadUrl.safeParse(u).success;
-  for (const ext of ["jpg", "png", "webp"]) t(`URL válida /uploads/<uuid>.${ext}`, urlOk(`/uploads/${UUID}.${ext}`), true);
-  const bad: Array<[string, string]> = [
-    ["javascript:alert(1)", "javascript:alert(1)"],
-    ["https://evil.tld/x.jpg", "https://evil.tld/x.jpg"],
-    ["//evil.tld/x.jpg", "//evil.tld/x.jpg"],
-    ["/uploads/../x.jpg", "/uploads/../x.jpg"],
-    ["/uploads/<uuid>.svg", `/uploads/${UUID}.svg`],
-    ["/uploads/<uuid>.gif", `/uploads/${UUID}.gif`],
-    ["/uploads/<uuid>.jpg?x=1", `/uploads/${UUID}.jpg?x=1`],
-    ["/uploads/<uuid>.jpg#a", `/uploads/${UUID}.jpg#a`],
-    ["/uploads/<uuid>.jpg con salto de línea", `/uploads/${UUID}.jpg\n`],
-    ["/uploads/x/<uuid>.jpg (subcarpeta)", `/uploads/x/${UUID}.jpg`],
-    ["data:image/png;base64,iVBORw0KGgo=", "data:image/png;base64,iVBORw0KGgo="],
-    ["cadena vacía", ""],
-  ];
-  for (const [name, u] of bad) t(`URL rechazada: ${name}`, urlOk(u), false);
-  t("UPLOAD_URL_RE anclada (prefijo)", UPLOAD_URL_RE.test(`x/uploads/${UUID}.jpg`), false);
-  t("opcional y nullable como en los esquemas", uploadUrl.optional().nullable().safeParse(null).success && uploadUrl.optional().nullable().safeParse(undefined).success, true);
+    test("JPEG real 'foto.png' declarado text/plain: se acepta por sus bytes", async () => {
+      const real = new File([JPEG], "foto.png", { type: "text/plain" });
+      expect(detectImageType(new Uint8Array(await real.arrayBuffer()))).toBe("jpeg");
+    });
+  });
 
-  t("extensión de jpeg", extensionFor("jpeg"), "jpg");
-  t("extensión de png", extensionFor("png"), "png");
-  t("extensión de webp", extensionFor("webp"), "webp");
-  t("límite = 5 MB", MAX_UPLOAD_BYTES, 5 * 1024 * 1024);
+  describe("uploadUrl (solo rutas que genera /api/upload)", () => {
+    test.each(["jpg", "png", "webp"])("URL válida /uploads/<uuid>.%s", (ext) => {
+      expect(urlOk(`/uploads/${UUID}.${ext}`)).toBe(true);
+    });
 
-  console.log(fail === 0 ? "\nTODOS OK" : `\n${fail} FALLOS`);
-  process.exit(fail === 0 ? 0 : 1);
-}
+    test.each<[string, string]>([
+      ["javascript:alert(1)", "javascript:alert(1)"],
+      ["https://evil.tld/x.jpg", "https://evil.tld/x.jpg"],
+      ["//evil.tld/x.jpg", "//evil.tld/x.jpg"],
+      ["/uploads/../x.jpg", "/uploads/../x.jpg"],
+      ["/uploads/<uuid>.svg", `/uploads/${UUID}.svg`],
+      ["/uploads/<uuid>.gif", `/uploads/${UUID}.gif`],
+      ["/uploads/<uuid>.jpg?x=1", `/uploads/${UUID}.jpg?x=1`],
+      ["/uploads/<uuid>.jpg#a", `/uploads/${UUID}.jpg#a`],
+      ["/uploads/<uuid>.jpg con salto de línea", `/uploads/${UUID}.jpg\n`],
+      ["/uploads/x/<uuid>.jpg (subcarpeta)", `/uploads/x/${UUID}.jpg`],
+      ["data:image/png;base64,iVBORw0KGgo=", "data:image/png;base64,iVBORw0KGgo="],
+      ["cadena vacía", ""],
+    ])("URL rechazada: %s", (_name, url) => {
+      expect(urlOk(url)).toBe(false);
+    });
 
-main();
+    test("UPLOAD_URL_RE anclada (prefijo)", () => {
+      expect(UPLOAD_URL_RE.test(`x/uploads/${UUID}.jpg`)).toBe(false);
+    });
+
+    test("opcional y nullable como en los esquemas", () => {
+      const schema = uploadUrl.optional().nullable();
+      expect(schema.safeParse(null).success && schema.safeParse(undefined).success).toBe(true);
+    });
+  });
+
+  describe("extensionFor y límite", () => {
+    test.each([
+      ["jpeg", "jpg"],
+      ["png", "png"],
+      ["webp", "webp"],
+    ] as const)("extensión de %s", (type, ext) => {
+      expect(extensionFor(type)).toBe(ext);
+    });
+
+    test("límite = 5 MB", () => {
+      expect(MAX_UPLOAD_BYTES).toBe(5 * 1024 * 1024);
+    });
+  });
+});
