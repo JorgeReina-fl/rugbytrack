@@ -149,6 +149,7 @@ model Team {
   description String?
   inviteToken String   @unique
   logoUrl     String?
+  timezone    String   @default("Europe/Madrid")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
