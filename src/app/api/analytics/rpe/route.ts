@@ -11,39 +11,12 @@ import {
   handleUnknownError,
 } from "@/lib/api-response";
 import { z } from "zod";
+import { isoWeekKeyInTz } from "@/lib/week";
 
 const querySchema = z.object({
   teamId: z.string().cuid("ID de equipo inválido"),
   weeks: z.coerce.number().int().min(1).max(16).default(8),
 });
-
-function getISOWeek(d: Date) {
-  const date = new Date(d.getTime());
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
-  const week1 = new Date(date.getFullYear(), 0, 4);
-  return (
-    1 +
-    Math.round(
-      ((date.getTime() - week1.getTime()) / 86400000 -
-        3 +
-        ((week1.getDay() + 6) % 7)) /
-        7
-    )
-  );
-}
-
-function getISOWeekYear(d: Date) {
-  const date = new Date(d.getTime());
-  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
-  return date.getFullYear();
-}
-
-function getWeekLabel(date: Date) {
-  const y = getISOWeekYear(date);
-  const w = getISOWeek(date);
-  return `${y}-W${String(w).padStart(2, "0")}`;
-}
 
 export async function GET(req: NextRequest) {
   try {
@@ -73,6 +46,7 @@ export async function GET(req: NextRequest) {
         isCoach: true,
         leftAt: null,
       },
+      include: { team: { select: { timezone: true } } },
     });
 
     if (!membership) {
@@ -125,7 +99,7 @@ export async function GET(req: NextRequest) {
     > = {};
 
     for (const entry of rpeEntries) {
-      const weekLabel = getWeekLabel(new Date(entry.event.startDate));
+      const weekLabel = isoWeekKeyInTz(entry.event.startDate, membership.team.timezone);
       let userMap = dataMap[entry.userId];
       if (!userMap) {
         userMap = {};
@@ -146,7 +120,7 @@ export async function GET(req: NextRequest) {
     const now = new Date();
     for (let i = weeksToFetch - 1; i >= 0; i--) {
       const d = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-      weekLabels.push(getWeekLabel(d));
+      weekLabels.push(isoWeekKeyInTz(d, membership.team.timezone));
     }
     const uniqueWeeks = Array.from(new Set(weekLabels)).slice(-weeksToFetch);
 

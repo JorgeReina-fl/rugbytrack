@@ -1,34 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { EventType } from "@prisma/client";
-
-function getISOWeek(d: Date) {
-  const date = new Date(d.getTime());
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
-  const week1 = new Date(date.getFullYear(), 0, 4);
-  return (
-    1 +
-    Math.round(
-      ((date.getTime() - week1.getTime()) / 86400000 -
-        3 +
-        ((week1.getDay() + 6) % 7)) /
-        7
-    )
-  );
-}
-
-function getISOWeekYear(d: Date) {
-  const date = new Date(d.getTime());
-  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
-  return date.getFullYear();
-}
-
-function getWeekLabel(date: Date) {
-  const y = getISOWeekYear(date);
-  const w = getISOWeek(date);
-  return `${y}-W${String(w).padStart(2, "0")}`;
-}
+import { isoWeekKeyInTz } from "@/lib/week";
 
 export interface TeamStat {
   teamId: string;
@@ -86,7 +59,7 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
         select: {
           isCoach: true,
           joinedAt: true,
-          team: { select: { id: true, name: true, slug: true } },
+          team: { select: { id: true, name: true, slug: true, timezone: true } },
         },
       },
     },
@@ -137,17 +110,21 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
       }),
     ]);
 
-    // Build the same week label sequence as api/analytics/rpe
-    const weekLabels: string[] = [];
-    for (let i = TOTAL_WEEKS - 1; i >= 0; i--) {
-      const d = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-      weekLabels.push(getWeekLabel(d));
-    }
-    const uniqueWeeks = Array.from(new Set(weekLabels));
-    const displayWeeks = uniqueWeeks.slice(-DISPLAY_WEEKS);
+    // Same week label sequence as api/analytics/rpe, computed in each team's timezone
+    const weekSeries = (tz: string) => {
+      const weekLabels: string[] = [];
+      for (let i = TOTAL_WEEKS - 1; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+        weekLabels.push(isoWeekKeyInTz(d, tz));
+      }
+      const uniqueWeeks = Array.from(new Set(weekLabels));
+      return { uniqueWeeks, displayWeeks: uniqueWeeks.slice(-DISPLAY_WEEKS) };
+    };
 
     stats = playerMemberships.map((m) => {
       const teamId = m.team.id;
+      const tz = m.team.timezone;
+      const { uniqueWeeks, displayWeeks } = weekSeries(tz);
       const teamRpe = rpeEntries.filter((e) => e.event.teamId === teamId);
 
       // avgRpe: mean RPE for last 4 weeks
@@ -164,7 +141,7 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
       // ACWR — same algorithm as api/analytics/rpe
       const weeklyMap: Record<string, number> = {};
       for (const entry of teamRpe) {
-        const wl = getWeekLabel(new Date(entry.event.startDate));
+        const wl = isoWeekKeyInTz(entry.event.startDate, tz);
         weeklyMap[wl] = (weeklyMap[wl] ?? 0) + entry.workload;
       }
       const allWeeksData = uniqueWeeks.map((week) => ({

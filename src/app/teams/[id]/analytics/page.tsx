@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import type { Metadata } from "next";
 import AnalyticsClient from "./AnalyticsClient";
+import { isoWeekKeyInTz } from "@/lib/week";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -20,34 +21,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `Analytics & RPE · ${team?.name ?? "Equipo"}`,
     description: "Carga de trabajo, control de fatiga y ratios de sobreentrenamiento ACWR",
   };
-}
-
-function getISOWeek(d: Date) {
-  const date = new Date(d.getTime());
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
-  const week1 = new Date(date.getFullYear(), 0, 4);
-  return (
-    1 +
-    Math.round(
-      ((date.getTime() - week1.getTime()) / 86400000 -
-        3 +
-        ((week1.getDay() + 6) % 7)) /
-        7
-    )
-  );
-}
-
-function getISOWeekYear(d: Date) {
-  const date = new Date(d.getTime());
-  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
-  return date.getFullYear();
-}
-
-function getWeekLabel(date: Date) {
-  const y = getISOWeekYear(date);
-  const w = getISOWeek(date);
-  return `${y}-W${String(w).padStart(2, "0")}`;
 }
 
 export default async function AnalyticsPage({ params }: PageProps) {
@@ -72,7 +45,7 @@ export default async function AnalyticsPage({ params }: PageProps) {
 
   const team = await prisma.team.findUnique({
     where: { id: teamId },
-    select: { name: true },
+    select: { name: true, timezone: true },
   });
   if (!team) notFound();
 
@@ -122,7 +95,7 @@ export default async function AnalyticsPage({ params }: PageProps) {
   > = {};
 
   for (const entry of rpeEntries) {
-    const weekLabel = getWeekLabel(new Date(entry.event.startDate));
+    const weekLabel = isoWeekKeyInTz(entry.event.startDate, team.timezone);
     let userMap = dataMap[entry.userId];
     if (!userMap) {
       userMap = {};
@@ -143,7 +116,7 @@ export default async function AnalyticsPage({ params }: PageProps) {
   const now = new Date();
   for (let i = weeksToFetch - 1; i >= 0; i--) {
     const d = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-    weekLabels.push(getWeekLabel(d));
+    weekLabels.push(isoWeekKeyInTz(d, team.timezone));
   }
   const uniqueWeeks = Array.from(new Set(weekLabels)).slice(-weeksToFetch);
 
