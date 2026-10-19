@@ -125,7 +125,7 @@ export default function LivePollClient({ teamId, initialPolls, isCoach = false }
           title: title.trim(),
           description: description.trim() || undefined,
           options: cleanOptions,
-          expiresAt: expiresAt || undefined,
+          expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
         }),
       });
       if (res.ok) {

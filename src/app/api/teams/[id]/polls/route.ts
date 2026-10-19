@@ -19,7 +19,11 @@ const createPollSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   options: z.array(z.string().min(1)).min(2, "At least two options are required"),
-  expiresAt: z.coerce.date().optional(),
+  expiresAt: z
+    .string()
+    .datetime({ offset: true, message: "expiresAt debe ser ISO-8601 con zona (Z u offset)" })
+    .transform((v) => new Date(v))
+    .optional(),
 });
 
 export async function GET(_req: Request, { params }: Params) {
