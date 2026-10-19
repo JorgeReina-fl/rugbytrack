@@ -43,6 +43,40 @@ function generateRsvpToken(userId: string, eventId: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Fecha del evento en la zona del equipo (copia de src/lib/event-when.ts,
+// solo con Intl: src/ y date-fns no existen en el standalone build)
+// ---------------------------------------------------------------------------
+
+const DEFAULT_TZ = "Europe/Madrid";
+
+function safeTz(tz?: string | null): string {
+  if (!tz) return DEFAULT_TZ;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return tz;
+  } catch {
+    return DEFAULT_TZ;
+  }
+}
+
+function dayKeyInTz(date: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+}
+
+function eventWhen(startDate: Date, tz: string | null | undefined, now: Date) {
+  const zone = safeTz(tz);
+  const dateTime = startDate.toLocaleString("es-ES", {
+    timeZone: zone,
+    weekday: "long", day: "numeric", month: "long",
+    year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+  const toUtcDay = (k: string) => Date.parse(`${k}T00:00:00Z`);
+  const diff = Math.round((toUtcDay(dayKeyInTz(startDate, zone)) - toUtcDay(dayKeyInTz(now, zone))) / 86_400_000);
+  const relative: "hoy" | "mañana" | null = diff === 0 ? "hoy" : diff === 1 ? "mañana" : null;
+  return { dateTime, relative, tz: zone };
+}
+
+// ---------------------------------------------------------------------------
 // Email HTML (inline — evita importar @react-email fuera de Next.js)
 // ---------------------------------------------------------------------------
 
@@ -50,10 +84,14 @@ function buildReminderHtml(opts: {
   userName: string;
   eventTitle: string;
   eventDate: string;
+  relative: "hoy" | "mañana" | null;
   eventLocation: string;
   rsvpLink: string;
 }): string {
-  const { userName, eventTitle, eventDate, eventLocation, rsvpLink } = opts;
+  const { userName, eventTitle, eventDate, relative, eventLocation, rsvpLink } = opts;
+  const intro = relative
+    ? `${relative === "hoy" ? "Hoy" : "Mañana"} tienes un evento`
+    : `El ${eventDate} tienes un evento`;
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -63,7 +101,7 @@ function buildReminderHtml(opts: {
       <tr><td>
         <p style="color:#808CFD;font-size:13px;font-weight:bold;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 20px">RugbyTrack</p>
         <p style="color:#333;font-size:15px;line-height:24px;margin:0 0 14px">Hola ${userName},</p>
-        <p style="color:#333;font-size:15px;line-height:24px;margin:0 0 14px">Mañana tienes un evento y aún no has confirmado tu asistencia. El entrenador necesita saber si cuentan contigo:</p>
+        <p style="color:#333;font-size:15px;line-height:24px;margin:0 0 14px">${intro} y aún no has confirmado tu asistencia. El entrenador necesita saber si cuentan contigo:</p>
         <div style="background:#f4f4f5;border:1px solid #e4e4e7;border-radius:6px;padding:12px 16px;margin:0 0 14px">
           <p style="color:#444;font-size:14px;line-height:22px;margin:2px 0"><strong>Evento:</strong> ${eventTitle}</p>
           <p style="color:#444;font-size:14px;line-height:22px;margin:2px 0"><strong>Fecha:</strong> ${eventDate}</p>
@@ -121,7 +159,7 @@ async function main() {
 
   const events = await prisma.event.findMany({
     where: { startDate: { gte: windowStart, lte: windowEnd } },
-    select: { id: true, title: true, startDate: true, location: true },
+    select: { id: true, title: true, startDate: true, location: true, team: { select: { timezone: true } } },
   });
 
   console.log(`Eventos en ventana 24h: ${events.length}`);
@@ -154,19 +192,18 @@ async function main() {
       continue;
     }
 
-    const eventDate = event.startDate.toLocaleString("es-ES", {
-      weekday: "long", day: "numeric", month: "long",
-      year: "numeric", hour: "2-digit", minute: "2-digit",
-    });
+    const { dateTime: eventDate, relative } = eventWhen(event.startDate, event.team.timezone, now);
+    const subjectWhen = relative ? `es ${relative}` : `es el ${eventDate}`;
 
     const messages: ResendMessage[] = attendances.map(({ user }) => ({
       from,
       to: user.email,
-      subject: `Recuerda confirmar tu asistencia — ${event.title} es mañana`,
+      subject: `Recuerda confirmar tu asistencia — ${event.title} ${subjectWhen}`,
       html: buildReminderHtml({
         userName: user.name ?? "Jugador",
         eventTitle: event.title,
         eventDate,
+        relative,
         eventLocation: event.location ?? "Por confirmar",
         rsvpLink: `${appUrl}/rsvp/${generateRsvpToken(user.id, event.id)}`,
       }),

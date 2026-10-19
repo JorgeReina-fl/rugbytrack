@@ -7,6 +7,7 @@ import { logger } from "@/lib/logger";
 import { trackEmailBudget } from "@/lib/email-budget";
 import { generateRsvpToken } from "@/lib/tokens";
 import { RsvpRequestEmail } from "@/emails/rsvp-request";
+import { eventWhen } from "@/lib/event-when";
 
 /**
  * Sends RSVP request emails (with magic-link token) to all PENDING attendance
@@ -15,7 +16,7 @@ import { RsvpRequestEmail } from "@/emails/rsvp-request";
 export async function sendRsvpNotifications(eventId: string): Promise<void> {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true, title: true, startDate: true, location: true },
+    select: { id: true, title: true, startDate: true, location: true, team: { select: { timezone: true } } },
   });
   if (!event) return;
 
@@ -39,9 +40,7 @@ export async function sendRsvpNotifications(eventId: string): Promise<void> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const from = process.env.EMAIL_FROM || "RugbyTrack <rugbytrack@mivia.es>";
   const subject = `Convocatoria: ${event.title}`;
-  const eventDate = event.startDate.toLocaleString("es-ES", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
-  });
+  const eventDate = eventWhen(event.startDate, event.team.timezone, new Date()).dateTime;
 
   const messages = await Promise.all(
     attendances.map(async ({ user }) => ({
