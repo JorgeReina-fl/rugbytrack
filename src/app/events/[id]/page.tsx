@@ -3,8 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { formatInTz, safeTz } from "@/lib/datetime";
 import { RsvpControl } from "./rsvp-control";
 import { RugbyPosition } from "@prisma/client";
 import { RpeForm } from "@/components/training/RpeForm";
@@ -63,6 +62,7 @@ export default async function EventDetailPage({ params }: PageProps) {
       proposal: {
         select: { id: true, title: true },
       },
+      team: { select: { timezone: true } },
     },
   });
 
@@ -98,12 +98,11 @@ export default async function EventDetailPage({ params }: PageProps) {
   const starters = event.callups.filter((c) => c.isStarter);
   const replacements = event.callups.filter((c) => !c.isStarter);
 
-  const formattedDate = format(new Date(event.startDate), "EEEE, d 'de' MMMM 'a las' HH:mm 'hs'", {
-    locale: es,
-  });
+  const tz = safeTz(event.team.timezone);
+  const formattedDate = formatInTz(event.startDate, tz, "EEEE, d 'de' MMMM 'a las' HH:mm 'hs'");
 
   const formattedDeadline = event.rsvpDeadline
-    ? format(new Date(event.rsvpDeadline), "d 'de' MMMM 'a las' HH:mm 'hs'", { locale: es })
+    ? formatInTz(event.rsvpDeadline, tz, "d 'de' MMMM 'a las' HH:mm 'hs'")
     : null;
 
   const eventTypeLabel = event.type === "TRAINING" ? "Entrenamiento" : event.type === "MATCH" ? "Partido" : "Evento";

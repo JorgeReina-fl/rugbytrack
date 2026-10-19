@@ -3,8 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { formatInTz, safeTz } from "@/lib/datetime";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { LiveAttendanceClient } from "./LiveAttendanceClient";
 import type { Metadata } from "next";
@@ -32,7 +31,7 @@ export default async function LiveAttendancePage({ params }: PageProps) {
   // Verify membership — both coaches and players can view this page
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true, title: true, startDate: true, teamId: true, type: true },
+    select: { id: true, title: true, startDate: true, teamId: true, type: true, team: { select: { timezone: true } } },
   });
 
   if (!event) redirect("/events");
@@ -82,10 +81,10 @@ export default async function LiveAttendancePage({ params }: PageProps) {
     };
   });
 
-  const formattedDate = format(
-    new Date(event.startDate),
-    "EEEE d 'de' MMMM · HH:mm 'hs'",
-    { locale: es }
+  const formattedDate = formatInTz(
+    event.startDate,
+    safeTz(event.team.timezone),
+    "EEEE d 'de' MMMM · HH:mm 'hs'"
   );
 
   const typeLabel =

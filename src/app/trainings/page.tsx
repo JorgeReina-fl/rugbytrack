@@ -6,8 +6,7 @@ import Link from "next/link";
 import TeamSelector from "./team-selector";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { prisma } from "@/lib/prisma";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { formatInTz, safeTz } from "@/lib/datetime";
 import { RpeForm } from "@/components/training/RpeForm";
 import { WorkloadChart } from "@/components/training/WorkloadChart";
 import { ChartBar } from "@phosphor-icons/react/dist/ssr";
@@ -35,6 +34,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
     select: {
       id: true,
       name: true,
+      timezone: true,
       members: {
         where: { userId: session.user.id },
         select: { isCoach: true },
@@ -80,6 +80,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
   }
 
   const isCoach = selectedTeam.members[0]?.isCoach ?? false;
+  const tz = safeTz(selectedTeam.timezone);
 
   // 2. Obtener los entrenamientos del equipo
   const events = await prisma.event.findMany({
@@ -149,7 +150,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
       const entries = e.rpeEntries;
       const avgWL = entries.length > 0 ? entries.reduce((acc, curr) => acc + curr.workload, 0) / entries.length : 0;
       return {
-        name: format(new Date(e.startDate), "dd/MM"),
+        name: formatInTz(e.startDate, tz, "dd/MM"),
         avgWorkload: Math.round(avgWL),
       };
     })
@@ -196,8 +197,8 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
               <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
                 {events.map((event) => {
                   const isSelected = selectedEvent?.id === event.id;
-                  const formattedDate = format(new Date(event.startDate), "d 'de' MMM, yyyy", { locale: es });
-                  const formattedTime = format(new Date(event.startDate), "HH:mm");
+                  const formattedDate = formatInTz(event.startDate, tz, "d 'de' MMM, yyyy");
+                  const formattedTime = formatInTz(event.startDate, tz, "HH:mm");
 
                   let rpeStatus = null;
                   if (!isCoach) {
@@ -265,9 +266,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
                       {selectedEvent.title}
                     </h2>
                     <p className="text-muted-foreground text-xs font-mono capitalize">
-                      {format(new Date(selectedEvent.startDate), "EEEE, d 'de' MMMM 'a las' HH:mm 'hs'", {
-                        locale: es,
-                      })}
+                      {formatInTz(selectedEvent.startDate, tz, "EEEE, d 'de' MMMM 'a las' HH:mm 'hs'")}
                     </p>
 
                     {selectedEvent.location && (

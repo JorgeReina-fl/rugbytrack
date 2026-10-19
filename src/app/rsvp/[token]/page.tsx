@@ -2,8 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { verifyRsvpToken } from "@/lib/tokens";
 import { RsvpAction } from "./rsvp-action";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { formatInTz, safeTz } from "@/lib/datetime";
 
 export default async function RsvpPage({
   params,
@@ -35,16 +34,14 @@ export default async function RsvpPage({
 
   const [user, event] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId } }),
-    prisma.event.findUnique({ where: { id: eventId } }),
+    prisma.event.findUnique({ where: { id: eventId }, include: { team: { select: { timezone: true } } } }),
   ]);
 
   if (!user || !event) {
     return notFound();
   }
 
-  const formattedDate = format(new Date(event.startDate), "EEEE d 'de' MMMM, HH:mm", {
-    locale: es,
-  });
+  const formattedDate = formatInTz(event.startDate, safeTz(event.team.timezone), "EEEE d 'de' MMMM, HH:mm");
 
   return (
     <div className="min-h-screen bg-[#FFFFFF] flex items-center justify-center p-4">
