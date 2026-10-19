@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useSocket } from "@/hooks/useSocket";
 import { useRouter } from "next/navigation";
+import { localInputToIso } from "@/lib/form-datetime";
 
 interface Props {
   teamId: string;
+  timezone: string;
   initialPolls: any[];
   isCoach?: boolean;
 }
@@ -14,7 +16,7 @@ interface Props {
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 6;
 
-export default function LivePollClient({ teamId, initialPolls, isCoach = false }: Props) {
+export default function LivePollClient({ teamId, timezone, initialPolls, isCoach = false }: Props) {
   const { socket } = useSocket(undefined, teamId);
   const [polls, setPolls] = useState(initialPolls);
   const router = useRouter();
@@ -125,7 +127,7 @@ export default function LivePollClient({ teamId, initialPolls, isCoach = false }
           title: title.trim(),
           description: description.trim() || undefined,
           options: cleanOptions,
-          expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
+          expiresAt: localInputToIso(expiresAt, timezone) ?? undefined,
         }),
       });
       if (res.ok) {

@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import LivePollClient from "@/components/polls/LivePollClient";
+import { safeTz } from "@/lib/datetime";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -83,7 +84,7 @@ export default async function PollsPage({ params }: PageProps) {
           </p>
         </div>
 
-        <LivePollClient teamId={id} initialPolls={polls} isCoach={isCoach} />
+        <LivePollClient teamId={id} timezone={safeTz(membership.team.timezone)} initialPolls={polls} isCoach={isCoach} />
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { EventForm } from "./event-form";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { safeTz } from "@/lib/datetime";
 
 interface PageProps {
   searchParams: Promise<{
@@ -26,6 +27,7 @@ export default async function NewEventPage({ searchParams }: PageProps) {
   // Valida que el usuario sea COACH activo en el equipo
   const membership = await prisma.teamMember.findFirst({
     where: { userId: session.user.id, teamId, isCoach: true, leftAt: null },
+    include: { team: { select: { timezone: true } } },
   });
 
   if (!membership) {
@@ -71,7 +73,7 @@ export default async function NewEventPage({ searchParams }: PageProps) {
           </Link>
         </div>
 
-        <EventForm teamId={teamId} members={members} />
+        <EventForm teamId={teamId} timezone={safeTz(membership.team.timezone)} members={members} />
       </main>
     </div>
   );

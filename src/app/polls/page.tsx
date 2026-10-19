@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import TeamSelector from "./team-selector";
 import LivePollClient from "@/components/polls/LivePollClient";
+import { safeTz } from "@/lib/datetime";
 
 interface PageProps {
   searchParams: Promise<{ teamId?: string }>;
@@ -23,6 +24,7 @@ export default async function PollsRouterPage({ searchParams }: PageProps) {
     select: {
       id: true,
       name: true,
+      timezone: true,
       members: {
         where: { userId: session.user.id },
         select: { isCoach: true },
@@ -103,7 +105,7 @@ export default async function PollsRouterPage({ searchParams }: PageProps) {
           </div>
         </div>
 
-        <LivePollClient teamId={selectedTeam.id} initialPolls={polls} isCoach={isCoach} />
+        <LivePollClient teamId={selectedTeam.id} timezone={safeTz(selectedTeam.timezone)} initialPolls={polls} isCoach={isCoach} />
       </main>
     </div>
   );

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { RugbyPosition, EventType } from "@prisma/client";
 import { Warning } from "@phosphor-icons/react/dist/ssr";
+import { localInputToIso } from "@/lib/form-datetime";
 
 interface MemberWithUser {
   id: string;
@@ -20,6 +21,7 @@ interface MemberWithUser {
 
 interface EventFormProps {
   teamId: string;
+  timezone: string;
   members: MemberWithUser[];
 }
 
@@ -141,7 +143,7 @@ function saveSuggestion(key: string, value: string, current: string[]): string[]
 
 /* ── Main form ──────────────────────────────────────────────────────── */
 
-export function EventForm({ teamId, members }: EventFormProps) {
+export function EventForm({ teamId, timezone, members }: EventFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -266,9 +268,9 @@ export function EventForm({ teamId, members }: EventFormProps) {
           type,
           description: description || null,
           location: location || null,
-          startDate: startDate ? new Date(startDate).toISOString() : "",
-          endDate: endDate ? new Date(endDate).toISOString() : null,
-          rsvpDeadline: rsvpDeadline ? new Date(rsvpDeadline).toISOString() : null,
+          startDate: localInputToIso(startDate, timezone) ?? "",
+          endDate: localInputToIso(endDate, timezone),
+          rsvpDeadline: localInputToIso(rsvpDeadline, timezone),
           callups: formattedCallups,
         }),
       });
