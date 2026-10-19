@@ -5,6 +5,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { WorkloadChart } from "@/components/training/WorkloadChart";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { safeTz } from "@/lib/datetime";
 import { Fire } from "@phosphor-icons/react/dist/ssr";
 
 interface PageProps {
@@ -67,6 +68,7 @@ export default async function TeamStatisticsPage({ params }: PageProps) {
         name: new Date(event.startDate).toLocaleDateString("es-ES", {
           day: "2-digit",
           month: "short",
+          timeZone: safeTz(team.timezone),
         }),
         avgWorkload,
       };

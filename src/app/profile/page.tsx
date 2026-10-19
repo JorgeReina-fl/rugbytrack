@@ -4,8 +4,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { getProfileData } from "@/lib/profile";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { DEFAULT_TZ, formatInTz } from "@/lib/datetime";
 import ChangePasswordForm from "./ChangePasswordForm";
 import NotificationsForm from "./NotificationsForm";
 
@@ -63,7 +62,7 @@ export default async function ProfilePage() {
                 Miembro desde
               </dt>
               <dd className="font-mono text-sm text-foreground">
-                {format(new Date(account.createdAt), "d 'de' MMMM 'de' yyyy", { locale: es })}
+                {formatInTz(account.createdAt, DEFAULT_TZ, "d 'de' MMMM 'de' yyyy")}
               </dd>
             </div>
           </dl>

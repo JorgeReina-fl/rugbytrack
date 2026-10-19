@@ -7,6 +7,7 @@ import { dbConnect } from "@/lib/mongoose";
 import { Thread } from "@/models/Thread";
 import { CreateThreadForm } from "@/components/forum/CreateThreadForm";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { safeTz } from "@/lib/datetime";
 import TeamSelector from "./team-selector";
 
 interface PageProps {
@@ -30,6 +31,7 @@ export default async function ForumRouterPage({ searchParams }: PageProps) {
     select: {
       id: true,
       name: true,
+      timezone: true,
       members: {
         where: { userId: session.user.id },
         select: { isCoach: true },
@@ -130,7 +132,7 @@ export default async function ForumRouterPage({ searchParams }: PageProps) {
                       {thread.title}
                     </h2>
                     <span className="text-xs font-mono font-bold text-muted-foreground">
-                      {new Date(thread.createdAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
+                      {new Date(thread.createdAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short", timeZone: safeTz(selectedTeam.timezone) })}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground font-sans line-clamp-2 mb-4">{thread.content}</p>

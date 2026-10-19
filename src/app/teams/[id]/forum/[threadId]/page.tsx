@@ -9,6 +9,7 @@ import { Thread } from "@/models/Thread";
 import { Comment } from "@/models/Comment";
 import { CreateCommentForm } from "@/components/forum/CreateCommentForm";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { formatInTz, safeTz } from "@/lib/datetime";
 import mongoose from "mongoose";
 
 interface PageProps {
@@ -73,7 +74,7 @@ export default async function ThreadPage({ params }: PageProps) {
                 {thread.authorName}
               </p>
               <p className="text-xs font-mono text-muted-foreground">
-                {new Date(thread.createdAt).toLocaleString("es-ES")}
+                {formatInTz(thread.createdAt, safeTz(membership.team.timezone), "d/M/yyyy, H:mm:ss")}
               </p>
             </div>
           </div>
@@ -112,7 +113,7 @@ export default async function ThreadPage({ params }: PageProps) {
                     {comment.authorName}
                   </p>
                   <p className="text-xs font-mono text-muted-foreground">
-                    {new Date(comment.createdAt).toLocaleString("es-ES")}
+                    {formatInTz(comment.createdAt, safeTz(membership.team.timezone), "d/M/yyyy, H:mm:ss")}
                   </p>
                 </div>
               </div>
