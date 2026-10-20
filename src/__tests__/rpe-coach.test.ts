@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 
-import { PUT as coachRpeRoute } from "@/app/api/events/[id]/rpe/[userId]/route";
+import { PUT as coachRpeRoute, DELETE as coachRpeDelete } from "@/app/api/events/[id]/rpe/[userId]/route";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
@@ -14,7 +14,7 @@ jest.mock("@/lib/prisma", () => ({
     event: { findUnique: jest.fn() },
     teamMember: { findFirst: jest.fn() },
     attendance: { findFirst: jest.fn() },
-    rpeEntry: { findUnique: jest.fn(), upsert: jest.fn() },
+    rpeEntry: { findUnique: jest.fn(), upsert: jest.fn(), delete: jest.fn() },
   },
 }));
 
@@ -152,5 +152,54 @@ describe("PUT /api/events/[id]/rpe/[userId] — el coach anota RPE", () => {
     expect((await call({ rpe: 5, duration: 0 })).status).toBe(422);
     expect((await call({})).status).toBe(422);
     expect(mockPrisma.rpeEntry.upsert).not.toHaveBeenCalled();
+  });
+
+  describe("DELETE", () => {
+    const del = (userId = PLAYER) =>
+      coachRpeDelete(new Request("http://localhost/api/events/ev1/rpe/" + userId, { method: "DELETE" }), {
+        params: Promise.resolve({ id: "ev1", userId }),
+      });
+
+    test("borra el RPE → 200 { deleted: true } y lo registra", async () => {
+      mockPrisma.rpeEntry.findUnique.mockResolvedValue({ rpe: 6, duration: 50, recordedById: PLAYER });
+      mockPrisma.rpeEntry.delete.mockResolvedValue({});
+      const res = await del();
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ deleted: true });
+      expect(mockPrisma.rpeEntry.delete).toHaveBeenCalledWith({ where: { eventId_userId: { eventId: "ev1", userId: PLAYER } } });
+      expect(info).toHaveBeenCalledWith(
+        { eventId: "ev1", userId: PLAYER, rpe: 6, duration: 50, recordedById: PLAYER },
+        "RPE deleted by coach"
+      );
+    });
+
+    test("no exige check-in ni evento empezado", async () => {
+      mockPrisma.attendance.findFirst.mockResolvedValue({ checkedIn: false });
+      mockPrisma.event.findUnique.mockResolvedValue({ id: "ev1", teamId: "team-1", startDate: new Date(Date.now() + 3600_000) });
+      mockPrisma.rpeEntry.findUnique.mockResolvedValue({ rpe: 6, duration: 50, recordedById: null });
+      expect((await del()).status).toBe(200);
+    });
+
+    test("sin entrada → 404", async () => {
+      expect((await del()).status).toBe(404);
+      expect(mockPrisma.rpeEntry.delete).not.toHaveBeenCalled();
+    });
+
+    test("no coach del equipo → 403", async () => {
+      members({ [COACH]: { isCoach: false }, [PLAYER]: { isCoach: false } });
+      expect((await del()).status).toBe(403);
+      expect(mockPrisma.rpeEntry.delete).not.toHaveBeenCalled();
+    });
+
+    test("objetivo de otro equipo → 403", async () => {
+      members({ [COACH]: { isCoach: true } });
+      expect((await del()).status).toBe(403);
+      expect(mockPrisma.rpeEntry.delete).not.toHaveBeenCalled();
+    });
+
+    test("sin sesión → 401", async () => {
+      mockAuth.mockResolvedValue(null);
+      expect((await del()).status).toBe(401);
+    });
   });
 });
