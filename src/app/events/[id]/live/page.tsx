@@ -1,155 +1,27 @@
 import "server-only";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { formatInTz, safeTz } from "@/lib/datetime";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { LiveAttendanceClient } from "./LiveAttendanceClient";
-import type { Metadata } from "next";
-import { Gear } from "@phosphor-icons/react/dist/ssr";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { id } = await params;
-  const event = await prisma.event.findUnique({ where: { id }, select: { title: true } });
-  return {
-    title: `Live · ${event?.title ?? "Evento"}`,
-    description: "Dashboard de asistencia en tiempo real vía Socket.io",
-  };
-}
-
-export default async function LiveAttendancePage({ params }: PageProps) {
+// Ruta retirada (dashboard en vivo con Socket.IO). Se mantiene solo para los enlaces antiguos:
+// el coach va al panel de asistencia y el resto a la página del evento.
+export default async function LiveAttendanceRedirect({ params }: PageProps) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const { id: eventId } = await params;
+  const { id } = await params;
 
-  // Verify membership — both coaches and players can view this page
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    select: { id: true, title: true, startDate: true, teamId: true, type: true, team: { select: { timezone: true } } },
-  });
-
+  const event = await prisma.event.findUnique({ where: { id }, select: { teamId: true } });
   if (!event) redirect("/events");
 
   const membership = await prisma.teamMember.findFirst({
-    where: { userId: session.user.id, teamId: event.teamId },
-    select: { isCoach: true },
+    where: { userId: session.user.id, teamId: event.teamId, isCoach: true, leftAt: null },
+    select: { id: true },
   });
 
-  if (!membership) redirect("/events");
-
-  const isCoach = membership.isCoach;
-
-  // Fetch initial attendance state
-  const attendances = await prisma.attendance.findMany({
-    where: { eventId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          image: true,
-          memberships: {
-            where: { teamId: event.teamId },
-            select: { position: true, jerseyNumber: true },
-          },
-        },
-      },
-    },
-    orderBy: [
-      { checkedIn: "desc" },
-      { user: { name: "asc" } },
-    ],
-  });
-
-  const initialAttendances = attendances.map((att) => {
-    const member = att.user.memberships[0] ?? null;
-    return {
-      userId: att.userId,
-      name: att.user.name,
-      image: att.user.image,
-      position: member?.position ?? null,
-      jerseyNumber: member?.jerseyNumber ?? null,
-      status: att.status,
-      checkedIn: att.checkedIn,
-      checkedInAt: att.checkedInAt?.toISOString() ?? null,
-    };
-  });
-
-  const formattedDate = formatInTz(
-    event.startDate,
-    safeTz(event.team.timezone),
-    "EEEE d 'de' MMMM · HH:mm 'hs'"
-  );
-
-  const typeLabel =
-    event.type === "TRAINING"
-      ? "Entrenamiento"
-      : event.type === "MATCH"
-        ? "Partido"
-        : "Evento";
-
-  return (
-    <div className="min-h-screen bg-background text-foreground pb-16">
-      <DashboardHeader badgeLabel={isCoach ? "Entrenador" : "Jugador"} />
-
-      <main className="mx-auto max-w-5xl px-4 py-10">
-        {/* Breadcrumb */}
-        <div className="mb-6 flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground">
-          <Link href="/events" className="hover:text-primary transition-colors">
-            Eventos
-          </Link>
-          <span>/</span>
-          <Link href={`/events/${eventId}`} className="hover:text-primary transition-colors">
-            {event.title}
-          </Link>
-          <span>/</span>
-          <span className="text-foreground">Live</span>
-        </div>
-
-        {/* Header */}
-        <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              {/* Live indicator */}
-              <span className="flex items-center gap-1.5 bg-primary/10 border border-primary/30 px-3 py-1 text-xs font-mono font-bold uppercase tracking-widest text-primary">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                Live
-              </span>
-              <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
-                {typeLabel}
-              </span>
-            </div>
-            <h1 className="text-4xl font-heading font-extrabold tracking-tighter uppercase">
-              {event.title}
-            </h1>
-            <p className="mt-1 text-sm font-mono text-muted-foreground capitalize">
-              {formattedDate}
-            </p>
-          </div>
-
-          {isCoach && (
-            <Link
-              href={`/events/${eventId}/attendance`}
-              className="border border-primary/40 bg-primary/5 px-4 py-2 text-xs font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-all"
-            >
-              <Gear size={24} weight="regular" className="inline mr-2" /> Panel de Control
-            </Link>
-          )}
-        </div>
-
-        <LiveAttendanceClient
-          eventId={eventId}
-          isCoach={isCoach}
-          currentUserId={session.user.id}
-          initialAttendances={initialAttendances}
-        />
-      </main>
-    </div>
-  );
+  redirect(membership ? `/events/${id}/attendance` : `/events/${id}`);
 }
