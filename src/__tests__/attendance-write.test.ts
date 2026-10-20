@@ -6,11 +6,6 @@ import { setPresence, setRsvp } from "@/lib/attendance-write";
 import { prisma } from "@/lib/prisma";
 import { manualAttendanceSchema } from "@/modules/events/events.schema";
 
-const publish = jest.fn().mockResolvedValue(1);
-const quit = jest.fn().mockResolvedValue("OK");
-
-jest.mock("ioredis", () => jest.fn().mockImplementation(() => ({ publish, quit })));
-
 jest.mock("@/lib/prisma", () => ({
   prisma: {
     event: { findUnique: jest.fn() },
@@ -24,25 +19,17 @@ const db = prisma as any;
 const DAY = 24 * 60 * 60 * 1000;
 
 describe("setPresence", () => {
-  const original = process.env.REDIS_URL;
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.REDIS_URL = "redis://test";
     db.attendance.upsert.mockImplementation(async ({ update, create }: any) => ({
       eventId: "e1",
       userId: "u1",
       status: "DECLINED", // estado previo en BD; el update no debe cambiarlo
       checkedIn: update.checkedIn,
       checkedInAt: update.checkedInAt,
-      user: { name: "Jugador" },
       _create: create,
     }));
   });
-  afterAll(() => {
-    if (original === undefined) delete process.env.REDIS_URL;
-    else process.env.REDIS_URL = original;
-  });
-
   test("marcar: escribe solo checkedIn/checkedInAt; DECLINED queda DECLINED + checkedIn", async () => {
     const att = await setPresence("e1", "u1", true, "coach");
     const args = db.attendance.upsert.mock.calls[0][0];
@@ -59,22 +46,6 @@ describe("setPresence", () => {
     const args = db.attendance.upsert.mock.calls[0][0];
     expect(args.update).toEqual({ checkedIn: false, checkedInAt: null });
     expect("status" in args.update).toBe(false);
-  });
-
-  test("publica en attendance:update el mismo mensaje que antes", async () => {
-    await setPresence("e1", "u1", true, "coach");
-    const [channel, message] = publish.mock.calls[0];
-    expect(channel).toBe("attendance:update");
-    expect(Object.keys(JSON.parse(message)).sort()).toEqual(
-      ["checkedIn", "checkedInAt", "eventId", "name", "status", "userId"]
-    );
-    expect(quit).toHaveBeenCalled();
-  });
-
-  test("sin REDIS_URL no publica", async () => {
-    delete process.env.REDIS_URL;
-    await setPresence("e1", "u1", true, "coach");
-    expect(publish).not.toHaveBeenCalled();
   });
 });
 

@@ -1,5 +1,3 @@
-// Sin "server-only" ni alias "@/": server.ts (Socket.IO) lo importa y se compila con tsc a CommonJS.
-import Redis from "ioredis";
 import { prisma } from "./prisma";
 import { logger } from "./logger";
 import { isRsvpOpen, type RsvpStatus } from "./attendance";
@@ -47,8 +45,7 @@ export async function setRsvp(
 /**
  * R2/R3: la marca del coach solo escribe checkedIn/checkedInAt (now al marcar, null al desmarcar).
  * En update NO toca status (el RSVP original es histórico); en create, PENDING.
- * Publica en Redis "attendance:update"; server.ts lo retransmite a la sala de la sesión.
- * `actor` solo se usa para el log (el coach, o el propio jugador en el check-in por socket).
+ * `actor` (el coach que marca) solo se usa para el log.
  */
 export async function setPresence(
   eventId: string,
@@ -62,40 +59,9 @@ export async function setPresence(
     where: { eventId_userId: { eventId, userId } },
     update: { checkedIn, checkedInAt },
     create: { eventId, userId, status: "PENDING", checkedIn, checkedInAt },
-    include: { user: { select: { name: true } } },
   });
 
   logger.info({ eventId, userId, actor, checkedIn }, "Attendance presence set");
-  await publishAttendanceUpdate(attendance);
 
   return attendance;
-}
-
-async function publishAttendanceUpdate(attendance: {
-  eventId: string;
-  userId: string;
-  checkedIn: boolean;
-  checkedInAt: Date | null;
-  status: string;
-  user: { name: string | null };
-}) {
-  const redisUrl = process.env.REDIS_URL;
-  if (!redisUrl) return;
-
-  const publisher = new Redis(redisUrl, { maxRetriesPerRequest: null });
-  try {
-    await publisher.publish(
-      "attendance:update",
-      JSON.stringify({
-        eventId: attendance.eventId,
-        userId: attendance.userId,
-        name: attendance.user.name,
-        checkedIn: attendance.checkedIn,
-        checkedInAt: attendance.checkedInAt?.toISOString() ?? null,
-        status: attendance.status,
-      })
-    );
-  } finally {
-    await publisher.quit();
-  }
 }

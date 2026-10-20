@@ -30,7 +30,6 @@
     "@phosphor-icons/react": "^2.1.10",
     "@prisma/client": "^5.22.0",
     "@react-email/components": "^1.0.12",
-    "@socket.io/redis-adapter": "^8.3.0",
     "argon2": "^0.44.0",
     "date-fns": "^4.4.0",
     "ioredis": "^5.11.1",
@@ -45,8 +44,6 @@
     "recharts": "^3.8.1",
     "resend": "^6.12.4",
     "server-only": "^0.0.1",
-    "socket.io": "^4.8.3",
-    "socket.io-client": "^4.8.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {

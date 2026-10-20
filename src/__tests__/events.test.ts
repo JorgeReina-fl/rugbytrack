@@ -38,15 +38,6 @@ jest.mock("@/lib/resend", () => ({
   sendCallupNotification: jest.fn().mockResolvedValue({ id: "mock-email-id" }),
 }));
 
-jest.mock("ioredis", () => {
-  return jest.fn().mockImplementation(() => {
-    return {
-      publish: jest.fn().mockResolvedValue(1),
-      quit: jest.fn().mockResolvedValue("OK"),
-    };
-  });
-});
-
 describe("RugbyTrack — Fase 2 Event API Tests", () => {
   const mockAuth = auth as jest.Mock;
   const mockPrisma = prisma as any;
