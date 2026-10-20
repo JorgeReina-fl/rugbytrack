@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useSocket } from "@/hooks/useSocket";
+import { useRouter } from "next/navigation";
+import { useVisibleRefresh } from "@/hooks/useVisibleRefresh";
 import { RugbyPosition } from "@prisma/client";
 import { Warning } from "@phosphor-icons/react/dist/ssr";
 import { attendanceState, countsForEvent, listTaken, type EventTimesLike } from "@/lib/attendance";
@@ -57,72 +58,16 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso }: 
     endDate: event.endDate ? new Date(event.endDate) : null,
     rsvpDeadline: event.rsvpDeadline ? new Date(event.rsvpDeadline) : null,
   };
-  const [sessionActive, setSessionActive] = useState(false);
-  const [loadingSession, setLoadingSession] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
-  const { socket, connected } = useSocket(eventId);
+  // Varios coaches pueden marcar a la vez: refresco periódico solo con la pestaña visible
+  useVisibleRefresh();
 
+  // Cada refresh trae filas nuevas del servidor
   useEffect(() => {
-    if (!socket) return;
-
-    socket.on("session_status_change", ({ active }) => {
-      setSessionActive(active);
-    });
-
-    socket.on("attendance_update", (data) => {
-      setAttendances((prev) =>
-        prev.map((att) =>
-          att.userId === data.userId
-            ? {
-                ...att,
-                checkedIn: data.checkedIn,
-                checkedInAt: data.checkedInAt,
-                status: data.status,
-              }
-            : att
-        )
-      );
-    });
-
-    socket.on("error", (err) => {
-      setError(err.message);
-    });
-
-    // Solicita estado inicial al conectar
-    socket.emit("join_session", { eventId });
-
-    return () => {
-      socket.off("session_status_change");
-      socket.off("attendance_update");
-      socket.off("error");
-    };
-  }, [socket, eventId]);
-
-  const handleToggleSession = async (action: "start" | "stop") => {
-    setError(null);
-    setLoadingSession(true);
-
-    try {
-      const response = await fetch(`/api/events/${eventId}/session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Error al modificar la sesión");
-      }
-
-      setSessionActive(action === "start");
-    } catch (err: any) {
-      setError(err.message || "Ocurrió un error con la sesión");
-    } finally {
-      setLoadingSession(false);
-    }
-  };
+    setAttendances(initialAttendances);
+  }, [initialAttendances]);
 
   const handleManualCheckIn = async (userId: string, checkedIn: boolean) => {
     setError(null);
@@ -153,6 +98,7 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso }: 
             : att
         )
       );
+      router.refresh();
     } catch (err: any) {
       setError(err.message || "Ocurrió un error al registrar la asistencia");
     }
@@ -177,52 +123,6 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso }: 
           <Warning size={24} weight="regular" className="inline mr-2" /> {error}
         </div>
       )}
-
-      {/* Control de Sesión Activa */}
-      <div className="border border-border bg-card shadow-sm p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-heading font-extrabold tracking-tighter uppercase">Sesión de Check-In</h2>
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${
-                sessionActive ? "bg-primary animate-pulse" : "bg-muted-foreground"
-              }`}
-            />
-          </div>
-          <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
-            {sessionActive
-              ? "Los jugadores pueden marcar su presente ingresando al detalle del evento."
-              : "La sesión está cerrada. Los jugadores no pueden registrar su asistencia por sí mismos."}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground font-bold">
-            WebSocket:{" "}
-            <span className={connected ? "text-primary font-bold" : "text-destructive font-bold"}>
-              {connected ? "Conectado" : "Desconectado"}
-            </span>
-          </span>
-
-          {sessionActive ? (
-            <button
-              onClick={() => handleToggleSession("stop")}
-              disabled={loadingSession}
-              className="bg-destructive hover:opacity-90 text-white px-5 py-2.5 text-xs font-mono uppercase tracking-widest font-bold transition-all disabled:opacity-50"
-            >
-              Detener Sesión
-            </button>
-          ) : (
-            <button
-              onClick={() => handleToggleSession("start")}
-              disabled={loadingSession}
-              className="bg-primary hover:opacity-90 text-primary-foreground px-5 py-2.5 text-xs font-mono uppercase tracking-widest font-bold transition-all disabled:opacity-50"
-            >
-              Iniciar Sesión (4h)
-            </button>
-          )}
-        </div>
-      </div>
 
       {/* Contadores Estadísticos */}
       <div className="grid grid-cols-3 gap-4">
