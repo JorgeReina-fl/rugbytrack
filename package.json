@@ -7,9 +7,9 @@
   },
   "packageManager": "pnpm@11.5.2",
   "scripts": {
-    "dev": "tsx server.ts",
-    "build": "tsc server.ts --outDir . --module commonjs --target es2017 --noEmit false --esModuleInterop --skipLibCheck && next build",
-    "start": "NODE_ENV=production node server.js",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "NODE_ENV=production node .next/standalone/server.js",
     "lint": "eslint",
     "tsc": "tsc --noEmit",
     "test": "jest --ci --passWithNoTests",
