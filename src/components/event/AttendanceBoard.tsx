@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useVisibleRefresh } from "@/hooks/useVisibleRefresh";
 import { RugbyPosition } from "@prisma/client";
 import { Warning } from "@phosphor-icons/react/dist/ssr";
+import { PlayerRpeControl, type PlayerRpeEntry } from "@/components/event/PlayerRpeControl";
 import { attendanceState, countsForEvent, listTaken, type EventTimesLike } from "@/lib/attendance";
 
 interface PlayerAttendance {
@@ -16,6 +17,7 @@ interface PlayerAttendance {
   status: string;
   checkedIn: boolean;
   checkedInAt: string | null;
+  rpe: PlayerRpeEntry | null;
 }
 
 interface AttendanceBoardProps {
@@ -110,6 +112,7 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso }: 
     checkedIn: a.checkedIn,
   }));
   const taken = listTaken(rows);
+  const started = now.getTime() >= eventTimes.startDate.getTime();
   const counts = countsForEvent(rows, eventTimes, now);
   const totalConvocados = attendances.length;
   const presentes = counts.present;
@@ -155,7 +158,7 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso }: 
             attendances.map((player) => (
               <div
                 key={player.userId}
-                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 hover:bg-secondary/40 transition-all"
+                className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between p-4 gap-3 hover:bg-secondary/40 transition-all"
               >
                 {/* Info Jugador */}
                 <div className="flex items-center gap-3">
@@ -235,6 +238,15 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso }: 
                     </button>
                   </div>
                 </div>
+
+                <PlayerRpeControl
+                  eventId={eventId}
+                  userId={player.userId}
+                  name={player.name}
+                  checkedIn={player.checkedIn}
+                  started={started}
+                  entry={player.rpe}
+                />
               </div>
             ))
           )}

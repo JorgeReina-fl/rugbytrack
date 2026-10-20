@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { rpeEntrySchema, RpeEntryInput } from "@/lib/validations/rpe";
 import { useRouter } from "next/navigation";
 import { Warning } from "@phosphor-icons/react/dist/ssr";
+import { getRpeColorClasses } from "./rpe-styles";
 
 interface RpeFormProps {
   eventId: string;
@@ -57,15 +58,6 @@ export function RpeForm({ eventId }: RpeFormProps) {
     }
   };
 
-  const getRpeColorClasses = (num: number, isSelected: boolean) => {
-    if (!isSelected) {
-      return "border-border bg-background text-muted-foreground hover:border-primary hover:text-foreground hover:bg-secondary font-mono text-lg";
-    }
-
-    // Usamos el token primary con un efecto "pop" (microanimación)
-    return "ring-2 ring-ring bg-primary text-primary-foreground font-bold border-transparent shadow-md scale-105 font-mono text-xl z-10";
-  };
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       {apiError && (
@@ -85,7 +77,6 @@ export function RpeForm({ eventId }: RpeFormProps) {
               type="button"
               onClick={() => setValue("rpe", num, { shouldValidate: true })}
               className={`rounded-none border py-4 text-center transition-all duration-200 ease-out ${getRpeColorClasses(
-                num,
                 selectedRpe === num
               )}`}
             >

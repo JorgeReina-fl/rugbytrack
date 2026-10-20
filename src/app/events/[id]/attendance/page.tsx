@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getActiveMembership } from "@/lib/membership";
 import { AttendanceBoard } from "@/components/event/AttendanceBoard";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 
@@ -28,11 +29,9 @@ export default async function AttendancePage({ params }: PageProps) {
   }
 
   // Valida que el usuario sea COACH en el equipo
-  const membership = await prisma.teamMember.findFirst({
-    where: { userId: session.user.id, teamId: event.teamId, isCoach: true },
-  });
+  const membership = await getActiveMembership(event.teamId, session.user.id);
 
-  if (!membership) {
+  if (!membership?.isCoach) {
     redirect(`/events/${id}`);
   }
 
@@ -62,6 +61,13 @@ export default async function AttendancePage({ params }: PageProps) {
     },
   });
 
+  // RPE del evento en una sola consulta; se asocia a cada jugador por userId
+  const rpeEntries = await prisma.rpeEntry.findMany({
+    where: { eventId: id },
+    select: { userId: true, rpe: true, duration: true, workload: true, recordedById: true, updatedAt: true },
+  });
+  const rpeByUser = new Map(rpeEntries.map((r) => [r.userId, r]));
+
   // Mapea al mismo formato que espera el AttendanceBoard
   const mappedAttendances = attendances.map((att) => {
     const memberDetails = att.user.memberships[0] ?? null;
@@ -74,6 +80,18 @@ export default async function AttendancePage({ params }: PageProps) {
       status: att.status,
       checkedIn: att.checkedIn,
       checkedInAt: att.checkedInAt?.toISOString() ?? null,
+      rpe: (() => {
+        const r = rpeByUser.get(att.userId);
+        return r
+          ? {
+              rpe: r.rpe,
+              duration: r.duration,
+              workload: r.workload,
+              recordedById: r.recordedById,
+              updatedAt: r.updatedAt.toISOString(),
+            }
+          : null;
+      })(),
     };
   });
 
