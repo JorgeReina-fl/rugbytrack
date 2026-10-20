@@ -207,6 +207,28 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
     expect(json.workload).toBe(630); // 7 * 90
     expect(json.eventId).toBe(validEventId);
     expect(json.userId).toBe("player-123");
+    expect(json.recordedById).toBe("player-123");
+  });
+
+  test("POST /api/rpe — El jugador no puede sobrescribir un RPE existente (409)", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "player-123", role: "PLAYER", name: "Juan Jugador" } });
+    mockPrisma.event.findUnique.mockResolvedValue({
+      id: validEventId,
+      teamId: "team-123",
+      startDate: new Date("2026-06-09T20:00:00Z"),
+      attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }],
+      _count: { attendances: 0 },
+    });
+    mockPrisma.rpeEntry.findUnique.mockResolvedValue({ id: "rpe-1", recordedById: "coach-1" });
+
+    const response = await createRpeRoute(
+      new NextRequest("http://localhost:3000/api/rpe", {
+        method: "POST",
+        body: JSON.stringify({ eventId: validEventId, rpe: 7, duration: 90 }),
+      })
+    );
+    expect(response.status).toBe(409);
+    expect(mockPrisma.rpeEntry.create).not.toHaveBeenCalled();
   });
 
   test("POST /api/rpe — Debe retornar 409 si el RPE ya fue registrado (P2002)", async () => {

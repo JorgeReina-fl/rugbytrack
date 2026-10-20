@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getActiveMembership } from "@/lib/membership";
+import { rpeWorkload } from "@/lib/rpe";
 import { rpeEntrySchema } from "@/lib/validations/rpe";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
@@ -94,7 +95,7 @@ export async function POST(req: Request) {
       return apiError("Ya has registrado el RPE para este evento", 409);
     }
 
-    const workload = rpe * duration;
+    const workload = rpeWorkload(rpe, duration);
 
     const rpeEntry = await prisma.rpeEntry.create({
       data: {
@@ -104,6 +105,7 @@ export async function POST(req: Request) {
         duration,
         workload,
         notes: notes ?? null,
+        recordedById: userId,
       },
     });
 
