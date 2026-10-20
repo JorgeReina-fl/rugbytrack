@@ -2,6 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getActiveMembership } from "@/lib/membership";
 import { logger } from "@/lib/logger";
 import { sendRsvpNotifications } from "@/lib/rsvp-notify";
 
@@ -14,15 +15,17 @@ export async function POST(
     if (!session?.user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    if (session.user.role !== "COACH") {
-      return NextResponse.json({ error: "Se requiere rol de entrenador" }, { status: 403 });
-    }
 
     const { id } = await params;
 
     // Confirm the event exists
-    const event = await prisma.event.findUnique({ where: { id }, select: { id: true } });
+    const event = await prisma.event.findUnique({ where: { id }, select: { id: true, teamId: true } });
     if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+
+    const membership = await getActiveMembership(event.teamId, session.user.id);
+    if (!membership?.isCoach) {
+      return NextResponse.json({ error: "Se requiere rol de entrenador" }, { status: 403 });
+    }
 
     // Count pending before sending (for the response)
     const pending = await prisma.attendance.count({ where: { eventId: id, status: "PENDING" } });

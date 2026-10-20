@@ -13,11 +13,8 @@ export function DashboardHeader({ badgeLabel }: DashboardHeaderProps = {}) {
   const { data: session } = useSession();
   const user = session?.user;
 
-  const label =
-    badgeLabel === null
-      ? null
-      : badgeLabel ??
-        (user?.role === "COACH" ? "Entrenador" : user ? "Jugador" : null);
+  // La etiqueta depende del rol en el equipo seleccionado; sin equipo (sin badgeLabel) no se muestra.
+  const label = badgeLabel ?? null;
 
   const initials = user?.name
     ? user.name

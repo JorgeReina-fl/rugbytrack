@@ -38,7 +38,6 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) return apiUnauthorized();
-    if (session.user.role !== "COACH") return apiForbidden();
 
     const rl = await checkRateLimit(`rate_limit:embed:${session.user.id}`, 10, 3600);
     if (!rl.allowed) {
@@ -92,6 +91,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Un userId pedido debe ser miembro activo de este equipo (si no, ni se revela si existe)
+    if (userId && members.length === 0) return apiForbidden();
     if (members.length === 0) return apiNotFound("Jugadores");
 
     // Tasa con las reglas comunes: solo eventos terminados con lista tomada (todos los eventos del equipo)
