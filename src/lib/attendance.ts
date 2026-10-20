@@ -68,8 +68,9 @@ export function listTaken(rows: ReadonlyArray<Pick<AttendanceRowLike, "checkedIn
 }
 
 /**
- * R2/R3: con lista tomada manda la marca del coach (checkedIn); status solo es histórico.
- * Sin lista: evento terminado → not_taken (R4); en otro caso → estado del RSVP.
+ * R2/R3: manda la marca del coach (checkedIn); status solo es histórico.
+ * Evento terminado: con lista tomada y sin marca → absent; sin lista → not_taken (R4).
+ * Evento en curso o futuro y sin marca → estado del RSVP.
  */
 export function attendanceState(
   row: AttendanceRowLike,
@@ -78,8 +79,9 @@ export function attendanceState(
   taken: boolean
 ): AttendanceState {
   if (row.checkedIn) return "present";
-  if (taken) return "absent";
-  if (now.getTime() >= eventEnd(event).getTime()) return "not_taken";
+  const ended = now.getTime() >= eventEnd(event).getTime();
+  // Durante el evento la lista se va tomando: quien aún no ha llegado conserva su RSVP.
+  if (ended) return taken ? "absent" : "not_taken";
   switch (row.status) {
     case "CONFIRMED":
       return "confirmed";
@@ -125,18 +127,20 @@ export interface EventRows {
 }
 
 /**
- * present / (present + absent), contando solo eventos con lista tomada (R4).
+ * present / (present + absent), contando solo eventos terminados con lista tomada (R4):
+ * un evento en curso no cuenta, porque aún no se sabe quién será absent.
  * `filter` limita las filas contadas (p. ej. un jugador) DESPUÉS de decidir si la lista
  * se tomó con todas las filas del evento. null si no hay denominador.
  */
 export function attendanceRate(
   events: ReadonlyArray<EventRows>,
+  now: Date,
   filter: (row: AttendanceRowLike) => boolean = () => true
 ): number | null {
   let present = 0;
   let absent = 0;
-  for (const { rows } of events) {
-    if (!listTaken(rows)) continue;
+  for (const { event, rows } of events) {
+    if (now.getTime() < eventEnd(event).getTime() || !listTaken(rows)) continue;
     for (const row of rows) {
       if (!filter(row)) continue;
       if (row.checkedIn) present++;

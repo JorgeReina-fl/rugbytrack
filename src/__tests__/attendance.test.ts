@@ -66,9 +66,22 @@ describe.each(["UTC", "America/Los_Angeles"])("attendance (TZ=%s)", (tz) => {
       expect(r.status).toBe("DECLINED");
     });
 
-    test("CONFIRMED + lista tomada sin check-in → absent", () => {
+    test("CONFIRMED + lista tomada sin check-in → absent solo tras eventEnd", () => {
       const rows = [row("CONFIRMED"), row("PENDING", true)];
-      expect(attendanceState(rows[0]!, event, at(H), listTaken(rows))).toBe("absent");
+      expect(attendanceState(rows[0]!, event, at(2 * H), listTaken(rows))).toBe("absent");
+      expect(attendanceState(rows[0]!, event, at(2 * H + 1), listTaken(rows))).toBe("absent");
+    });
+
+    test("lista tomada a mitad de evento: el no llegado conserva su RSVP", () => {
+      const rows = [row("CONFIRMED"), row("DECLINED"), row("PENDING"), row("PENDING", true)];
+      const taken = listTaken(rows);
+      expect(taken).toBe(true);
+      expect(attendanceState(rows[0]!, event, at(H), taken)).toBe("confirmed");
+      expect(attendanceState(rows[1]!, event, at(H), taken)).toBe("declined");
+      expect(attendanceState(rows[2]!, event, at(H), taken)).toBe("pending");
+      expect(attendanceState(rows[3]!, event, at(H), taken)).toBe("present");
+      expect(attendanceState(rows[0]!, event, at(2 * H - 1), taken)).toBe("confirmed");
+      expect(attendanceState(rows[0]!, event, at(2 * H), taken)).toBe("absent");
     });
 
     test("la presencia solo depende de checkedIn: desmarcar no cambia status ni lo lee", () => {
@@ -107,10 +120,17 @@ describe.each(["UTC", "America/Los_Angeles"])("attendance (TZ=%s)", (tz) => {
       });
     });
 
-    test("countsForEvent con lista tomada", () => {
+    test("countsForEvent con lista tomada y evento terminado", () => {
       const rows = [row("DECLINED", true), row("CONFIRMED"), row("PENDING", true), row("PENDING")];
       expect(countsForEvent(rows, event, at(3 * H))).toEqual({
         present: 2, absent: 2, confirmed: 0, declined: 0, pending: 0, notTaken: 0,
+      });
+    });
+
+    test("countsForEvent con lista a medias en curso", () => {
+      const rows = [row("DECLINED", true), row("CONFIRMED"), row("PENDING", true), row("PENDING")];
+      expect(countsForEvent(rows, event, at(H))).toEqual({
+        present: 2, absent: 0, confirmed: 1, declined: 0, pending: 1, notTaken: 0,
       });
     });
 
@@ -126,18 +146,24 @@ describe.each(["UTC", "America/Los_Angeles"])("attendance (TZ=%s)", (tz) => {
     test("present / (present + absent), excluyendo eventos sin lista", () => {
       const taken = { event, rows: [row("CONFIRMED", true), row("CONFIRMED", true), row("CONFIRMED"), row("DECLINED")] };
       const notTaken = { event, rows: [row("CONFIRMED"), row("CONFIRMED")] };
-      expect(attendanceRate([taken, notTaken])).toBe(0.5);
+      expect(attendanceRate([taken, notTaken], at(3 * H))).toBe(0.5);
+    });
+
+    test("un evento en curso con lista a medias no cuenta", () => {
+      const rows = [row("CONFIRMED", true), row("CONFIRMED")];
+      expect(attendanceRate([{ event, rows }], at(H))).toBeNull();
+      expect(attendanceRate([{ event, rows }], at(2 * H))).toBe(0.5);
     });
 
     test("null sin denominador", () => {
-      expect(attendanceRate([])).toBeNull();
-      expect(attendanceRate([{ event, rows: [row("CONFIRMED")] }])).toBeNull();
+      expect(attendanceRate([], at(3 * H))).toBeNull();
+      expect(attendanceRate([{ event, rows: [row("CONFIRMED")] }], at(3 * H))).toBeNull();
     });
 
     test("filter limita a un jugador tras decidir si hubo lista", () => {
       const rows = [row("PENDING", true), row("CONFIRMED")];
-      expect(attendanceRate([{ event, rows }], (r) => r === rows[1])).toBe(0);
-      expect(attendanceRate([{ event, rows }], (r) => r === rows[0])).toBe(1);
+      expect(attendanceRate([{ event, rows }], at(3 * H), (r) => r === rows[1])).toBe(0);
+      expect(attendanceRate([{ event, rows }], at(3 * H), (r) => r === rows[0])).toBe(1);
     });
   });
 
