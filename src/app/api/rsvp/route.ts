@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyRsvpToken } from "@/lib/tokens";
 import { handleUnknownError } from "@/lib/api-response";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/client-ip";
 
 // Rate limit: ventana de 10 min, 20 por IP y 10 por token (clave = sha256, nunca el token en claro)
 const RATE_WINDOW_SECONDS = 10 * 60;
@@ -12,23 +13,13 @@ const IP_LIMIT = 20;
 const TOKEN_LIMIT = 10;
 const TOO_MANY = "Too many requests";
 
-// nginx fija X-Real-IP desde $remote_addr (CF-Connecting-IP vía real_ip_header);
-// X-Forwarded-For lleva primero lo que envíe el cliente, así que solo es el último recurso.
-function getClientIp(req: Request): string {
-  const real = req.headers.get("x-real-ip");
-  if (real) return real.trim();
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",").at(-1)!.trim();
-  return "unknown";
-}
-
 const fail = (error: string, status: number) =>
   NextResponse.json({ error }, { status });
 
 export async function POST(req: Request) {
   try {
     const ipLimit = await checkRateLimit(
-      `rsvp:ip:${getClientIp(req)}`,
+      `rsvp:ip:${getClientIp(req.headers)}`,
       IP_LIMIT,
       RATE_WINDOW_SECONDS
     );

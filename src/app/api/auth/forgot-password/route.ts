@@ -7,6 +7,7 @@ import {
   handleUnknownError,
 } from "@/lib/api-response";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/client-ip";
 import { logger } from "@/lib/logger";
 import { createResetToken, sendResetEmail } from "@mivia/auth-reset";
 
@@ -23,17 +24,11 @@ const RATE_LIMIT = 3;
 const RATE_WINDOW_SECONDS = 60 * 60;
 const TOKEN_EXPIRES_MIN = 60;
 
-function getClientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0]!.trim();
-  return req.headers.get("x-real-ip") ?? "unknown";
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { email } = forgotSchema.parse(body);
-    const ip = getClientIp(request);
+    const ip = getClientIp(request.headers);
 
     // Rate limit ANTES de tocar BBDD (mitigación DoS/enumeración por timing).
     const rl = await checkRateLimit(
