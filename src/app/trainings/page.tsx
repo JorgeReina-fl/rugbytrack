@@ -10,6 +10,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { prisma } from "@/lib/prisma";
 import { getActiveMembership } from "@/lib/membership";
 import { formatInTz, safeTz } from "@/lib/datetime";
+import { CoachRpeList, type CoachRpeRow } from "@/components/training/CoachRpeList";
 import { RpeForm } from "@/components/training/RpeForm";
 import { WorkloadChart } from "@/components/training/WorkloadChart";
 import { ChartBar } from "@phosphor-icons/react/dist/ssr";
@@ -140,6 +141,47 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
 
   // Estadísticas del entrenamiento para el entrenador
   const coachRpeEntries = selectedEvent?.rpeEntries ?? [];
+
+  // Lista editable de RPE (solo coach activo): miembros activos no coach + asistencia + RPE, sin consultas por jugador
+  let coachRpeRows: CoachRpeRow[] = [];
+  if (selectedEvent && activeMembership?.isCoach) {
+    const [members, attendances] = await Promise.all([
+      prisma.teamMember.findMany({
+        where: { teamId: selectedTeam.id, leftAt: null, isCoach: false },
+        select: { userId: true, user: { select: { name: true } } },
+        orderBy: { user: { name: "asc" } },
+      }),
+      prisma.attendance.findMany({
+        where: { eventId: selectedEvent.id },
+        select: { userId: true, checkedIn: true },
+      }),
+    ]);
+    const presentIds = new Set(attendances.filter((a) => a.checkedIn).map((a) => a.userId));
+    const entryByUser = new Map(coachRpeEntries.map((r) => [r.userId, r]));
+    coachRpeRows = members.flatMap((m) => {
+      const entry = entryByUser.get(m.userId) ?? null;
+      const checkedIn = presentIds.has(m.userId);
+      if (!checkedIn && !entry) return [];
+      return [
+        {
+          userId: m.userId,
+          name: m.user.name,
+          checkedIn,
+          notes: entry?.notes ?? null,
+          entry: entry
+            ? {
+                rpe: entry.rpe,
+                duration: entry.duration,
+                workload: entry.workload,
+                recordedById: entry.recordedById,
+                updatedAt: entry.updatedAt.toISOString(),
+              }
+            : null,
+        },
+      ];
+    });
+  }
+  const eventStarted = selectedEvent ? new Date(selectedEvent.startDate) <= new Date() : false;
   const avgRpe =
     coachRpeEntries.length > 0
       ? (coachRpeEntries.reduce((acc, curr) => acc + curr.rpe, 0) / coachRpeEntries.length).toFixed(1)
@@ -331,33 +373,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
                         </div>
 
                         {/* Listado de cargas de los jugadores */}
-                        <div className="mt-6 border-t border-border pt-4">
-                          <h4 className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground mb-3">
-                            Respuestas de Jugadores ({coachRpeEntries.length})
-                          </h4>
-                          {coachRpeEntries.length === 0 ? (
-                            <p className="text-xs text-muted-foreground italic font-mono">Ningún jugador ha enviado su RPE.</p>
-                          ) : (
-                            <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
-                              {coachRpeEntries.map((entry) => (
-                                <div
-                                  key={entry.id}
-                                  className="flex flex-col border border-border p-3 bg-background rounded-none text-xs font-mono"
-                                >
-                                  <div className="flex justify-between items-center font-bold">
-                                    <span className="text-foreground uppercase">{entry.user.name}</span>
-                                    <span className="text-primary">RPE {entry.rpe} • {entry.duration}m ({entry.workload} UA)</span>
-                                  </div>
-                                  {entry.notes && (
-                                    <p className="text-[10px] text-muted-foreground mt-1 bg-secondary/30 p-2 italic border-l border-primary/30">
-                                      "{entry.notes}"
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        <CoachRpeList eventId={selectedEvent.id} started={eventStarted} rows={coachRpeRows} />
                       </div>
 
                       {/* Gráfico Histórico */}

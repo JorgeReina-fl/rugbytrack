@@ -116,7 +116,7 @@ export function PlayerRpeControl({ eventId, userId, name, checkedIn, started, en
 
       {editing ? (
         <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
               <button
                 key={num}
