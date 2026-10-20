@@ -26,7 +26,13 @@ export function verifyRsvpToken(token: string): { userId: string; eventId: strin
 
     const expectedHmac = crypto.createHmac("sha256", secret).update(payload).digest("hex");
 
-    if (hmac !== expectedHmac) return null; // Firma inválida
+    if (typeof hmac !== "string") return null;
+    const given = Buffer.from(hmac);
+    const expected = Buffer.from(expectedHmac);
+    // timingSafeEqual lanza si las longitudes difieren: se descarta antes
+    if (given.length !== expected.length || !crypto.timingSafeEqual(given, expected)) {
+      return null; // Firma inválida
+    }
 
     const parsedPayload = JSON.parse(payload);
     if (parsedPayload.exp < Date.now()) return null; // Expirado
