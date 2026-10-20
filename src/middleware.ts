@@ -20,6 +20,7 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/api/auth")) return true;
   if (pathname.startsWith("/join/")) return true;
   if (pathname.startsWith("/rsvp/")) return true;
+  if (pathname === "/api/rsvp") return true; // auth = token HMAC firmado
   if (pathname.startsWith("/reset-password/")) return true;
   if (pathname.startsWith("/_next")) return true;
   if (pathname.startsWith("/favicon")) return true;

@@ -1,11 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
+import { rsvpErrorMessage } from "@/lib/rsvp-messages";
 
 type RsvpStatus = "idle" | "loading" | "confirmed" | "declined" | "error";
 
 interface RsvpActionProps {
   token: string;
+}
+
+class RsvpRequestError extends Error {
+  constructor(public httpStatus: number | null) {
+    super(`RSVP request failed (${httpStatus ?? "non-JSON"})`);
+  }
 }
 
 export function RsvpAction({ token }: RsvpActionProps) {
@@ -25,16 +32,20 @@ export function RsvpAction({ token }: RsvpActionProps) {
         body: JSON.stringify({ token, status: responseStatus }),
       });
 
-      const data = await res.json();
+      const isJson = (res.headers.get("content-type") ?? "").includes("application/json");
 
-      if (!res.ok) {
-        throw new Error(data.error || "Ocurrió un error inesperado");
+      if (!res.ok || !isJson) {
+        throw new RsvpRequestError(res.ok ? null : res.status);
       }
 
+      await res.json();
+
       setStatus(responseStatus === "CONFIRMED" ? "confirmed" : "declined");
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
-      setErrorMessage(error.message);
+      setErrorMessage(
+        rsvpErrorMessage(error instanceof RsvpRequestError ? error.httpStatus : null)
+      );
       setStatus("error");
     }
   };
