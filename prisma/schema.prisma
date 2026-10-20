@@ -127,6 +127,7 @@ model User {
   attendances  Attendance[]
   callups      Callup[]
   rpeEntries   RpeEntry[]
+  rpeRecorded  RpeEntry[] @relation("RpeRecordedBy")
   trainingLogs TrainingLog[]
   embedding    PlayerEmbedding?
   createdPolls Poll[]
@@ -286,10 +287,14 @@ model RpeEntry {
   workload  Int      
   notes     String?
   createdAt DateTime @default(now())
+  recordedById String?
+  recordedBy   User?    @relation("RpeRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+  updatedAt    DateTime @default(now()) @updatedAt
 
   @@unique([eventId, userId])
   @@index([eventId])
   @@index([userId])
+  @@index([recordedById])
 }
 
 model TrainingLog {
