@@ -19,7 +19,7 @@ jest.mock("@/lib/prisma", () => ({
       findUnique: jest.fn(),
     },
     teamMember: {
-      findUnique: jest.fn(),
+      findFirst: jest.fn(),
     },
     rpeEntry: {
       create: jest.fn(),
@@ -37,29 +37,60 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPrisma.rpeEntry.findUnique.mockResolvedValue(null);
+    mockPrisma.teamMember.findFirst.mockResolvedValue({ isCoach: false });
   });
 
-  test("POST /api/rpe — Debe retornar 403 si un COACH intenta registrar RPE", async () => {
-    mockAuth.mockResolvedValue({
-      user: { id: "coach-123", role: "COACH", name: "Pep Guardiola" },
-    });
-
-    const body = {
-      eventId: validEventId,
-      rpe: 8,
-      duration: 80,
-    };
-
-    const request = new NextRequest("http://localhost:3000/api/rpe", {
+  const eventFixture = {
+    id: validEventId,
+    teamId: "team-123",
+    startDate: new Date("2026-06-09T20:00:00Z"),
+    attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }],
+    _count: { attendances: 0 },
+  };
+  const rpeRequest = () =>
+    new NextRequest("http://localhost:3000/api/rpe", {
       method: "POST",
-      body: JSON.stringify(body),
+      body: JSON.stringify({ eventId: validEventId, rpe: 8, duration: 80 }),
     });
 
-    const response = await createRpeRoute(request);
+  test("POST /api/rpe — User.role COACH sin isCoach en el equipo puede registrar RPE", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "player-123", role: "COACH", name: "Juan Jugador" } });
+    mockPrisma.event.findUnique.mockResolvedValue(eventFixture);
+    mockPrisma.teamMember.findFirst.mockResolvedValue({ isCoach: false });
+    mockPrisma.rpeEntry.create.mockImplementation(({ data }: any) => Promise.resolve({ id: "rpe-125", ...data }));
+
+    const response = await createRpeRoute(rpeRequest());
+    expect(response.status).toBe(201);
+    expect(mockPrisma.teamMember.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { teamId: "team-123", userId: "player-123", leftAt: null } })
+    );
+  });
+
+  test("POST /api/rpe — Debe retornar 403 si es coach del equipo (isCoach), aunque User.role sea PLAYER", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "coach-123", role: "PLAYER", name: "Pep Guardiola" } });
+    mockPrisma.event.findUnique.mockResolvedValue(eventFixture);
+    mockPrisma.teamMember.findFirst.mockResolvedValue({ isCoach: true });
+
+    const response = await createRpeRoute(rpeRequest());
     const json = await response.json();
 
     expect(response.status).toBe(403);
     expect(json.error).toBe("Solo los jugadores pueden registrar su esfuerzo");
+    expect(mockPrisma.rpeEntry.create).not.toHaveBeenCalled();
+  });
+
+  test("POST /api/rpe — Debe retornar 403 si la membresía no está activa (leftAt no nulo)", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "player-123", role: "PLAYER", name: "Juan Jugador" } });
+    mockPrisma.event.findUnique.mockResolvedValue(eventFixture);
+    // getActiveMembership filtra leftAt: null, así que un ex-miembro no devuelve fila
+    mockPrisma.teamMember.findFirst.mockResolvedValue(null);
+
+    const response = await createRpeRoute(rpeRequest());
+    const json = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(json.error).toBe("No perteneces al equipo asociado a este evento");
+    expect(mockPrisma.rpeEntry.create).not.toHaveBeenCalled();
   });
 
   test("POST /api/rpe — Debe retornar 422 si los datos de entrada son inválidos", async () => {
@@ -120,10 +151,10 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
       id: validEventId,
       teamId: "team-123",
       startDate: new Date("2026-06-09T20:00:00Z"),
-      team: { members: [] },
       attendances: [],
       _count: { attendances: 0 },
     });
+    mockPrisma.teamMember.findFirst.mockResolvedValue(null);
 
     const body = {
       eventId: validEventId,
@@ -152,7 +183,6 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
       id: validEventId,
       teamId: "team-123",
       startDate: new Date("2026-06-09T20:00:00Z"),
-      team: { members: [{ userId: "player-123" }] },
       attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }],
       _count: { attendances: 0 },
     });
@@ -188,7 +218,6 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
       id: validEventId,
       teamId: "team-123",
       startDate: new Date("2026-06-09T20:00:00Z"),
-      team: { members: [{ userId: "player-123" }] },
       attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }],
       _count: { attendances: 0 },
     });
@@ -227,7 +256,6 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
       id: validEventId,
       teamId: "team-123",
       startDate: new Date("2026-06-09T20:00:00Z"),
-      team: { members: [{ userId: "player-123" }] },
       attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }],
       _count: { attendances: 12 },
     });
@@ -248,7 +276,6 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
       id: validEventId,
       teamId: "team-123",
       startDate: new Date("2026-06-09T20:00:00Z"),
-      team: { members: [{ userId: "player-123" }] },
       attendances: [{ userId: "player-123", status: "DECLINED", checkedIn: true }],
       _count: { attendances: 12 },
     });

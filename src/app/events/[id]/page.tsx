@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getActiveMembership } from "@/lib/membership";
 import { formatInTz, safeTz } from "@/lib/datetime";
 import { RsvpControl } from "./rsvp-control";
 import { RugbyPosition } from "@prisma/client";
@@ -74,11 +75,12 @@ export default async function EventDetailPage({ params }: PageProps) {
   }
 
   // Valida membresía y RPE (en paralelo)
-  const [membership, rpeEntry] = await Promise.all([
+  const [membership, activeMembership, rpeEntry] = await Promise.all([
     prisma.teamMember.findFirst({
       where: { userId: session.user.id, teamId: event.teamId },
       select: { isCoach: true },
     }),
+    getActiveMembership(event.teamId, session.user.id),
     prisma.rpeEntry.findFirst({
       where: { userId: session.user.id, eventId: event.id },
     }),
@@ -93,7 +95,8 @@ export default async function EventDetailPage({ params }: PageProps) {
 
   const now = new Date();
   const showRpeForm =
-    session.user.role === "PLAYER" &&
+    activeMembership !== null &&
+    !activeMembership.isCoach &&
     new Date(event.startDate) <= now &&
     userAttendance !== null &&
     canSubmitRpe(userAttendance, isListTakenFromCount(event)) &&

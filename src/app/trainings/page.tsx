@@ -8,6 +8,7 @@ import Link from "next/link";
 import TeamSelector from "./team-selector";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { prisma } from "@/lib/prisma";
+import { getActiveMembership } from "@/lib/membership";
 import { formatInTz, safeTz } from "@/lib/datetime";
 import { RpeForm } from "@/components/training/RpeForm";
 import { WorkloadChart } from "@/components/training/WorkloadChart";
@@ -114,6 +115,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
 
   // Datos específicos del RPE para el evento seleccionado si es Jugador
   let playerRpeEntry = null;
+  const activeMembership = await getActiveMembership(selectedTeam.id, session.user.id);
   if (selectedEvent && !isCoach) {
     playerRpeEntry = await prisma.rpeEntry.findUnique({
       where: {
@@ -129,7 +131,8 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
   const userAttendance = selectedEvent?.attendances[0] ?? null;
   const showRpeForm =
     selectedEvent &&
-    !isCoach &&
+    activeMembership !== null &&
+    !activeMembership.isCoach &&
     new Date(selectedEvent.startDate) <= new Date() &&
     userAttendance !== null &&
     canSubmitRpe(userAttendance, isListTakenFromCount(selectedEvent)) &&
@@ -215,7 +218,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
                       );
                     } else {
                       const att = event.attendances[0];
-                      const canSubmit = new Date(event.startDate) <= new Date() && !!att && canSubmitRpe(att, isListTakenFromCount(event));
+                      const canSubmit = !!activeMembership && new Date(event.startDate) <= new Date() && !!att && canSubmitRpe(att, isListTakenFromCount(event));
                       rpeStatus = canSubmit ? (
                         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-primary bg-primary/5 border border-primary/20 px-2 py-0.5">
                           PENDIENTE RPE

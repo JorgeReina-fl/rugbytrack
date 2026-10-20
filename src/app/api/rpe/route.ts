@@ -4,6 +4,7 @@ import { TAKEN_COUNT, isListTakenFromCount } from "@/lib/attendance-taken";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getActiveMembership } from "@/lib/membership";
 import { rpeEntrySchema } from "@/lib/validations/rpe";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
@@ -27,11 +28,6 @@ export async function POST(req: Request) {
       return apiUnauthorized();
     }
 
-    if (session.user.role !== "PLAYER") {
-      logger.warn({ userId: session.user.id, role: session.user.role }, "Forbidden role for RPE submission");
-      return apiError("Solo los jugadores pueden registrar su esfuerzo", 403);
-    }
-
     const body = await req.json();
     const parsedData = bodySchema.safeParse(body);
 
@@ -49,13 +45,6 @@ export async function POST(req: Request) {
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
-        team: {
-          include: {
-            members: {
-              where: { userId },
-            },
-          },
-        },
         attendances: {
           where: { userId },
         },
@@ -68,9 +57,15 @@ export async function POST(req: Request) {
       return apiNotFound("Evento");
     }
 
-    if (event.team.members.length === 0) {
-      logger.warn({ userId, eventId, teamId: event.teamId }, "User is not a member of the event's team");
+    const membership = await getActiveMembership(event.teamId, userId);
+    if (!membership) {
+      logger.warn({ userId, eventId, teamId: event.teamId }, "User is not an active member of the event's team");
       return apiError("No perteneces al equipo asociado a este evento", 403);
+    }
+
+    if (membership.isCoach) {
+      logger.warn({ userId, eventId, teamId: event.teamId }, "Team coach attempted RPE submission");
+      return apiError("Solo los jugadores pueden registrar su esfuerzo", 403);
     }
 
     const now = new Date();
