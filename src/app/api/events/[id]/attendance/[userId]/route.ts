@@ -11,9 +11,7 @@ import {
   handleUnknownError,
 } from "@/lib/api-response";
 import { ZodError } from "zod";
-import Redis from "ioredis";
-
-const REDIS_URL = process.env.REDIS_URL;
+import { setPresence } from "@/lib/attendance-write";
 
 export async function PATCH(
   request: Request,
@@ -45,52 +43,7 @@ export async function PATCH(
     const body = await request.json();
     const data = manualAttendanceSchema.parse(body);
 
-    const checkedInAt = data.checkedIn ? new Date() : null;
-
-    const attendance = await prisma.attendance.upsert({
-      where: {
-        eventId_userId: {
-          eventId: id,
-          userId: userId,
-        },
-      },
-      update: {
-        checkedIn: data.checkedIn,
-        checkedInAt: checkedInAt,
-        status: data.status,
-      },
-      create: {
-        eventId: id,
-        userId: userId,
-        checkedIn: data.checkedIn,
-        checkedInAt: checkedInAt,
-        status: data.status,
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-
-    // Publica el cambio en Redis para que el servidor Socket.io lo retransmita en tiempo real
-    if (REDIS_URL) {
-      const redisPublisher = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
-      await redisPublisher.publish(
-        "attendance:update",
-        JSON.stringify({
-          eventId: id,
-          userId: userId,
-          name: attendance.user.name,
-          checkedIn: attendance.checkedIn,
-          checkedInAt: attendance.checkedInAt?.toISOString() ?? null,
-          status: attendance.status,
-        })
-      );
-      await redisPublisher.quit();
-    }
+    const attendance = await setPresence(id, userId, data.checkedIn, session.user.id);
 
     return apiSuccess(attendance);
   } catch (err) {

@@ -115,10 +115,7 @@ export function AttendanceBoard({ eventId, initialAttendances }: AttendanceBoard
       const response = await fetch(`/api/events/${eventId}/attendance/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          checkedIn,
-          status: checkedIn ? "CONFIRMED" : "PENDING",
-        }),
+        body: JSON.stringify({ checkedIn }),
       });
 
       const result = await response.json();

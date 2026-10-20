@@ -1,6 +1,7 @@
 import "server-only";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { setRsvp } from "@/lib/attendance-write";
 import { rsvpSchema } from "@/modules/events/events.schema";
 import {
   apiSuccess,
@@ -39,33 +40,19 @@ export async function POST(
       return apiForbidden();
     }
 
-    // Valida el límite de RSVP (deadline)
-    if (event.rsvpDeadline && new Date() > event.rsvpDeadline) {
-      return apiError("La fecha límite para confirmar asistencia ha expirado", 400);
-    }
-
     const body = await request.json();
     const data = rsvpSchema.parse(body);
 
-    const attendance = await prisma.attendance.upsert({
-      where: {
-        eventId_userId: {
-          eventId: id,
-          userId: session.user.id,
-        },
-      },
-      update: {
-        status: data.status,
-      },
-      create: {
-        eventId: id,
-        userId: session.user.id,
-        status: data.status,
-        checkedIn: false,
-      },
+    const result = await setRsvp(id, session.user.id, data.status, new Date(), {
+      createIfMissing: true,
     });
 
-    return apiSuccess(attendance);
+    if (!result.ok) {
+      if (result.reason === "EVENT_NOT_FOUND") return apiNotFound("Evento");
+      return apiError("La fecha límite para confirmar asistencia ha expirado", 409);
+    }
+
+    return apiSuccess({ eventId: id, userId: session.user.id, status: result.status });
   } catch (err) {
     if (err instanceof ZodError) return handleZodError(err);
     return handleUnknownError(err, "POST /api/events/[id]/rsvp");

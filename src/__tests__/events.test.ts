@@ -94,6 +94,7 @@ describe("RugbyTrack — Fase 2 Event API Tests", () => {
     mockPrisma.event.findUnique.mockResolvedValue({
       id: "event-123",
       teamId: "team-123",
+      startDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
       rsvpDeadline: null,
     });
     mockPrisma.teamMember.findFirst.mockResolvedValue({

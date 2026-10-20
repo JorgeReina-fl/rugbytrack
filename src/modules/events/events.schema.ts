@@ -47,9 +47,10 @@ export const rsvpSchema = z.object({
   status: z.nativeEnum(AttendanceStatus, { message: "Estado de RSVP inválido" }),
 });
 
+// `status` ya no se escribe desde la marca del coach (R2); z.object descarta claves desconocidas,
+// así que un cliente antiguo que lo envíe sigue funcionando.
 export const manualAttendanceSchema = z.object({
   checkedIn: z.boolean(),
-  status: z.nativeEnum(AttendanceStatus, { message: "Estado de asistencia inválido" }),
 });
 
 export const sessionActionSchema = z.object({

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyRsvpToken } from "@/lib/tokens";
 import { handleUnknownError } from "@/lib/api-response";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { setRsvp } from "@/lib/attendance-write";
 import { getClientIp } from "@/lib/client-ip";
 
 // Rate limit: ventana de 10 min, 20 por IP y 10 por token (clave = sha256, nunca el token en claro)
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
-      select: { teamId: true, startDate: true, rsvpDeadline: true },
+      select: { teamId: true },
     });
 
     if (!event) return fail("Attendance record not found", 404);
@@ -74,20 +75,14 @@ export async function POST(req: Request) {
 
     if (!membership) return fail("Not a team member", 403);
 
-    const now = new Date();
-    if (
-      (event.rsvpDeadline && now > event.rsvpDeadline) ||
-      now >= event.startDate
-    ) {
-      return fail("RSVP closed", 409);
-    }
-
-    const updated = await prisma.attendance.updateMany({
-      where: { userId, eventId },
-      data: { status },
+    const result = await setRsvp(eventId, userId, status, new Date(), {
+      createIfMissing: false,
     });
 
-    if (updated.count === 0) return fail("Attendance record not found", 404);
+    if (!result.ok) {
+      if (result.reason === "CLOSED") return fail("RSVP closed", 409);
+      return fail("Attendance record not found", 404);
+    }
 
     return NextResponse.json({ data: { status } });
   } catch (error) {

@@ -11,6 +11,7 @@ loadEnvConfig(process.cwd());
 
 import { prisma } from "./src/lib/prisma";
 import { logger } from "./src/lib/logger";
+import { setPresence } from "./src/lib/attendance-write";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -184,20 +185,8 @@ app.prepare().then(() => {
           return;
         }
 
-        const attendance = await prisma.attendance.upsert({
-          where: { eventId_userId: { eventId: checkEventId, userId: user.id } },
-          update: { checkedIn: true, checkedInAt: new Date(), status: "CONFIRMED" },
-          create: { eventId: checkEventId, userId: user.id, checkedIn: true, checkedInAt: new Date(), status: "CONFIRMED" },
-          include: { user: { select: { name: true } } },
-        });
-
-        io.to(`session:${checkEventId}`).emit("attendance_update", {
-          userId: user.id,
-          name: attendance.user.name,
-          checkedIn: true,
-          checkedInAt: attendance.checkedInAt?.toISOString() ?? null,
-          status: attendance.status,
-        });
+        // Escribe y publica en Redis "attendance:update"; redisSub (arriba) lo emite a la sala.
+        await setPresence(checkEventId, user.id, true, user.id);
 
         logger.info({ userId: user.id, eventId: checkEventId }, "Attendance checked in successfully via WebSocket");
       } catch (err) {
