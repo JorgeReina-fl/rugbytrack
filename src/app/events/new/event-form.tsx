@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { RugbyPosition, EventType } from "@prisma/client";
 import { Warning } from "@phosphor-icons/react/dist/ssr";
 import { localInputToIso } from "@/lib/form-datetime";
+import { tzOptionsFor } from "@/lib/timezones";
 
 interface MemberWithUser {
   id: string;
@@ -167,6 +168,12 @@ export function EventForm({ teamId, timezone, members }: EventFormProps) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [rsvpDeadline, setRsvpDeadline] = useState("");
+  const [selectedTz, setSelectedTz] = useState(timezone);
+  const startIso = localInputToIso(startDate, selectedTz);
+  const tzOptions = useMemo(
+    () => tzOptionsFor(startIso ? new Date(startIso) : new Date(), timezone),
+    [startIso, timezone]
+  );
 
   // Callups state: mapping userId -> callup info
   const [callups, setCallups] = useState<
@@ -268,9 +275,9 @@ export function EventForm({ teamId, timezone, members }: EventFormProps) {
           type,
           description: description || null,
           location: location || null,
-          startDate: localInputToIso(startDate, timezone) ?? "",
-          endDate: localInputToIso(endDate, timezone),
-          rsvpDeadline: localInputToIso(rsvpDeadline, timezone),
+          startDate: localInputToIso(startDate, selectedTz) ?? "",
+          endDate: localInputToIso(endDate, selectedTz),
+          rsvpDeadline: localInputToIso(rsvpDeadline, selectedTz),
           callups: formattedCallups,
         }),
       });
@@ -378,6 +385,22 @@ export function EventForm({ teamId, timezone, members }: EventFormProps) {
               className={inputCls}
             />
           </div>
+        </div>
+
+        <div>
+          <label htmlFor="event-timezone" className={labelCls}>Zona horaria</label>
+          <select
+            id="event-timezone"
+            value={selectedTz}
+            onChange={(e) => setSelectedTz(e.target.value)}
+            className={inputCls}
+          >
+            {tzOptions.map((o) => (
+              <option key={o.tz} value={o.tz}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>

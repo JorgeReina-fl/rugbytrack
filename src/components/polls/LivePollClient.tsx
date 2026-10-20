@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useSocket } from "@/hooks/useSocket";
 import { useRouter } from "next/navigation";
 import { localInputToIso } from "@/lib/form-datetime";
+import { tzOptionsFor } from "@/lib/timezones";
 
 interface Props {
   teamId: string;
@@ -26,6 +27,12 @@ export default function LivePollClient({ teamId, timezone, initialPolls, isCoach
   const [description, setDescription] = useState("");
   const [options, setOptions] = useState<string[]>(["", ""]);
   const [expiresAt, setExpiresAt] = useState("");
+  const [selectedTz, setSelectedTz] = useState(timezone);
+  const expiresIso = localInputToIso(expiresAt, selectedTz);
+  const tzOptions = useMemo(
+    () => tzOptionsFor(expiresIso ? new Date(expiresIso) : new Date(), timezone),
+    [expiresIso, timezone]
+  );
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -83,6 +90,7 @@ export default function LivePollClient({ teamId, timezone, initialPolls, isCoach
     setDescription("");
     setOptions(["", ""]);
     setExpiresAt("");
+    setSelectedTz(timezone);
     setFormError(null);
     setSubmitting(false);
   };
@@ -127,7 +135,7 @@ export default function LivePollClient({ teamId, timezone, initialPolls, isCoach
           title: title.trim(),
           description: description.trim() || undefined,
           options: cleanOptions,
-          expiresAt: localInputToIso(expiresAt, timezone) ?? undefined,
+          expiresAt: localInputToIso(expiresAt, selectedTz) ?? undefined,
         }),
       });
       if (res.ok) {
@@ -251,6 +259,23 @@ export default function LivePollClient({ teamId, timezone, initialPolls, isCoach
                     onChange={(e) => setExpiresAt(e.target.value)}
                     className="w-full border p-2 rounded bg-background"
                   />
+                </div>
+                <div>
+                  <label htmlFor="poll-timezone" className="block text-sm font-bold mb-1">
+                    Zona horaria
+                  </label>
+                  <select
+                    id="poll-timezone"
+                    value={selectedTz}
+                    onChange={(e) => setSelectedTz(e.target.value)}
+                    className="w-full border p-2 rounded bg-background"
+                  >
+                    {tzOptions.map((o) => (
+                      <option key={o.tz} value={o.tz}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-bold mb-2">
