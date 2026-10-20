@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { redis } from "@/lib/redis";
 import {
   apiSuccess,
   apiUnauthorized,
@@ -54,14 +53,6 @@ export async function POST(_req: Request, { params }: Params) {
         supporters: { select: { userId: true } },
       },
     });
-
-    await redis.publish(
-      "proposal:update",
-      JSON.stringify({
-        teamId: proposal.teamId,
-        proposal: updatedProposal,
-      })
-    );
 
     return apiSuccess({ isSupported, proposal: updatedProposal });
   } catch (err) {

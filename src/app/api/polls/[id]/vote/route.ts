@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { redis } from "@/lib/redis";
 import { Prisma } from "@prisma/client";
 import {
   apiSuccess,
@@ -91,27 +90,6 @@ export async function POST(req: Request, { params }: Params) {
       }
       throw txErr;
     }
-
-    // Fetch updated poll options for broadcasting
-    const updatedOptions = await prisma.pollOption.findMany({
-      where: { pollId: id },
-      include: {
-        _count: { select: { votes: true } },
-      },
-    });
-
-    // Broadcast update via Redis Pub/Sub
-    await redis.publish(
-      "poll:update",
-      JSON.stringify({
-        teamId: poll.teamId,
-        pollId: id,
-        options: updatedOptions.map((opt: { id: string; _count: { votes: number } }) => ({
-          id: opt.id,
-          votesCount: opt._count.votes,
-        })),
-      })
-    );
 
     return apiSuccess({ vote });
   } catch (err) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { useSocket } from "@/hooks/useSocket";
+import { useVisibleRefresh } from "@/hooks/useVisibleRefresh";
 import { useRouter } from "next/navigation";
 import { localInputToIso } from "@/lib/form-datetime";
 import { tzOptionsFor } from "@/lib/timezones";
@@ -18,9 +18,14 @@ const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 6;
 
 export default function LivePollClient({ teamId, timezone, initialPolls, isCoach = false }: Props) {
-  const { socket } = useSocket(undefined, teamId);
   const [polls, setPolls] = useState(initialPolls);
   const router = useRouter();
+
+  // Votos de otros: refresco periódico con la pestaña visible; cada refresh trae encuestas nuevas
+  useVisibleRefresh();
+  useEffect(() => {
+    setPolls(initialPolls);
+  }, [initialPolls]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -35,36 +40,6 @@ export default function LivePollClient({ teamId, timezone, initialPolls, isCoach
   );
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.emit("join_team", { teamId });
-
-    socket.on("poll_update", (data: any) => {
-      setPolls((prev: any) =>
-        prev.map((p: any) => {
-          if (p.id === data.pollId) {
-            return {
-              ...p,
-              options: p.options.map((opt: any) => {
-                const updatedOpt = data.options.find((o: any) => o.id === opt.id);
-                if (updatedOpt) {
-                  return { ...opt, _count: { votes: updatedOpt.votesCount } };
-                }
-                return opt;
-              }),
-            };
-          }
-          return p;
-        })
-      );
-    });
-
-    return () => {
-      socket.off("poll_update");
-    };
-  }, [socket, teamId]);
 
   const handleVote = async (pollId: string, optionId: string) => {
     try {

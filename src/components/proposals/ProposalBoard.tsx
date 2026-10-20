@@ -2,39 +2,25 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useSocket } from "@/hooks/useSocket";
+import { useVisibleRefresh } from "@/hooks/useVisibleRefresh";
 import { useRouter } from "next/navigation";
 
 export default function ProposalBoard({ teamId, initialProposals, isCoach, currentUserId }: any) {
-  const { socket } = useSocket(undefined, teamId);
   const [proposals, setProposals] = useState(initialProposals);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const router = useRouter();
 
+  // Apoyos y estados de otros: refresco periódico con la pestaña visible
+  useVisibleRefresh();
   useEffect(() => {
-    if (!socket) return;
-    socket.emit("join_team", { teamId });
-
-    socket.on("proposal_update", (updatedProposal: any) => {
-      setProposals((prev: any) => {
-        const exists = prev.find((p: any) => p.id === updatedProposal.id);
-        if (exists) {
-          return prev.map((p: any) => p.id === updatedProposal.id ? updatedProposal : p);
-        } else {
-          return [updatedProposal, ...prev];
-        }
-      });
-    });
-
-    return () => {
-      socket.off("proposal_update");
-    };
-  }, [socket, teamId]);
+    setProposals(initialProposals);
+  }, [initialProposals]);
 
   const handleSupport = async (id: string) => {
     await fetch(`/api/proposals/${id}/support`, { method: "POST" });
+    router.refresh();
   };
 
   const handleStatus = async (id: string, status: string) => {
@@ -43,6 +29,7 @@ export default function ProposalBoard({ teamId, initialProposals, isCoach, curre
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
+    router.refresh();
   };
 
   const createProposal = async (e: any) => {
