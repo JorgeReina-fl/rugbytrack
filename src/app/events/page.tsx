@@ -1,4 +1,6 @@
 import "server-only";
+import { attendanceState } from "@/lib/attendance";
+import { TAKEN_COUNT, isListTakenFromCount } from "@/lib/attendance-taken";
 import { RugbyBallIcon } from "@/components/icons/RugbyBallIcon";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
@@ -101,6 +103,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
       },
     },
     include: {
+      ...TAKEN_COUNT,
       attendances: {
         where: { userId: session.user.id },
         select: { status: true, checkedIn: true },
@@ -205,13 +208,14 @@ export default async function EventsPage({ searchParams }: PageProps) {
                       let typeLabel = event.type === "TRAINING" ? "Entreno" : event.type === "MATCH" ? "Partido" : "Evento";
 
                       if (userAtt) {
-                        if (userAtt.checkedIn) {
+                        const state = attendanceState(userAtt, event, now, isListTakenFromCount(event));
+                        if (state === "present") {
                           statusColor = "bg-green-100 text-green-800 border border-green-200";
-                        } else if (userAtt.status === "CONFIRMED") {
+                        } else if (state === "confirmed") {
                           statusColor = "bg-blue-100 text-blue-800 border border-blue-200";
-                        } else if (userAtt.status === "DECLINED") {
+                        } else if (state === "declined" || state === "absent") {
                           statusColor = "bg-destructive/10 text-destructive border border-destructive/20";
-                        } else {
+                        } else if (state === "pending") {
                           statusColor = "bg-amber-100 text-amber-800 border border-amber-200";
                         }
                       }

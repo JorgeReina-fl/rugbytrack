@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { formatInTz, safeTz } from "@/lib/datetime";
 import { RsvpControl } from "./rsvp-control";
 import { RugbyPosition } from "@prisma/client";
+import { canSubmitRpe, isRsvpOpen } from "@/lib/attendance";
+import { TAKEN_COUNT, isListTakenFromCount } from "@/lib/attendance-taken";
 import { RpeForm } from "@/components/training/RpeForm";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { NotifyButton } from "@/components/event/NotifyButton";
@@ -63,6 +65,7 @@ export default async function EventDetailPage({ params }: PageProps) {
         select: { id: true, title: true },
       },
       team: { select: { timezone: true } },
+      ...TAKEN_COUNT,
     },
   });
 
@@ -88,11 +91,14 @@ export default async function EventDetailPage({ params }: PageProps) {
   const isCoach = membership.isCoach;
   const userAttendance = event.attendances[0] ?? null;
 
+  const now = new Date();
   const showRpeForm =
     session.user.role === "PLAYER" &&
-    new Date(event.startDate) <= new Date() &&
-    (userAttendance?.status === "CONFIRMED" || userAttendance?.checkedIn === true) &&
+    new Date(event.startDate) <= now &&
+    userAttendance !== null &&
+    canSubmitRpe(userAttendance, isListTakenFromCount(event)) &&
     !rpeEntry;
+  const rsvpClosed = !isRsvpOpen(event, now);
 
   // Separa titulares de suplentes
   const starters = event.callups.filter((c) => c.isStarter);
@@ -228,7 +234,7 @@ export default async function EventDetailPage({ params }: PageProps) {
                   </p>
                 )}
 
-                <RsvpControl eventId={event.id} initialStatus={userAttendance.status} />
+                <RsvpControl eventId={event.id} initialStatus={userAttendance.status} closed={rsvpClosed} />
               </div>
             )}
 

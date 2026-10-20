@@ -1,4 +1,6 @@
 import "server-only";
+import { canSubmitRpe } from "@/lib/attendance";
+import { TAKEN_COUNT, isListTakenFromCount } from "@/lib/attendance-taken";
 import { RugbyBallIcon } from "@/components/icons/RugbyBallIcon";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
@@ -89,6 +91,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
       type: "TRAINING",
     },
     include: {
+      ...TAKEN_COUNT,
       attendances: {
         where: { userId: session.user.id },
         select: { status: true, checkedIn: true },
@@ -128,7 +131,8 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
     selectedEvent &&
     !isCoach &&
     new Date(selectedEvent.startDate) <= new Date() &&
-    (userAttendance?.status === "CONFIRMED" || userAttendance?.checkedIn === true) &&
+    userAttendance !== null &&
+    canSubmitRpe(userAttendance, isListTakenFromCount(selectedEvent)) &&
     !playerRpeEntry;
 
   // Estadísticas del entrenamiento para el entrenador
@@ -211,7 +215,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
                       );
                     } else {
                       const att = event.attendances[0];
-                      const canSubmit = new Date(event.startDate) <= new Date() && (att?.status === "CONFIRMED" || att?.checkedIn === true);
+                      const canSubmit = new Date(event.startDate) <= new Date() && !!att && canSubmitRpe(att, isListTakenFromCount(event));
                       rpeStatus = canSubmit ? (
                         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-primary bg-primary/5 border border-primary/20 px-2 py-0.5">
                           PENDIENTE RPE

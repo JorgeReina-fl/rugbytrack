@@ -16,6 +16,8 @@ import {
   buildPlayerStatsText,
 } from "@/lib/gemini-embeddings";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { attendanceRate } from "@/lib/attendance";
+import { takenEventIds } from "@/lib/attendance-taken";
 import { z } from "zod";
 
 const querySchema = z.object({
@@ -83,7 +85,7 @@ export async function POST(req: NextRequest) {
             },
             attendances: {
               where: { event: { teamId } },
-              select: { status: true, checkedIn: true },
+              select: { eventId: true, status: true, checkedIn: true },
             },
           },
         },
@@ -91,6 +93,15 @@ export async function POST(req: NextRequest) {
     });
 
     if (members.length === 0) return apiNotFound("Jugadores");
+
+    // Tasa con las reglas comunes: solo eventos terminados con lista tomada (todos los eventos del equipo)
+    const teamEvents = await prisma.event.findMany({
+      where: { teamId },
+      select: { id: true, startDate: true, endDate: true },
+    });
+    const eventById = new Map(teamEvents.map((e) => [e.id, e]));
+    const takenIds = await takenEventIds(teamEvents.map((e) => e.id));
+    const now = new Date();
 
     const results: { userId: string; ok: boolean }[] = [];
 
@@ -105,17 +116,21 @@ export async function POST(req: NextRequest) {
         rpeSamples.length > 0
           ? rpeSamples.reduce((s, e) => s + e.workload, 0) / rpeSamples.length
           : 0;
-      const confirmed = u.attendances.filter(
-        (a) => a.status === "CONFIRMED" || a.checkedIn
-      ).length;
-      const attendanceRate =
-        u.attendances.length > 0 ? confirmed / u.attendances.length : 0;
+      const rate = attendanceRate(
+        u.attendances.flatMap((a) => {
+          const event = eventById.get(a.eventId);
+          return event ? [{ event, rows: [a], taken: takenIds.has(a.eventId) }] : [];
+        }),
+        now
+      );
+      // Sin eventos con lista: 0 (el texto del embedding espera un número)
+      const attendanceRateValue = rate ?? 0;
 
       const stats = {
         name: u.name,
         position: member.position ?? null,
         avgRpe,
-        attendanceRate,
+        attendanceRate: attendanceRateValue,
         totalEvents: u.attendances.length,
         avgWorkload,
       };

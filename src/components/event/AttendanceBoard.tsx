@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useSocket } from "@/hooks/useSocket";
 import { RugbyPosition } from "@prisma/client";
 import { Warning } from "@phosphor-icons/react/dist/ssr";
+import { attendanceState, countsForEvent, listTaken, type EventTimesLike } from "@/lib/attendance";
 
 interface PlayerAttendance {
   userId: string;
@@ -19,6 +20,9 @@ interface PlayerAttendance {
 interface AttendanceBoardProps {
   eventId: string;
   initialAttendances: PlayerAttendance[];
+  /** Fechas ISO del evento y hora del servidor: las reglas de asistencia dependen de ellas. */
+  event: { startDate: string; endDate: string | null; rsvpDeadline: string | null };
+  nowIso: string;
 }
 
 const positionLabels: Record<RugbyPosition, string> = {
@@ -39,8 +43,20 @@ const positionLabels: Record<RugbyPosition, string> = {
   REPLACEMENT: "Suplente",
 };
 
-export function AttendanceBoard({ eventId, initialAttendances }: AttendanceBoardProps) {
+export function AttendanceBoard({ eventId, initialAttendances, event, nowIso }: AttendanceBoardProps) {
   const [attendances, setAttendances] = useState<PlayerAttendance[]>(initialAttendances);
+  const [now, setNow] = useState(() => new Date(nowIso));
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const eventTimes: EventTimesLike = {
+    startDate: new Date(event.startDate),
+    endDate: event.endDate ? new Date(event.endDate) : null,
+    rsvpDeadline: event.rsvpDeadline ? new Date(event.rsvpDeadline) : null,
+  };
   const [sessionActive, setSessionActive] = useState(false);
   const [loadingSession, setLoadingSession] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,11 +158,17 @@ export function AttendanceBoard({ eventId, initialAttendances }: AttendanceBoard
     }
   };
 
-  // Contadores
+  // Contadores (reglas comunes en src/lib/attendance.ts)
+  const rows = attendances.map((a) => ({
+    status: a.status as "PENDING" | "CONFIRMED" | "DECLINED",
+    checkedIn: a.checkedIn,
+  }));
+  const taken = listTaken(rows);
+  const counts = countsForEvent(rows, eventTimes, now);
   const totalConvocados = attendances.length;
-  const presentes = attendances.filter((a) => a.checkedIn).length;
-  const ausentes = attendances.filter((a) => !a.checkedIn && a.status === "DECLINED").length;
-  const pendientes = totalConvocados - presentes - ausentes;
+  const presentes = counts.present;
+  const ausentes = counts.absent + counts.declined;
+  const pendientes = counts.pending + counts.confirmed + counts.notTaken;
 
   return (
     <div className="space-y-6">
@@ -251,19 +273,33 @@ export function AttendanceBoard({ eventId, initialAttendances }: AttendanceBoard
                 {/* RSVP y Estado real-time */}
                 <div className="flex items-center gap-4 pl-13 sm:pl-0 justify-between sm:justify-end">
                   <div className="flex flex-col items-end gap-1">
-                    {player.checkedIn ? (
-                      <span className="bg-primary/10 border border-primary/30 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-primary">
-                        Presente (Check-In)
-                      </span>
-                    ) : player.status === "DECLINED" ? (
-                      <span className="bg-destructive/10 border border-destructive/30 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-destructive">
-                        Ausente (Declinó)
-                      </span>
-                    ) : (
-                      <span className="bg-secondary border border-border px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground">
-                        Pendiente
-                      </span>
-                    )}
+                    {(() => {
+                      const state = attendanceState(
+                        { status: player.status as "PENDING" | "CONFIRMED" | "DECLINED", checkedIn: player.checkedIn },
+                        eventTimes,
+                        now,
+                        taken
+                      );
+                      if (state === "present") {
+                        return (
+                          <span className="bg-primary/10 border border-primary/30 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-primary">
+                            Presente (Check-In)
+                          </span>
+                        );
+                      }
+                      if (state === "declined" || state === "absent") {
+                        return (
+                          <span className="bg-destructive/10 border border-destructive/30 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-destructive">
+                            {player.status === "DECLINED" ? "Ausente (Declinó)" : "Ausente"}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="bg-secondary border border-border px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground">
+                          Pendiente
+                        </span>
+                      );
+                    })()}
 
                     {player.checkedInAt && (
                       <span className="text-[9px] font-mono text-muted-foreground">

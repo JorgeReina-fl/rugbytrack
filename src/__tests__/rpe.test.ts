@@ -121,7 +121,8 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
       teamId: "team-123",
       startDate: new Date("2026-06-09T20:00:00Z"),
       team: { members: [] },
-      attendances: []
+      attendances: [],
+      _count: { attendances: 0 },
     });
 
     const body = {
@@ -152,7 +153,8 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
       teamId: "team-123",
       startDate: new Date("2026-06-09T20:00:00Z"),
       team: { members: [{ userId: "player-123" }] },
-      attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }]
+      attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }],
+      _count: { attendances: 0 },
     });
     mockPrisma.rpeEntry.create.mockImplementation(({ data }: any) => Promise.resolve({ id: "rpe-123", ...data }));
 
@@ -187,7 +189,8 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
       teamId: "team-123",
       startDate: new Date("2026-06-09T20:00:00Z"),
       team: { members: [{ userId: "player-123" }] },
-      attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }]
+      attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }],
+      _count: { attendances: 0 },
     });
 
     // Provocar error P2002 de Prisma
@@ -214,5 +217,48 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
 
     expect(response.status).toBe(409);
     expect(json.error).toBe("Ya has registrado tu RPE para esta sesión");
+  });
+
+  test("POST /api/rpe — Con lista tomada, un CONFIRMED sin check-in recibe 403 (R2)", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "player-123", role: "PLAYER", name: "Juan Jugador" },
+    });
+    mockPrisma.event.findUnique.mockResolvedValue({
+      id: validEventId,
+      teamId: "team-123",
+      startDate: new Date("2026-06-09T20:00:00Z"),
+      team: { members: [{ userId: "player-123" }] },
+      attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }],
+      _count: { attendances: 12 },
+    });
+
+    const request = new NextRequest("http://localhost:3000/api/rpe", {
+      method: "POST",
+      body: JSON.stringify({ eventId: validEventId, rpe: 8, duration: 80 }),
+    });
+    const response = await createRpeRoute(request);
+    expect(response.status).toBe(403);
+  });
+
+  test("POST /api/rpe — Con lista tomada, un DECLINED con check-in puede registrar RPE", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "player-123", role: "PLAYER", name: "Juan Jugador" },
+    });
+    mockPrisma.event.findUnique.mockResolvedValue({
+      id: validEventId,
+      teamId: "team-123",
+      startDate: new Date("2026-06-09T20:00:00Z"),
+      team: { members: [{ userId: "player-123" }] },
+      attendances: [{ userId: "player-123", status: "DECLINED", checkedIn: true }],
+      _count: { attendances: 12 },
+    });
+    mockPrisma.rpeEntry.create.mockImplementation(({ data }: any) => Promise.resolve({ id: "rpe-124", ...data }));
+
+    const request = new NextRequest("http://localhost:3000/api/rpe", {
+      method: "POST",
+      body: JSON.stringify({ eventId: validEventId, rpe: 8, duration: 80 }),
+    });
+    const response = await createRpeRoute(request);
+    expect(response.status).toBe(201);
   });
 });

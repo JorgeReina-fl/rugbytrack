@@ -147,7 +147,7 @@ export default async function ProfilePage() {
                       {s.attendanceRate !== null ? (
                         <p className="text-2xl font-heading font-bold text-foreground">{s.attendanceRate}%</p>
                       ) : (
-                        <p className="text-xs font-mono text-muted-foreground mt-2">Sin entrenos</p>
+                        <p className="text-2xl font-heading font-bold text-muted-foreground">—</p>
                       )}
                     </div>
                     <div className="bg-muted p-3 text-center">

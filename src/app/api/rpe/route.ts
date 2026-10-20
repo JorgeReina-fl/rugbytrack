@@ -1,4 +1,6 @@
 import "server-only";
+import { canSubmitRpe } from "@/lib/attendance";
+import { TAKEN_COUNT, isListTakenFromCount } from "@/lib/attendance-taken";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -57,6 +59,7 @@ export async function POST(req: Request) {
         attendances: {
           where: { userId },
         },
+        ...TAKEN_COUNT,
       },
     });
 
@@ -77,7 +80,7 @@ export async function POST(req: Request) {
     }
 
     const attendance = event.attendances[0];
-    if (!attendance || (attendance.status !== "CONFIRMED" && attendance.checkedIn !== true)) {
+    if (!attendance || !canSubmitRpe(attendance, isListTakenFromCount(event))) {
       logger.warn({ userId, eventId, attendance }, "Player did not confirm attendance");
       return apiError("Debes confirmar tu asistencia antes de registrar el RPE", 403);
     }

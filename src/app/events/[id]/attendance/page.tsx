@@ -98,7 +98,16 @@ export default async function AttendancePage({ params }: PageProps) {
           </p>
         </div>
 
-        <AttendanceBoard eventId={id} initialAttendances={mappedAttendances} />
+        <AttendanceBoard
+          eventId={id}
+          initialAttendances={mappedAttendances}
+          event={{
+            startDate: event.startDate.toISOString(),
+            endDate: event.endDate?.toISOString() ?? null,
+            rsvpDeadline: event.rsvpDeadline?.toISOString() ?? null,
+          }}
+          nowIso={new Date().toISOString()}
+        />
       </main>
     </div>
   );

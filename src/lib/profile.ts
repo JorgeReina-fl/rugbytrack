@@ -2,6 +2,8 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { EventType } from "@prisma/client";
 import { isoWeekKeyInTz } from "@/lib/week";
+import { attendanceRate } from "@/lib/attendance";
+import { takenEventIds } from "@/lib/attendance-taken";
 
 export interface TeamStat {
   teamId: string;
@@ -94,11 +96,7 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
             type: EventType.TRAINING,
           },
         },
-        select: {
-          status: true,
-          checkedIn: true,
-          event: { select: { teamId: true } },
-        },
+        select: { eventId: true, status: true, checkedIn: true },
       }),
       prisma.event.findMany({
         where: {
@@ -106,9 +104,13 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
           startDate: { gte: fourWeeksAgo },
           type: EventType.TRAINING,
         },
-        select: { id: true, teamId: true },
+        select: { id: true, teamId: true, startDate: true, endDate: true },
       }),
     ]);
+
+    // Eventos de la ventana con la lista pasada (≥1 checkedIn de cualquier jugador)
+    const takenIds = await takenEventIds(trainingEvents.map((e) => e.id));
+    const userRows = new Map(attendances.map((a) => [a.eventId, a]));
 
     // Same week label sequence as api/analytics/rpe, computed in each team's timezone
     const weekSeries = (tz: string) => {
@@ -170,19 +172,20 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
         break;
       }
 
-      // Attendance rate for training events in last 4 weeks
-      const teamEvents = trainingEvents.filter((e) => e.teamId === teamId);
-      const attended = attendances.filter(
-        (a) =>
-          a.event.teamId === teamId &&
-          (a.status === "CONFIRMED" || a.checkedIn)
-      ).length;
-      const attendanceRate =
-        teamEvents.length > 0
-          ? Math.round((attended / teamEvents.length) * 100)
-          : null;
+      // Tasa de asistencia en entrenos de las últimas 4 semanas (reglas comunes: solo eventos
+      // terminados con lista tomada; present / (present + absent)). null → la UI muestra «—».
+      const rate = attendanceRate(
+        trainingEvents
+          .filter((e) => e.teamId === teamId)
+          .map((e) => {
+            const row = userRows.get(e.id);
+            return { event: e, rows: row ? [row] : [], taken: takenIds.has(e.id) };
+          }),
+        now
+      );
+      const attendanceRateValue = rate === null ? null : Math.round(rate * 100);
 
-      return { teamId, teamName: m.team.name, avgRpe, attendanceRate, acwr };
+      return { teamId, teamName: m.team.name, avgRpe, attendanceRate: attendanceRateValue, acwr };
     });
   }
 

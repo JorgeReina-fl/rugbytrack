@@ -7,9 +7,11 @@ import { Warning } from "@phosphor-icons/react/dist/ssr";
 interface RsvpControlProps {
   eventId: string;
   initialStatus: AttendanceStatus;
+  /** R1: el plazo de RSVP ha terminado (isRsvpOpen) */
+  closed?: boolean;
 }
 
-export function RsvpControl({ eventId, initialStatus }: RsvpControlProps) {
+export function RsvpControl({ eventId, initialStatus, closed = false }: RsvpControlProps) {
   const [status, setStatus] = useState<AttendanceStatus>(initialStatus);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +43,12 @@ export function RsvpControl({ eventId, initialStatus }: RsvpControlProps) {
 
   return (
     <div className="space-y-4">
+      {closed && (
+        <div className="border border-border bg-secondary p-3 text-xs font-mono font-bold text-muted-foreground">
+          La fecha límite para confirmar asistencia ha expirado
+        </div>
+      )}
+
       {error && (
         <div className="border border-destructive bg-destructive/10 p-3 text-xs font-mono font-bold text-destructive">
           <Warning size={24} weight="regular" className="inline mr-2" /> {error}
@@ -50,7 +58,7 @@ export function RsvpControl({ eventId, initialStatus }: RsvpControlProps) {
       <div className="flex gap-2">
         <button
           onClick={() => handleRsvp("CONFIRMED")}
-          disabled={loading}
+          disabled={loading || closed}
           className={`flex-1 py-3 text-xs font-mono font-bold uppercase tracking-widest transition-all border ${
             status === "CONFIRMED"
               ? "bg-primary text-primary-foreground border-primary"
@@ -62,7 +70,7 @@ export function RsvpControl({ eventId, initialStatus }: RsvpControlProps) {
 
         <button
           onClick={() => handleRsvp("DECLINED")}
-          disabled={loading}
+          disabled={loading || closed}
           className={`flex-1 py-3 text-xs font-mono font-bold uppercase tracking-widest transition-all border ${
             status === "DECLINED"
               ? "bg-destructive text-white border-destructive"

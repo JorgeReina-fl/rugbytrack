@@ -124,6 +124,11 @@ export function countsForEvent(
 export interface EventRows {
   event: EventTimesLike;
   rows: ReadonlyArray<AttendanceRowLike>;
+  /**
+   * ¿Se pasó lista? Si se omite, se deduce de `rows` con listTaken. Permite pasar solo las filas
+   * de un jugador y aun así decidir con la lista completa del evento (ver attendance-taken.ts).
+   */
+  taken?: boolean;
 }
 
 /**
@@ -139,8 +144,8 @@ export function attendanceRate(
 ): number | null {
   let present = 0;
   let absent = 0;
-  for (const { event, rows } of events) {
-    if (now.getTime() < eventEnd(event).getTime() || !listTaken(rows)) continue;
+  for (const { event, rows, taken } of events) {
+    if (now.getTime() < eventEnd(event).getTime() || !(taken ?? listTaken(rows))) continue;
     for (const row of rows) {
       if (!filter(row)) continue;
       if (row.checkedIn) present++;
