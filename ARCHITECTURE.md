@@ -5,8 +5,8 @@ Este documento describe la arquitectura técnica, la distribución por módulos 
 ## Stack Tecnológico
 
 - **Frontend:** Next.js 15, React 19, TypeScript, Tailwind CSS, Recharts (para gráficos y mapas de calor).
-- **Backend:** Node.js (custom server `server.ts` con Next.js integrado), Prisma ORM, Socket.io acoplado con `@socket.io/redis-adapter`.
-- **Bases de Datos:** PostgreSQL (con extensión `pgvector` para embeddings), MongoDB (vía Mongoose para logs de entrenamiento flexibles), Redis (para Pub/Sub y estado de sesiones en tiempo real).
+- **Backend:** Next.js (App Router, `output: "standalone"`), Prisma ORM. Sin servidor propio ni WebSockets: la UI se mantiene al día con `router.refresh()`.
+- **Bases de Datos:** PostgreSQL (con extensión `pgvector` para embeddings), MongoDB (vía Mongoose para logs de entrenamiento flexibles), Redis (rate limit y presupuesto de emails).
 - **Inteligencia Artificial:** Gemini text-embedding-004 (usado para búsquedas de similitud semántica y generación de vectores).
 - **Autenticación:** NextAuth v5 (soporta GitHub OAuth y Credenciales clásicas con Argon2).
 - **Infraestructura:** Docker Compose (orquestando db, redis, mongo), Nginx (Reverse proxy y terminación SSL), desplegado sobre Oracle Cloud ARM64.
@@ -19,11 +19,11 @@ Este documento describe la arquitectura técnica, la distribución por módulos 
 |--------|--------------------------|---------------------------|
 | **Auth & Roles** | NextAuth v5, Argon2, Next.js Middleware | Proveer sesión segura mediante tokens JWT/Cookies, hashing de contraseñas y derivación de roles (COACH/PLAYER). |
 | **Teams & Events** | Prisma (PostgreSQL), REST API | Gestión CRUD de plantillas, asignación de números y posiciones, programación de eventos (partidos/entrenamientos) y generación de links de invitación únicos. |
-| **Live Attendance** | Socket.io, Redis, Prisma | Control de asistencia en tiempo real mediante namespaces dinámicos (`session:{eventId}`). Maneja el check-in síncrono sin recargar clientes. |
+| **Attendance** | Prisma, REST API | El RSVP del jugador (`status`, solo mientras `isRsvpOpen`) y la marca del coach (`checkedIn`) se guardan por separado; las reglas viven en `src/lib/attendance.ts`. El check-in es solo del coach, desde `/events/[id]/attendance`; el panel se refresca tras cada marca y cada 15 s con la pestaña visible. |
 | **RPE & Analytics** | PostgreSQL, Recharts, Prisma Aggregation | Cálculo y visualización de la carga de entrenamiento (ACWR). Permite a los coaches detectar sobreentrenamiento usando mapas de calor y alertas. |
 | **Semantic Similarity** | `pgvector`, Gemini Embeddings | Generar y almacenar embeddings vectoriales basados en estadísticas de los jugadores para buscar similitud y reemplazos ideales (Cosine Similarity query). |
-| **Polls (Encuestas)** | Prisma, Socket.io (`team:{teamId}`) | Creación de encuestas por los coaches y votación en tiempo real por los jugadores con barras de progreso animadas. |
-| **Proposals** | Prisma, Socket.io (`team:{teamId}`) | Permite a los jugadores proponer actividades (upvoting) y a los coaches aprobarlas/rechazarlas, autogenerando un `Event` tras la aprobación. |
+| **Polls (Encuestas)** | Prisma, REST API | Creación de encuestas por los coaches y votación por los jugadores; los resultados se refrescan tras votar y cada 15 s con la pestaña visible. |
+| **Proposals** | Prisma, REST API | Permite a los jugadores proponer actividades (upvoting) y a los coaches aprobarlas/rechazarlas, autogenerando un `Event` tras la aprobación. |
 
 ---
 
@@ -50,10 +50,8 @@ Este documento describe la arquitectura técnica, la distribución por módulos 
   - `MONGO_PASSWORD`
   - `MONGO_DB`
   - `REDIS_PASSWORD`
-  - `NEXT_PUBLIC_WS_URL`
   - `RESEND_API_KEY`
   - `GEMINI_API_KEY`
-- **CORS:** El servidor de Socket.io restringe los orígenes al valor especificado en `NEXT_PUBLIC_APP_URL`.
 - **Restricciones de Base de Datos:** Uso de `@@unique` constraints en Prisma (ej. `[eventId, userId]`, `[pollOptionId, userId]`) previniendo duplicidad, doble check-in y votos duplicados.
 - **Aislamiento Multi-Tenant:** Toda consulta en la API filtra los recursos asociándolos explícitamente al `teamId` del usuario actual.
 - **Conexión Interna:** Las bases de datos (PostgreSQL, Mongo, Redis) solo son accesibles internamente mediante la red de Docker (`rugbytrack_net`).
@@ -66,20 +64,12 @@ Este documento describe la arquitectura técnica, la distribución por módulos 
 ```text
        [ Cliente (Navegador) ]
                   |
-             (HTTPS/WSS)
+              (HTTPS)
                   |
          [ Nginx Proxy ]
                   |
-                  +--------------------------------+
-                  |                                |
-         (Peticiones HTTP)                   (WebSockets)
-                  |                                |
-        [ Next.js App (REST APIs/SSR) ]   [ Custom Server (Socket.io) ]
-                  |                                |
-                  |                                +--- [ Redis (Pub/Sub + Adapter) ]
-                  |                                |
-                  +--------------------------------+
-                                  |
+        [ Next.js App (REST APIs/SSR) ]
+                  |
               +-------------------+-------------------+
               |                   |                   |
     [ PostgreSQL/Prisma ]    [ MongoDB ]    [ External APIs (Gemini/Resend) ]

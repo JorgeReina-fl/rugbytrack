@@ -10,9 +10,9 @@ RugbyTrack es una aplicación web moderna (Next.js 15, TypeScript, Tailwind CSS,
 * **Tecnología**: Gemini Embeddings (`text-embedding-004`) + PostgreSQL `pgvector`.
 * **Cómo funciona**: Genera un vector denso multidimensional basado en estadísticas históricas de asistencia, posición, y RPE medio de cada jugador. Permite al entrenador buscar perfiles similares mediante cálculo de similitud de coseno (`<=>`) directamente en base de datos.
 
-### 2. 🔴 Dashboard de Asistencia en Tiempo Real (Socket.io)
-* **Tecnología**: WebSockets (`Socket.io`) con adaptador Redis para escalabilidad horizontal.
-* **Cómo funciona**: Grid interactivo donde los entrenadores ven el estado de asistencia de cada jugador en tiempo real (Confirmado / Pendiente / Rechazado). Se actualiza instantáneamente con animaciones fluidas al marcar check-in sin necesidad de recargar la página.
+### 2. 📋 Panel de Asistencia del entrenador
+* **Tecnología**: Next.js (Server Components + `router.refresh()`), Prisma.
+* **Cómo funciona**: el jugador responde su RSVP (Asistiré / No asistiré) mientras el plazo está abierto; el RSVP queda como histórico. El check-in (presente / ausente) es solo del entrenador, desde el panel de asistencia del evento, y es lo único que cuenta en estadísticas, tasas y RPE. El panel se refresca tras cada marca y cada 15 s mientras la pestaña está visible, así que varios entrenadores ven los cambios de los demás sin WebSockets.
 
 ### 3. 📊 Heatmap de Analytics y Alertas ACWR
 * **Tecnología**: Recharts, CSS Grid, PostgreSQL aggregations.
@@ -26,8 +26,8 @@ RugbyTrack es una aplicación web moderna (Next.js 15, TypeScript, Tailwind CSS,
 * **Bases de Datos**:
   * **PostgreSQL** (Datos principales, RPE, asistencia y pgvector)
   * **MongoDB** (Logs de entrenamiento no estructurados)
-  * **Redis** (Pub/Sub para Socket.io y caché)
-* **Comunicación**: Socket.io (servidor integrado en Next.js/custom Server)
+  * **Redis** (rate limit y presupuesto de emails)
+* **Actualización de datos**: `router.refresh()` tras cada acción y refresco periódico con la pestaña visible (sin WebSockets)
 * **ORM**: Prisma v5 (para relaciones PostgreSQL y extensiones vectoriales) + Mongoose (para MongoDB)
 * **Estilos**: Tailwind CSS con diseño responsive y estética premium en modo oscuro/oscuro-militar.
 
