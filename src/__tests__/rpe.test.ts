@@ -93,6 +93,17 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
     expect(mockPrisma.rpeEntry.create).not.toHaveBeenCalled();
   });
 
+  test("POST /api/rpe — JSON no parseable devuelve 422", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "player-123", role: "PLAYER", name: "Juan Jugador" } });
+    const response = await createRpeRoute(
+      new NextRequest("http://localhost:3000/api/rpe", { method: "POST", body: "{no es json" })
+    );
+    const json = await response.json();
+    expect(response.status).toBe(422);
+    expect(json.error).toBe("Datos inválidos");
+    expect(mockPrisma.event.findUnique).not.toHaveBeenCalled();
+  });
+
   test("POST /api/rpe — Debe retornar 422 si los datos de entrada son inválidos", async () => {
     mockAuth.mockResolvedValue({
       user: { id: "player-123", role: "PLAYER", name: "Juan Jugador" },

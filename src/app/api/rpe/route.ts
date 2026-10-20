@@ -29,7 +29,12 @@ export async function POST(req: Request) {
       return apiUnauthorized();
     }
 
-    const body = await req.json();
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Datos inválidos" }, { status: 422 });
+    }
     const parsedData = bodySchema.safeParse(body);
 
     if (!parsedData.success) {
