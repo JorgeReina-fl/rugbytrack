@@ -123,14 +123,11 @@ export async function POST(req: NextRequest) {
         }),
         now
       );
-      // Sin eventos con lista: 0 (el texto del embedding espera un número)
-      const attendanceRateValue = rate ?? 0;
-
       const stats = {
         name: u.name,
         position: member.position ?? null,
         avgRpe,
-        attendanceRate: attendanceRateValue,
+        attendanceRate: rate, // null = sin eventos con lista (no es 0 %)
         totalEvents: u.attendances.length,
         avgWorkload,
       };

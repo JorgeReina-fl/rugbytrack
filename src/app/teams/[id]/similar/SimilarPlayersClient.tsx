@@ -1,12 +1,14 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { formatAttendancePct } from "@/lib/attendance-format";
 
 interface PlayerStats {
   name: string;
   position: string | null;
   avgRpe: number;
-  attendanceRate: number;
+  // null = sin datos; ausente en los stats guardados antes de este cambio
+  attendanceRate?: number | null;
   totalEvents: number;
   avgWorkload: number;
 }
@@ -282,7 +284,7 @@ export default function SimilarPlayersClient({
                           />
                           <StatPill
                             label="Asistencia"
-                            value={`${(stats.attendanceRate * 100).toFixed(0)}%`}
+                            value={formatAttendancePct(stats.attendanceRate) ?? "—"}
                           />
                           <StatPill
                             label="Eventos"

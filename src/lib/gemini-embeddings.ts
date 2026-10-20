@@ -1,4 +1,5 @@
 import "server-only";
+import { formatAttendancePct } from "./attendance-format";
 import { logger } from "@/lib/logger";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -56,7 +57,7 @@ export function buildPlayerStatsText(stats: {
   name: string;
   position: string | null;
   avgRpe: number;
-  attendanceRate: number;
+  attendanceRate: number | null;
   totalEvents: number;
   avgWorkload: number;
 }): string {
@@ -65,7 +66,7 @@ export function buildPlayerStatsText(stats: {
     `Posición: ${stats.position ?? "no asignada"}`,
     `RPE promedio: ${stats.avgRpe.toFixed(1)} / 10`,
     `Carga promedio: ${stats.avgWorkload.toFixed(0)} UA`,
-    `Asistencia: ${(stats.attendanceRate * 100).toFixed(0)}%`,
+    `Asistencia: ${formatAttendancePct(stats.attendanceRate) ?? "sin datos"}`,
     `Eventos totales: ${stats.totalEvents}`,
   ].join(". ");
 }
