@@ -89,6 +89,10 @@ export async function GET(req: NextRequest) {
       WHERE pe."teamId" = ${teamId}
         AND pe."userId" != ${targetUserId}
         AND pe.embedding IS NOT NULL
+        AND EXISTS (
+          SELECT 1 FROM "TeamMember" tm
+          WHERE tm."userId" = pe."userId" AND tm."teamId" = pe."teamId" AND tm."leftAt" IS NULL
+        )
       ORDER BY pe.embedding <=> ${targetEmbedding}::vector ASC
       LIMIT ${limit}
     `;
@@ -105,7 +109,7 @@ export async function GET(req: NextRequest) {
     });
 
     const positions = await prisma.teamMember.findMany({
-      where: { userId: { in: userIds }, teamId },
+      where: { userId: { in: userIds }, teamId, leftAt: null },
       select: { userId: true, position: true, jerseyNumber: true },
     });
     const posMap = Object.fromEntries(

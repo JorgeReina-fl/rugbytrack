@@ -8,7 +8,7 @@ import Link from "next/link";
 import TeamSelector from "./team-selector";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { prisma } from "@/lib/prisma";
-import { getActiveMembership } from "@/lib/membership";
+import { getActiveMembership, getActiveTeamsForUser } from "@/lib/membership";
 import { formatInTz, safeTz } from "@/lib/datetime";
 import { CoachRpeList, type CoachRpeRow } from "@/components/training/CoachRpeList";
 import { RpeForm } from "@/components/training/RpeForm";
@@ -33,21 +33,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
   const eventIdParam = resolvedParams.eventId;
 
   // 1. Obtener equipos del usuario
-  const teams = await prisma.team.findMany({
-    where: {
-      members: { some: { userId: session.user.id } },
-    },
-    select: {
-      id: true,
-      name: true,
-      timezone: true,
-      members: {
-        where: { userId: session.user.id },
-        select: { isCoach: true },
-      },
-    },
-    orderBy: { name: "asc" },
-  });
+  const teams = await getActiveTeamsForUser(session.user.id);
 
   if (teams.length === 0) {
     return (
@@ -132,7 +118,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
 
   // Molestias sin ver (solo coach activo): una consulta agrupada para los entrenos listados
   const unseenDiscomforts = activeMembership?.isCoach
-    ? await getUnseenDiscomfortCounts(events.map((e) => e.id))
+    ? await getUnseenDiscomfortCounts(events.map((e) => e.id), selectedTeam.id)
     : new Map<string, number>();
 
   // Permiso para rellenar RPE

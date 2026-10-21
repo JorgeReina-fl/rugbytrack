@@ -10,7 +10,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { prisma } from "@/lib/prisma";
 import { dayKeyInTz, formatInTz, safeTz } from "@/lib/datetime";
 import { buildMonthGrid, gridRangeUtc } from "@/lib/calendar";
-import { getActiveMembership } from "@/lib/membership";
+import { getActiveMembership, getActiveTeamsForUser } from "@/lib/membership";
 import { getUnseenDiscomfortCounts } from "@/lib/discomfort-coach";
 import { DiscomfortBadge } from "@/components/event/DiscomfortBadge";
 
@@ -32,21 +32,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
   let teamIdParam = resolvedParams.teamId;
 
   // 1. Obtiene los equipos del usuario
-  const teams = await prisma.team.findMany({
-    where: {
-      members: { some: { userId: session.user.id } },
-    },
-    select: {
-      id: true,
-      name: true,
-      timezone: true,
-      members: {
-        where: { userId: session.user.id },
-        select: { isCoach: true },
-      },
-    },
-    orderBy: { name: "asc" },
-  });
+  const teams = await getActiveTeamsForUser(session.user.id);
 
   if (teams.length === 0) {
     return (
@@ -118,7 +104,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
   // Molestias sin ver (solo coach activo): una consulta agrupada para los eventos del mes mostrado
   const activeMembership = await getActiveMembership(selectedTeam.id, session.user.id);
   const unseenDiscomforts = activeMembership?.isCoach
-    ? await getUnseenDiscomfortCounts(events.map((e) => e.id))
+    ? await getUnseenDiscomfortCounts(events.map((e) => e.id), selectedTeam.id)
     : new Map<string, number>();
 
   // Cuadrícula (lunes a domingo) del mes, con los días de las semanas vecinas

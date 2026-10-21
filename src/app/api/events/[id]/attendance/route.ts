@@ -29,7 +29,7 @@ export async function GET(
 
     // Valida que el usuario sea COACH en el equipo del evento
     const membership = await prisma.teamMember.findFirst({
-      where: { userId: session.user.id, teamId: event.teamId, isCoach: true },
+      where: { userId: session.user.id, teamId: event.teamId, isCoach: true, leftAt: null },
     });
 
     if (!membership) {
@@ -37,8 +37,9 @@ export async function GET(
     }
 
     // Obtiene la lista de asistencia del evento
+    // Solo miembros activos del equipo: los ex-miembros no aparecen en la lista del coach
     const attendances = await prisma.attendance.findMany({
-      where: { eventId: id },
+      where: { eventId: id, user: { memberships: { some: { teamId: event.teamId, leftAt: null } } } },
       include: {
         user: {
           select: {
@@ -46,7 +47,7 @@ export async function GET(
             name: true,
             image: true,
             memberships: {
-              where: { teamId: event.teamId },
+              where: { teamId: event.teamId, leftAt: null },
               select: {
                 position: true,
                 jerseyNumber: true,

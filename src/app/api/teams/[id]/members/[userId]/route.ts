@@ -51,7 +51,7 @@ export async function DELETE(_req: Request, { params }: Params) {
 
     await prisma.teamMember.update({
       where: { id: targetMembership.id },
-      data: { leftAt: new Date() },
+      data: { leftAt: new Date(), isCoach: false },
     });
 
     return apiSuccess({ message: "Miembro expulsado del equipo" });

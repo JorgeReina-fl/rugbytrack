@@ -2,7 +2,7 @@ import "server-only";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getActiveTeamsForUser } from "@/lib/membership";
 import { dbConnect } from "@/lib/mongoose";
 import { Thread } from "@/models/Thread";
 import { CreateThreadForm } from "@/components/forum/CreateThreadForm";
@@ -24,21 +24,7 @@ export default async function ForumRouterPage({ searchParams }: PageProps) {
   const teamIdParam = resolvedParams.teamId;
 
   // 1. Obtener los equipos del usuario (con isCoach por equipo)
-  const teams = await prisma.team.findMany({
-    where: {
-      members: { some: { userId: session.user.id } },
-    },
-    select: {
-      id: true,
-      name: true,
-      timezone: true,
-      members: {
-        where: { userId: session.user.id },
-        select: { isCoach: true },
-      },
-    },
-    orderBy: { name: "asc" },
-  });
+  const teams = await getActiveTeamsForUser(session.user.id);
 
   // 2. Sin equipos: fallback informativo
   if (teams.length === 0) {

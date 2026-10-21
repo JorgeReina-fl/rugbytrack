@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getActiveTeamsForUser } from "@/lib/membership";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import TeamSelector from "./team-selector";
 import LivePollClient from "@/components/polls/LivePollClient";
@@ -19,19 +20,7 @@ export default async function PollsRouterPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
   const teamIdParam = resolvedParams.teamId;
 
-  const teams = await prisma.team.findMany({
-    where: { members: { some: { userId: session.user.id } } },
-    select: {
-      id: true,
-      name: true,
-      timezone: true,
-      members: {
-        where: { userId: session.user.id },
-        select: { isCoach: true },
-      },
-    },
-    orderBy: { name: "asc" },
-  });
+  const teams = await getActiveTeamsForUser(session.user.id);
 
   if (teams.length === 0) {
     return (

@@ -159,7 +159,7 @@ async function main() {
 
   const events = await prisma.event.findMany({
     where: { startDate: { gte: windowStart, lte: windowEnd } },
-    select: { id: true, title: true, startDate: true, location: true, team: { select: { timezone: true } } },
+    select: { id: true, teamId: true, title: true, startDate: true, location: true, team: { select: { timezone: true } } },
   });
 
   console.log(`Eventos en ventana 24h: ${events.length}`);
@@ -183,7 +183,13 @@ async function main() {
 
   for (const event of events) {
     const attendances = await prisma.attendance.findMany({
-      where: { eventId: event.id, status: "PENDING", reminderSentAt: null },
+      // Solo miembros activos del equipo del evento: un ex-miembro no recibe recordatorios
+      where: {
+        eventId: event.id,
+        status: "PENDING",
+        reminderSentAt: null,
+        user: { memberships: { some: { teamId: event.teamId, leftAt: null } } },
+      },
       include: { user: { select: { id: true, email: true, name: true } } },
     });
 

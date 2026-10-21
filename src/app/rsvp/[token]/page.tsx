@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { verifyRsvpToken } from "@/lib/tokens";
+import { getActiveMembership } from "@/lib/membership";
 import { RsvpAction } from "./rsvp-action";
 import { formatInTz, safeTz } from "@/lib/datetime";
 
@@ -14,21 +15,22 @@ export default async function RsvpPage({
   // Intentamos verificar el token
   const payload = verifyRsvpToken(token);
 
-  if (!payload) {
-    return (
-      <div className="min-h-screen bg-[#FFFFFF] flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center space-y-4">
-          <h1 className="text-2xl font-heading font-extrabold uppercase text-foreground">
-            Link Inválido
-          </h1>
-          <p className="font-sans text-muted-foreground">
-            El enlace de convocatoria ha expirado o no es válido. Por favor,
-            solicita uno nuevo a tu entrenador.
-          </p>
-        </div>
+  // Mismo aviso para token inválido y para quien ya no es miembro activo: sin datos del evento
+  const invalidLink = (
+    <div className="min-h-screen bg-[#FFFFFF] flex items-center justify-center p-4">
+      <div className="max-w-md w-full text-center space-y-4">
+        <h1 className="text-2xl font-heading font-extrabold uppercase text-foreground">
+          Link Inválido
+        </h1>
+        <p className="font-sans text-muted-foreground">
+          El enlace de convocatoria ha expirado o no es válido. Por favor,
+          solicita uno nuevo a tu entrenador.
+        </p>
       </div>
-    );
-  }
+    </div>
+  );
+
+  if (!payload) return invalidLink;
 
   const { userId, eventId } = payload;
 
@@ -40,6 +42,9 @@ export default async function RsvpPage({
   if (!user || !event) {
     return notFound();
   }
+
+  const membership = await getActiveMembership(event.teamId, userId);
+  if (!membership) return invalidLink;
 
   const formattedDate = formatInTz(event.startDate, safeTz(event.team.timezone), "EEEE d 'de' MMMM, HH:mm");
 

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { requireActiveMembership } from "@/lib/membership";
 import { WorkloadChart } from "@/components/training/WorkloadChart";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { safeTz } from "@/lib/datetime";
@@ -21,19 +22,9 @@ export default async function TeamStatisticsPage({ params }: PageProps) {
   const { id } = await params;
 
   // 1. Verificación de Membresía y Rol (COACH)
-  const membership = await prisma.teamMember.findUnique({
-    where: {
-      userId_teamId: {
-        userId: session.user.id,
-        teamId: id,
-      },
-    },
-    include: {
-      team: true,
-    },
-  });
+  const membership = await requireActiveMembership(id, session.user.id);
 
-  if (!membership || !membership.isCoach) {
+  if (!membership.isCoach) {
     redirect(`/teams/${id}`); // Redirige al inicio del equipo si no es coach
   }
 

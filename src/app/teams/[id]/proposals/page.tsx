@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { redirect, notFound } from "next/navigation";
+import { requireActiveMembership } from "@/lib/membership";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import ProposalBoard from "@/components/proposals/ProposalBoard";
@@ -17,14 +18,7 @@ export default async function ProposalsPage({ params }: PageProps) {
 
   const { id } = await params;
 
-  const membership = await prisma.teamMember.findFirst({
-    where: { userId: session.user.id, teamId: id },
-    include: { team: true },
-  });
-
-  if (!membership) {
-    notFound();
-  }
+  const membership = await requireActiveMembership(id, session.user.id);
 
   const proposals = await prisma.proposal.findMany({
     where: { teamId: id },

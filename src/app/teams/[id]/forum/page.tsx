@@ -2,7 +2,7 @@ import "server-only";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { requireActiveMembership } from "@/lib/membership";
 import { dbConnect } from "@/lib/mongoose";
 import { Thread } from "@/models/Thread";
 import { CreateThreadForm } from "@/components/forum/CreateThreadForm";
@@ -22,12 +22,7 @@ export default async function ForumPage({ params }: PageProps) {
   const { id } = await params;
 
   // Verificamos si es miembro del equipo (PostgreSQL)
-  const membership = await prisma.teamMember.findUnique({
-    where: { userId_teamId: { userId: session.user.id, teamId: id } },
-    include: { team: true },
-  });
-
-  if (!membership) redirect("/dashboard");
+  const membership = await requireActiveMembership(id, session.user.id);
 
   const team = membership.team;
 

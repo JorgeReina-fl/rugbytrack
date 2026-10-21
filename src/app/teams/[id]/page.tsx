@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { requireActiveMembership } from "@/lib/membership";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -26,11 +27,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
 
   const { id } = await params;
 
-  const membership = await prisma.teamMember.findFirst({
-    where: { userId: session.user.id, teamId: id },
-  });
-
-  if (!membership) notFound();
+  const membership = await requireActiveMembership(id, session.user.id);
 
   const team = await prisma.team.findUnique({
     where: { id },

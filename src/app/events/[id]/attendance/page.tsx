@@ -41,7 +41,8 @@ export default async function AttendancePage({ params }: PageProps) {
 
   // Carga la lista inicial de asistencia de la base de datos
   const attendances = await prisma.attendance.findMany({
-    where: { eventId: id },
+    // Solo miembros activos del equipo: los ex-miembros no aparecen en el panel del coach
+    where: { eventId: id, user: { memberships: { some: { teamId: event.teamId, leftAt: null } } } },
     include: {
       user: {
         select: {
@@ -49,7 +50,7 @@ export default async function AttendancePage({ params }: PageProps) {
           name: true,
           image: true,
           memberships: {
-            where: { teamId: event.teamId },
+            where: { teamId: event.teamId, leftAt: null },
             select: {
               position: true,
               jerseyNumber: true,
@@ -73,7 +74,7 @@ export default async function AttendancePage({ params }: PageProps) {
   const rpeByUser = new Map(rpeEntries.map((r) => [r.userId, r]));
 
   // Molestias del evento (solo coach activo: ya comprobado arriba), una consulta para todos los jugadores
-  const discomforts = await getEventDiscomforts(id, safeTz(event.team.timezone));
+  const discomforts = await getEventDiscomforts(id, event.teamId, safeTz(event.team.timezone));
   const discomfortUserIds = Array.from(new Set(discomforts.map((d) => d.userId)));
 
   // Mapea al mismo formato que espera el AttendanceBoard

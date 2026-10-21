@@ -16,12 +16,13 @@ import { eventWhen } from "@/lib/event-when";
 export async function sendRsvpNotifications(eventId: string): Promise<void> {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true, title: true, startDate: true, location: true, team: { select: { timezone: true } } },
+    select: { id: true, teamId: true, title: true, startDate: true, location: true, team: { select: { timezone: true } } },
   });
   if (!event) return;
 
   const attendances = await prisma.attendance.findMany({
-    where: { eventId, status: "PENDING" },
+    // Solo miembros activos del equipo del evento: un ex-miembro no recibe convocatorias
+    where: { eventId, status: "PENDING", user: { memberships: { some: { teamId: event.teamId, leftAt: null } } } },
     include: { user: { select: { id: true, email: true, name: true } } },
   });
   if (attendances.length === 0) {

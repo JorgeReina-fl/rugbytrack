@@ -24,15 +24,15 @@ async function getTeams(userId: string): Promise<Team[]> {
   const teams = await prisma.team.findMany({
     where: {
       members: {
-        some: { userId },
+        some: { userId, leftAt: null },
       },
     },
     include: {
       _count: {
-        select: { members: true },
+        select: { members: { where: { leftAt: null } } },
       },
       members: {
-        where: { userId },
+        where: { userId, leftAt: null },
         select: { isCoach: true, position: true },
       },
     },

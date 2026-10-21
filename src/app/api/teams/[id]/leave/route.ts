@@ -63,7 +63,7 @@ export async function POST(req: Request, { params }: Params) {
           }),
           prisma.teamMember.update({
             where: { id: membership.id },
-            data: { leftAt: new Date() },
+            data: { leftAt: new Date(), isCoach: false },
           }),
         ]);
 
@@ -74,7 +74,7 @@ export async function POST(req: Request, { params }: Params) {
     // Multiple coaches or non-coach: leave directly
     await prisma.teamMember.update({
       where: { id: membership.id },
-      data: { leftAt: new Date() },
+      data: { leftAt: new Date(), isCoach: false },
     });
 
     return apiSuccess({ message: "Has abandonado el equipo" });

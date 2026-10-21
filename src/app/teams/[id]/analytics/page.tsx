@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { requireActiveMembership } from "@/lib/membership";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -30,18 +31,8 @@ export default async function AnalyticsPage({ params }: PageProps) {
   const { id: teamId } = await params;
 
   // Verify membership and coach role
-  const membership = await prisma.teamMember.findUnique({
-    where: {
-      userId_teamId: {
-        userId: session.user.id,
-        teamId,
-      },
-    },
-  });
-
-  if (!membership || !membership.isCoach) {
-    notFound();
-  }
+  const membership = await requireActiveMembership(teamId, session.user.id);
+  if (!membership.isCoach) notFound();
 
   const team = await prisma.team.findUnique({
     where: { id: teamId },
@@ -54,6 +45,7 @@ export default async function AnalyticsPage({ params }: PageProps) {
     where: {
       teamId,
       isCoach: false,
+      leftAt: null,
     },
     include: {
       user: {

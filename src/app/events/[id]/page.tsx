@@ -79,27 +79,23 @@ export default async function EventDetailPage({ params }: PageProps) {
   }
 
   // Valida membresía y RPE (en paralelo)
-  const [membership, activeMembership, rpeEntry] = await Promise.all([
-    prisma.teamMember.findFirst({
-      where: { userId: session.user.id, teamId: event.teamId },
-      select: { isCoach: true },
-    }),
+  const [activeMembership, rpeEntry] = await Promise.all([
     getActiveMembership(event.teamId, session.user.id),
     prisma.rpeEntry.findFirst({
       where: { userId: session.user.id, eventId: event.id },
     }),
   ]);
 
-  if (!membership) {
+  if (!activeMembership) {
     redirect("/events");
   }
 
-  const isCoach = membership.isCoach;
+  const isCoach = activeMembership.isCoach;
   const tz = safeTz(event.team.timezone);
 
   // Molestias (dato de salud): el coach activo ve todas las del evento; el jugador activo, solo las suyas
   const coachDiscomforts =
-    activeMembership?.isCoach ? await getEventDiscomforts(event.id, tz) : null;
+    activeMembership?.isCoach ? await getEventDiscomforts(event.id, event.teamId, tz) : null;
   const isActivePlayer = activeMembership !== null && !activeMembership.isCoach;
   const discomfortOpen = isActivePlayer && eventEnd(event) >= new Date();
   const [healthUser, myDiscomforts] = isActivePlayer

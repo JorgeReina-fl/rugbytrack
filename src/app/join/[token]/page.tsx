@@ -23,7 +23,7 @@ export default async function JoinTeamPage({ params }: PageProps) {
       id: true,
       name: true,
       description: true,
-      _count: { select: { members: true } },
+      _count: { select: { members: { where: { leftAt: null } } } },
     },
   });
 
