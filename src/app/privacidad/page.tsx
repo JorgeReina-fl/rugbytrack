@@ -72,7 +72,7 @@ export default function PrivacidadPage() {
                 No se usan en estadísticas, análisis automatizados ni servicios de inteligencia artificial.
               </li>
               <li>
-                <strong>Conservación:</strong> hasta que tú o un entrenador de tu equipo las borréis, o hasta que se elimine el evento o tu cuenta.
+                <strong>Conservación:</strong> hasta que tú o un entrenador de tu equipo las borréis, o hasta que se elimine el evento o tu cuenta, o hasta que salgas del equipo.
                 Las copias de seguridad cifradas pueden conservar datos ya borrados durante un máximo de 4 meses.
               </li>
               <li>
@@ -110,11 +110,19 @@ export default function PrivacidadPage() {
           <section className="flex flex-col gap-3">
             <h2 className="font-heading font-bold text-2xl uppercase tracking-tight">4. Plazos de conservación</h2>
             <p className="font-sans text-base leading-relaxed text-foreground/90">
-              Los datos se conservan mientras la cuenta permanezca activa y el usuario no solicite su supresión.
+              Los datos se conservan mientras la cuenta permanezca activa y el usuario no solicite su supresión (salvo lo indicado en «Si sales de un equipo»).
               Cuando la cuenta se cancele, los datos personales se eliminarán o anonimizarán en un plazo razonable,
               salvo aquellos que deban conservarse bloqueados para atender posibles responsabilidades legales durante los plazos
               previstos por la normativa aplicable.
               Las copias de seguridad se rotan periódicamente y los datos eliminados desaparecen con la caducidad natural de las mismas.
+            </p>
+
+            <h3 className="font-heading font-bold text-xl uppercase tracking-tight mt-2">Si sales de un equipo</h3>
+            <p className="font-sans text-base leading-relaxed text-foreground/90">
+              Si abandonas un equipo o un entrenador te expulsa, borramos tus datos en ese equipo: asistencia, RPE, molestias,
+              votos en encuestas y apoyos a propuestas. Tus mensajes del foro de ese equipo se conservan para no romper las
+              conversaciones, pero aparecen como «Ex-miembro», sin tu nombre. Los eventos, encuestas o propuestas que hayas creado
+              para el equipo se conservan. Si vuelves a unirte, empiezas de cero.
             </p>
           </section>
 
