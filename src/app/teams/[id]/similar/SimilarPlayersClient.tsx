@@ -4,7 +4,7 @@ import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { formatAttendancePct } from "@/lib/attendance-format";
 
 interface PlayerStats {
-  name: string;
+  name?: string; // ya no se guarda en stats nuevos; solo en los anteriores
   position: string | null;
   avgRpe: number;
   // null = sin datos; ausente en los stats guardados antes de este cambio

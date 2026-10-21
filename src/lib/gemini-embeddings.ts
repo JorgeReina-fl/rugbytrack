@@ -52,9 +52,11 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   return values;
 }
 
-/** Formats a player's stats into a rich text blob for embedding. */
+/**
+ * Formats a player's stats into a text blob for embedding. Se envía a Gemini: sin nombre
+ * ni ningún otro identificador, solo posición y estadísticas deportivas.
+ */
 export function buildPlayerStatsText(stats: {
-  name: string;
   position: string | null;
   avgRpe: number;
   attendanceRate: number | null;
@@ -62,7 +64,6 @@ export function buildPlayerStatsText(stats: {
   avgWorkload: number;
 }): string {
   return [
-    `Jugador: ${stats.name}`,
     `Posición: ${stats.position ?? "no asignada"}`,
     `RPE promedio: ${stats.avgRpe.toFixed(1)} / 10`,
     `Carga promedio: ${stats.avgWorkload.toFixed(0)} UA`,

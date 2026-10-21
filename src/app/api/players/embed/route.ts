@@ -125,7 +125,6 @@ export async function POST(req: NextRequest) {
         now
       );
       const stats = {
-        name: u.name,
         position: member.position ?? null,
         avgRpe,
         attendanceRate: rate, // null = sin eventos con lista (no es 0 %)
