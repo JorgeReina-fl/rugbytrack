@@ -33,7 +33,7 @@ export default async function RsvpPage({
   const { userId, eventId } = payload;
 
   const [user, event] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
     prisma.event.findUnique({ where: { id: eventId }, include: { team: { select: { timezone: true } } } }),
   ]);
 
