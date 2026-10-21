@@ -44,6 +44,11 @@ enum EventType {
   OTHER
 }
 
+enum MatchFormat {
+  SEVENS
+  FIFTEENS
+}
+
 enum AttendanceStatus {
   PENDING
   CONFIRMED
@@ -195,6 +200,7 @@ model Event {
   teamId      String
   title       String
   type        EventType
+  format      MatchFormat?
   description String?
   location    String?
   startDate   DateTime
@@ -244,12 +250,14 @@ model Callup {
   userId    String
   isStarter Boolean        @default(false)
   position  RugbyPosition?
+  shirtNumber Int?
   createdAt DateTime       @default(now())
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
+  @@unique([eventId, shirtNumber])
   @@index([eventId])
 }
 
