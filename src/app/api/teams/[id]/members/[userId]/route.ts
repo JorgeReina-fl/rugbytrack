@@ -1,6 +1,7 @@
 import "server-only";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { removeMemberData } from "@/lib/member-data";
 import {
   apiSuccess,
   apiUnauthorized,
@@ -49,10 +50,7 @@ export async function DELETE(_req: Request, { params }: Params) {
       }
     }
 
-    await prisma.teamMember.update({
-      where: { id: targetMembership.id },
-      data: { leftAt: new Date(), isCoach: false },
-    });
+    await removeMemberData({ teamId, userId: targetUserId, membershipId: targetMembership.id });
 
     return apiSuccess({ message: "Miembro expulsado del equipo" });
   } catch (err) {

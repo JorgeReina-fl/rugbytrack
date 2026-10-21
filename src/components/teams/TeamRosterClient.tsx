@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { RugbyPosition } from "@prisma/client";
+import { LEAVE_DATA_WARNING, kickDataWarning } from "@/lib/member-leave-messages";
 
 const POSITION_LABELS: Record<RugbyPosition, string> = {
   PROP_LOOSEHEAD: "1 - Pilar Zurdo",
@@ -198,7 +199,7 @@ export function TeamRosterClient({ teamId, currentUserId, isCoach, isOnlyCoach, 
               ¿Expulsar a {kickTarget.name}?
             </h3>
             <p className="text-sm font-mono text-muted-foreground mb-6">
-              El jugador será eliminado de la plantilla. Sus estadísticas y datos históricos se conservan.
+              {kickDataWarning(kickTarget.name)}
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -275,10 +276,11 @@ export function TeamRosterClient({ teamId, currentUserId, isCoach, isOnlyCoach, 
                     </option>
                   ))}
                 </select>
+                <p className="text-sm font-mono text-muted-foreground mb-6">{LEAVE_DATA_WARNING}</p>
               </>
             ) : (
               <p className="text-sm font-mono text-muted-foreground mb-6">
-                Saldrás de la plantilla. Tus estadísticas y datos históricos se conservan.
+                {LEAVE_DATA_WARNING}
               </p>
             )}
             <div className="flex gap-3 justify-end">

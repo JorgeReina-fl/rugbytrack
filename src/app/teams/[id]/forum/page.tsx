@@ -1,4 +1,5 @@
 import "server-only";
+import { authorInitial } from "@/lib/forum-author";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -77,7 +78,7 @@ export default async function ForumPage({ params }: PageProps) {
                   </p>
                   <div className="flex items-center gap-3">
                     <div className="h-6 w-6 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-foreground">
-                      {thread.authorName.charAt(0).toUpperCase()}
+                      {authorInitial(thread.authorId, thread.authorName)}
                     </div>
                     <span className="text-xs font-mono uppercase tracking-widest font-bold text-foreground">
                       {thread.authorName}

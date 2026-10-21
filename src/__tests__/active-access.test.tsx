@@ -11,6 +11,7 @@ import RsvpPage from "@/app/rsvp/[token]/page";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyRsvpToken } from "@/lib/tokens";
+import { removeMemberData } from "@/lib/member-data";
 
 jest.mock("@/auth", () => ({ auth: jest.fn() }));
 jest.mock("@/lib/logger", () => ({ logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() } }));
@@ -21,6 +22,7 @@ jest.mock("next/navigation", () => ({
   redirect: jest.fn(),
 }));
 jest.mock("@/lib/tokens", () => ({ verifyRsvpToken: jest.fn() }));
+jest.mock("@/lib/member-data", () => ({ removeMemberData: jest.fn().mockResolvedValue({}) }));
 jest.mock("@/app/rsvp/[token]/rsvp-action", () => ({ RsvpAction: () => null }));
 jest.mock("@/lib/prisma", () => ({
   prisma: {
@@ -84,46 +86,48 @@ describe("helpers de membresía activa", () => {
   });
 });
 
-describe("al salir o ser expulsado, isCoach pasa a false", () => {
-  test("abandonar (coach con otros coaches) → leftAt e isCoach=false", async () => {
+describe("al salir o ser expulsado se llama a removeMemberData (que deja isCoach=false)", () => {
+  test("abandonar (coach con otros coaches) → removeMemberData con su membresía", async () => {
     db.teamMember.findFirst.mockResolvedValue({ id: "m1", isCoach: true });
     db.teamMember.count.mockResolvedValue(2);
-    db.teamMember.update.mockResolvedValue({});
     const res = await leaveRoute(new Request("http://localhost/x", { method: "POST" }), { params: Promise.resolve({ id: TEAM }) });
     expect(res.status).toBe(200);
-    const data = db.teamMember.update.mock.calls[0][0].data;
-    expect(data.isCoach).toBe(false);
-    expect(data.leftAt).toBeInstanceOf(Date);
+    expect(removeMemberData).toHaveBeenCalledWith({ teamId: TEAM, userId: USER, membershipId: "m1" });
   });
 
-  test("abandonar con traspaso → el que sale queda con isCoach=false y el nuevo con true", async () => {
+  test("abandonar con traspaso → el nuevo coach se promueve en la misma transacción (extraOps)", async () => {
     db.teamMember.findFirst
       .mockResolvedValueOnce({ id: "m1", isCoach: true })
       .mockResolvedValueOnce({ id: "m2", isCoach: false });
     db.teamMember.count.mockResolvedValue(1);
     db.teamMember.update.mockImplementation((a: unknown) => a);
-    db.$transaction.mockImplementation((ops: unknown[]) => Promise.all(ops));
     const res = await leaveRoute(
       new Request("http://localhost/x", { method: "POST", body: JSON.stringify({ newCoachUserId: "other" }) }),
       { params: Promise.resolve({ id: TEAM }) }
     );
     expect(res.status).toBe(200);
-    const calls = db.teamMember.update.mock.calls.map((c: any) => c[0]);
-    expect(calls.find((c: any) => c.where.id === "m2").data).toEqual({ isCoach: true });
-    expect(calls.find((c: any) => c.where.id === "m1").data).toMatchObject({ isCoach: false });
+    const arg = (removeMemberData as jest.Mock).mock.calls[0][0];
+    expect(arg).toMatchObject({ teamId: TEAM, userId: USER, membershipId: "m1" });
+    expect(arg.extraOps).toEqual([{ where: { id: "m2" }, data: { isCoach: true } }]);
   });
 
-  test("expulsar a un coach → leftAt e isCoach=false", async () => {
+  test("expulsar → removeMemberData del objetivo", async () => {
     db.teamMember.findFirst
       .mockResolvedValueOnce({ id: "caller", isCoach: true })
       .mockResolvedValueOnce({ id: "m9", isCoach: true });
     db.teamMember.count.mockResolvedValue(2);
-    db.teamMember.update.mockResolvedValue({});
     const res = await expelRoute(new Request("http://localhost/x", { method: "DELETE" }), {
       params: Promise.resolve({ id: TEAM, userId: "target" }),
     });
     expect(res.status).toBe(200);
-    expect(db.teamMember.update.mock.calls[0][0].data).toMatchObject({ isCoach: false });
+    expect(removeMemberData).toHaveBeenCalledWith({ teamId: TEAM, userId: "target", membershipId: "m9" });
+  });
+
+  test("si removeMemberData falla → 500 (no se sale del equipo)", async () => {
+    db.teamMember.findFirst.mockResolvedValue({ id: "m1", isCoach: false });
+    (removeMemberData as jest.Mock).mockRejectedValueOnce(new Error("mongo down"));
+    const res = await leaveRoute(new Request("http://localhost/x", { method: "POST" }), { params: Promise.resolve({ id: TEAM }) });
+    expect(res.status).toBe(500);
   });
 });
 

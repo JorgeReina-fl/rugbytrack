@@ -1,4 +1,5 @@
 import "server-only";
+import { authorInitial } from "@/lib/forum-author";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -62,7 +63,7 @@ export default async function ThreadPage({ params }: PageProps) {
           
           <div className="flex items-center gap-3 mb-8 border-b border-border pb-6">
             <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-sm font-bold text-primary-foreground shadow-inner">
-              {thread.authorName.charAt(0).toUpperCase()}
+              {authorInitial(thread.authorId, thread.authorName)}
             </div>
             <div>
               <p className="text-sm font-mono uppercase tracking-widest font-bold text-foreground">
@@ -101,7 +102,7 @@ export default async function ThreadPage({ params }: PageProps) {
             <div key={comment._id.toString()} className="rounded-2xl border border-border bg-card/50 p-6 shadow-sm ml-0 sm:ml-8">
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-foreground">
-                  {comment.authorName.charAt(0).toUpperCase()}
+                  {authorInitial(comment.authorId, comment.authorName)}
                 </div>
                 <div>
                   <p className="text-sm font-mono uppercase tracking-widest font-bold text-foreground">

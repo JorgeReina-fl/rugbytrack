@@ -1,6 +1,7 @@
 import "server-only";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { removeMemberData } from "@/lib/member-data";
 import {
   apiSuccess,
   apiUnauthorized,
@@ -55,27 +56,25 @@ export async function POST(req: Request, { params }: Params) {
           return apiNotFound("El nuevo coach (debe ser miembro activo no-coach)");
         }
 
-        // Transfer coach role and leave in one transaction
-        await prisma.$transaction([
-          prisma.teamMember.update({
-            where: { id: newCoachMembership.id },
-            data: { isCoach: true },
-          }),
-          prisma.teamMember.update({
-            where: { id: membership.id },
-            data: { leftAt: new Date(), isCoach: false },
-          }),
-        ]);
+        // Transfer coach role, remove the member's data and leave in one transaction
+        await removeMemberData({
+          teamId,
+          userId: session.user.id,
+          membershipId: membership.id,
+          extraOps: [
+            prisma.teamMember.update({
+              where: { id: newCoachMembership.id },
+              data: { isCoach: true },
+            }),
+          ],
+        });
 
         return apiSuccess({ message: "Rol transferido y equipo abandonado" });
       }
     }
 
     // Multiple coaches or non-coach: leave directly
-    await prisma.teamMember.update({
-      where: { id: membership.id },
-      data: { leftAt: new Date(), isCoach: false },
-    });
+    await removeMemberData({ teamId, userId: session.user.id, membershipId: membership.id });
 
     return apiSuccess({ message: "Has abandonado el equipo" });
   } catch (err) {
