@@ -1,8 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { EventType } from "@prisma/client";
-import { isoWeekKeyInTz } from "@/lib/week";
-import { computeAcwr, weeklyLoads } from "@/lib/acwr";
+import { computeAcwr, lastCompleteWeekKey, weekRangeLabel, weeklyLoads } from "@/lib/acwr";
 import { attendanceRate } from "@/lib/attendance";
 import { takenEventIds } from "@/lib/attendance-taken";
 
@@ -12,6 +11,8 @@ export interface TeamStat {
   avgRpe: number | null;
   attendanceRate: number | null;
   acwr: number | null;
+  /** «Semana del 12 al 18 de octubre»: semana completa a la que corresponde el ACWR. */
+  acwrWeekLabel: string;
 }
 
 export interface NotificationPrefs {
@@ -113,21 +114,11 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
     const takenIds = await takenEventIds(trainingEvents.map((e) => e.id));
     const userRows = new Map(attendances.map((a) => [a.eventId, a]));
 
-    // Same week label sequence as api/analytics/rpe, computed in each team's timezone
-    const weekSeries = (tz: string) => {
-      const weekLabels: string[] = [];
-      for (let i = TOTAL_WEEKS - 1; i >= 0; i--) {
-        const d = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-        weekLabels.push(isoWeekKeyInTz(d, tz));
-      }
-      const uniqueWeeks = Array.from(new Set(weekLabels));
-      return { uniqueWeeks, displayWeeks: uniqueWeeks.slice(-DISPLAY_WEEKS) };
-    };
-
     stats = playerMemberships.map((m) => {
       const teamId = m.team.id;
       const tz = m.team.timezone;
-      const { displayWeeks } = weekSeries(tz);
+      // ACWR de la última semana ISO completa en la zona del equipo (la misma que analytics y API)
+      const acwrWeek = lastCompleteWeekKey(now, tz);
       const teamRpe = rpeEntries.filter((e) => e.event.teamId === teamId);
 
       // avgRpe: mean RPE for last 4 weeks
@@ -141,15 +132,9 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
             ) / 10
           : null;
 
-      // ACWR — mismo cálculo que api/analytics/rpe (lib/acwr.ts); la última semana con carga
+      // ACWR — mismo cálculo que api/analytics/rpe (lib/acwr.ts)
       const loads = weeklyLoads(teamRpe.map((e) => ({ startDate: e.event.startDate, workload: e.workload })), tz);
-      let acwr: number | null = null;
-      for (let i = displayWeeks.length - 1; i >= 0; i--) {
-        const result = computeAcwr(loads, displayWeeks[i]!);
-        if (result.acute === 0) continue;
-        acwr = result.ratio;
-        break;
-      }
+      const acwr = computeAcwr(loads, acwrWeek).ratio;
 
       // Tasa de asistencia en entrenos de las últimas 4 semanas (reglas comunes: solo eventos
       // terminados con lista tomada; present / (present + absent)). null → la UI muestra «—».
@@ -164,7 +149,14 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
       );
       const attendanceRateValue = rate === null ? null : Math.round(rate * 100);
 
-      return { teamId, teamName: m.team.name, avgRpe, attendanceRate: attendanceRateValue, acwr };
+      return {
+        teamId,
+        teamName: m.team.name,
+        avgRpe,
+        attendanceRate: attendanceRateValue,
+        acwr,
+        acwrWeekLabel: weekRangeLabel(acwrWeek),
+      };
     });
   }
 

@@ -12,7 +12,7 @@ import {
 } from "@/lib/api-response";
 import { z } from "zod";
 import { isoWeekKeyInTz } from "@/lib/week";
-import { computeAcwr, weeklyLoads } from "@/lib/acwr";
+import { computeAcwr, lastCompleteWeekKey, weekKeysEndingAt, weeklyLoads } from "@/lib/acwr";
 
 const querySchema = z.object({
   teamId: z.string().cuid("ID de equipo inválido"),
@@ -72,10 +72,12 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Fetch RpeEntries for last weeks + 4 weeks to compute chronic ratio
-    const weeksToFetch = weeks + 4;
+    // ACWR de la última semana ISO completa (la actual aún no ha terminado); la crónica usa 4 semanas más
+    const tz = membership.team.timezone;
+    const acwrWeek = lastCompleteWeekKey(new Date(), tz);
+    // La semana más antigua necesaria empieza como mucho 13 días + (weeks + 3) semanas antes de ahora
     const startDateThreshold = new Date();
-    startDateThreshold.setDate(startDateThreshold.getDate() - weeksToFetch * 7);
+    startDateThreshold.setDate(startDateThreshold.getDate() - (weeks + 5) * 7);
 
     const rpeEntries = await prisma.rpeEntry.findMany({
       where: {
@@ -105,17 +107,8 @@ export async function GET(req: NextRequest) {
       (loadsByUser[entry.userId] ??= []).push({ startDate: entry.event.startDate, workload: entry.workload });
     }
 
-    // Generate list of sequential weeks
-    const weekLabels: string[] = [];
-    const now = new Date();
-    for (let i = weeksToFetch - 1; i >= 0; i--) {
-      const d = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-      weekLabels.push(isoWeekKeyInTz(d, membership.team.timezone));
-    }
-    const uniqueWeeks = Array.from(new Set(weekLabels)).slice(-weeksToFetch);
-
-    // Heatmap / visualization weeks (the last N weeks)
-    const activeWeeks = uniqueWeeks.slice(-weeks);
+    // Heatmap / visualization weeks: las últimas N semanas completas (aritmética ISO exacta)
+    const activeWeeks = weekKeysEndingAt(acwrWeek, weeks);
 
     const playersData = teamPlayers.map((member) => {
       const u = member.user;
@@ -133,19 +126,8 @@ export async function GET(req: NextRequest) {
         };
       });
 
-      // "Latest" = most recent active week with actual load; avoids ACWR=0 when current ISO week is empty/incomplete
-      let latestStats: { workload: number; avgRpe: number; acwr: number } = {
-        workload: 0,
-        avgRpe: 0,
-        acwr: 0,
-      };
-      for (let i = weeklyData.length - 1; i >= 0; i--) {
-        const w = weeklyData[i];
-        if (w && w.workload > 0) {
-          latestStats = w;
-          break;
-        }
-      }
+      // «Latest» = la última semana completa (siempre la última de la serie), con o sin carga
+      const latestStats = weeklyData[weeklyData.length - 1] ?? { workload: 0, avgRpe: 0, acwr: 0 };
 
       return {
         userId: u.id,
@@ -181,6 +163,7 @@ export async function GET(req: NextRequest) {
 
     return apiSuccess({
       weeks: activeWeeks,
+      acwrWeek,
       players: playersData,
       teamWeeklyAvgLoad,
     });

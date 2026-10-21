@@ -2,7 +2,15 @@
  * @jest-environment node
  */
 
-import { computeAcwr, weeklyLoads, weekKeyOffset, acwrZone } from "@/lib/acwr";
+import {
+  computeAcwr,
+  weeklyLoads,
+  weekKeyOffset,
+  acwrZone,
+  lastCompleteWeekKey,
+  weekKeysEndingAt,
+  weekRangeLabel,
+} from "@/lib/acwr";
 import { isoWeekKeyInTz } from "@/lib/week";
 
 const TZ = "Europe/Madrid";
@@ -140,31 +148,6 @@ function oldApi(uniqueWeeks: string[], loads: Record<string, number>, weeks: num
   return { weeklyData, latestACWR: latest.acwr };
 }
 
-// Fórmula previa de lib/profile.ts
-function oldProfile(uniqueWeeks: string[], loads: Record<string, number>, display: number) {
-  const all = uniqueWeeks.map((week) => ({ week, workload: loads[week] ?? 0 }));
-  const displayWeeks = uniqueWeeks.slice(-display);
-  let acwr: number | null = null;
-  for (let i = displayWeeks.length - 1; i >= 0; i--) {
-    const indexInAll = uniqueWeeks.indexOf(displayWeeks[i]!);
-    const acute = all[indexInAll]?.workload ?? 0;
-    if (acute === 0) continue;
-    let sum = 0;
-    let count = 0;
-    for (let j = 1; j <= 4; j++) {
-      const idx = indexInAll - j;
-      if (idx >= 0) {
-        sum += all[idx]?.workload ?? 0;
-        count++;
-      }
-    }
-    const chronic = count > 0 ? sum / count : 0;
-    acwr = chronic > 0 ? Math.round((acute / chronic) * 100) / 100 : null;
-    break;
-  }
-  return acwr;
-}
-
 // Nueva forma de usarlo (misma que la API y el perfil tras el cambio)
 function newApi(uniqueWeeks: string[], loads: Record<string, number>, weeks: number) {
   const active = uniqueWeeks.slice(-weeks);
@@ -182,33 +165,20 @@ function newApi(uniqueWeeks: string[], loads: Record<string, number>, weeks: num
   return { weeklyData, latestACWR: latest.acwr };
 }
 
-function newProfile(uniqueWeeks: string[], loads: Record<string, number>, display: number) {
-  const displayWeeks = uniqueWeeks.slice(-display);
-  for (let i = displayWeeks.length - 1; i >= 0; i--) {
-    const r = computeAcwr(loads, displayWeeks[i]!);
-    if (r.acute === 0) continue;
-    return r.ratio;
-  }
-  return null;
-}
-
-describe("paridad con las fórmulas previas de la API y del perfil (30 casos)", () => {
+describe("paridad con la fórmula previa de la API (30 casos)", () => {
   const seeds = Array.from({ length: 30 }, (_, i) => i + 1);
 
-  test.each(seeds)("caso %i: API (8 semanas) idéntica semana a semana y en «latest»", (seed) => {
+  // La regla de «última semana» cambió a propósito (ahora siempre la última completa): se compara
+  // solo el ACWR de cada semana, que es el cálculo compartido.
+  test.each(seeds)("caso %i: ACWR semana a semana idéntico al de la API previa (8 semanas)", (seed) => {
     const { uniqueWeeks, loads } = buildCase(seed, 12);
-    expect(newApi(uniqueWeeks, loads, 8)).toEqual(oldApi(uniqueWeeks, loads, 8));
-  });
-
-  test.each(seeds)("caso %i: perfil (4+4 semanas) idéntico", (seed) => {
-    const { uniqueWeeks, loads } = buildCase(seed, 8);
-    expect(newProfile(uniqueWeeks, loads, 4)).toBe(oldProfile(uniqueWeeks, loads, 4));
+    expect(newApi(uniqueWeeks, loads, 8).weeklyData).toEqual(oldApi(uniqueWeeks, loads, 8).weeklyData);
   });
 
   test("también con ventanas de la API de 1 y 16 semanas", () => {
     for (const weeks of [1, 16]) {
       const { uniqueWeeks, loads } = buildCase(7, weeks + 4);
-      expect(newApi(uniqueWeeks, loads, weeks)).toEqual(oldApi(uniqueWeeks, loads, weeks));
+      expect(newApi(uniqueWeeks, loads, weeks).weeklyData).toEqual(oldApi(uniqueWeeks, loads, weeks).weeklyData);
     }
   });
 
@@ -217,5 +187,66 @@ describe("paridad con las fórmulas previas de la API y del perfil (30 casos)", 
     expect(series).toHaveLength(12);
     expect(series[11]).toBe("2026-W43");
     series.forEach((w, i) => expect(weekKeyOffset("2026-W43", 11 - i)).toBe(w));
+  });
+});
+
+describe("lastCompleteWeekKey (zona del equipo: Europe/Madrid)", () => {
+  test("lunes 00:30 → la semana que acaba de terminar es la anterior a la nueva semana actual", () => {
+    // Lunes 26 oct 00:30 CET = 2026-10-25T23:30Z: ya es W44 en Madrid, aunque en UTC sea domingo
+    expect(lastCompleteWeekKey(new Date("2026-10-25T23:30:00Z"), TZ)).toBe("2026-W43");
+    expect(lastCompleteWeekKey(new Date("2026-10-25T23:30:00Z"), "UTC")).toBe("2026-W42");
+  });
+
+  test("domingo 23:30 → todavía no ha terminado la semana actual", () => {
+    // Domingo 25 oct 23:30 CET = 2026-10-25T22:30Z: W43 en Madrid → última completa W42
+    expect(lastCompleteWeekKey(new Date("2026-10-25T22:30:00Z"), TZ)).toBe("2026-W42");
+  });
+
+  test("cruce de año ISO: 2026 tiene 53 semanas", () => {
+    expect(lastCompleteWeekKey(new Date("2027-01-04T10:00:00Z"), TZ)).toBe("2026-W53");
+    expect(lastCompleteWeekKey(new Date("2021-01-04T10:00:00Z"), TZ)).toBe("2020-W53");
+    expect(weekKeyOffset("2027-W01", 1)).toBe("2026-W53");
+  });
+
+  test("semana del cambio de hora (primavera): «ahora − 7 días» fallaría, la aritmética ISO no", () => {
+    // Lunes 30 mar 2026 00:30 CEST = 2026-03-29T22:30Z (el domingo 29 se adelantó el reloj)
+    const now = new Date("2026-03-29T22:30:00Z");
+    expect(isoWeekKeyInTz(now, TZ)).toBe("2026-W14");
+    expect(lastCompleteWeekKey(now, TZ)).toBe("2026-W13");
+    // El método antiguo restaba 7×24 h: cae en domingo 23:30 hora local y se equivoca de semana
+    expect(isoWeekKeyInTz(new Date(now.getTime() - 7 * 86_400_000), TZ)).toBe("2026-W12");
+  });
+
+  test("semana del cambio de hora (otoño)", () => {
+    expect(lastCompleteWeekKey(new Date("2026-10-26T10:00:00Z"), TZ)).toBe("2026-W43"); // W43 contiene el 25 oct
+  });
+});
+
+describe("weekKeysEndingAt", () => {
+  test("serie consecutiva, de la más antigua a la más reciente, cruzando el año", () => {
+    expect(weekKeysEndingAt("2027-W02", 4)).toEqual(["2026-W52", "2026-W53", "2027-W01", "2027-W02"]);
+    expect(weekKeysEndingAt("2026-W43", 1)).toEqual(["2026-W43"]);
+  });
+});
+
+describe("weekRangeLabel", () => {
+  test("misma semana dentro de un mes y cruzando de mes", () => {
+    expect(weekRangeLabel("2026-W42")).toBe("Semana del 12 al 18 de octubre");
+    expect(weekRangeLabel("2026-W40")).toBe("Semana del 28 de septiembre al 4 de octubre");
+    expect(weekRangeLabel("2026-W53")).toBe("Semana del 28 de diciembre al 3 de enero");
+  });
+});
+
+describe("jugador inactivo la última semana completa", () => {
+  test("aguda 0 con historial → ratio 0 (zona low); sin historial → null", () => {
+    const week = lastCompleteWeekKey(new Date("2026-10-21T10:00:00Z"), TZ); // 2026-W42
+    const withHistory = { "2026-W38": 400, "2026-W39": 400, "2026-W40": 400, "2026-W41": 400, "2026-W43": 999 };
+    expect(computeAcwr(withHistory, week)).toEqual({ acute: 0, chronic: 400, ratio: 0, zone: "low" });
+    expect(computeAcwr({ "2026-W43": 999 }, week)).toEqual({ acute: 0, chronic: 0, ratio: null, zone: null });
+  });
+
+  test("la carga de la semana actual (incompleta) no cuenta", () => {
+    const week = lastCompleteWeekKey(new Date("2026-10-21T10:00:00Z"), TZ);
+    expect(computeAcwr({ "2026-W43": 5000 }, week).acute).toBe(0);
   });
 });

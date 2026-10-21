@@ -178,6 +178,7 @@ export default async function ProfilePage() {
                       ) : (
                         <p className="text-xs font-mono text-muted-foreground mt-2">Sin datos</p>
                       )}
+                      <p className="text-[10px] font-mono text-muted-foreground mt-1 leading-tight">{s.acwrWeekLabel}</p>
                     </div>
                   </div>
                 </div>

@@ -39,6 +39,8 @@ interface AnalyticsClientProps {
   teamName: string;
   initialData: {
     weeks: string[];
+    /** «Semana del 12 al 18 de octubre»: la semana completa a la que corresponde el ACWR. */
+    acwrWeekLabel: string;
     players: PlayerData[];
     teamWeeklyAvgLoad: number;
   };
@@ -164,7 +166,7 @@ export default function AnalyticsClient({
   teamName,
   initialData,
 }: AnalyticsClientProps) {
-  const { weeks, players, teamWeeklyAvgLoad } = initialData;
+  const { weeks, acwrWeekLabel, players, teamWeeklyAvgLoad } = initialData;
 
   // Filter players by alerts
   const alertPlayers = players.filter((p) => p.hasAlert);
@@ -261,6 +263,7 @@ export default function AnalyticsClient({
           <p className="text-xs font-mono text-muted-foreground mt-2 uppercase tracking-wider">
             Jugadores con ratio agudo/crónico &gt; 1.5
           </p>
+          <p className="text-[10px] font-mono text-muted-foreground mt-1">{acwrWeekLabel}</p>
         </div>
 
         <div className="border border-border bg-card p-6 shadow-sm">
@@ -422,6 +425,7 @@ export default function AnalyticsClient({
                 <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
                   Distribución de la plantilla
                 </p>
+                <p className="text-[10px] font-mono text-muted-foreground mb-2">{acwrWeekLabel}</p>
                 <div className="grid grid-cols-4 gap-1.5">
                   <div className="border border-emerald-500/30 bg-emerald-500/5 p-2 text-center">
                     <div className="font-heading font-black text-lg text-emerald-400 leading-none">{zoneCounts.low}</div>
@@ -509,7 +513,7 @@ export default function AnalyticsClient({
               ¿Qué es el ACWR?
             </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              El <strong>Acute:Chronic Workload Ratio</strong> compara la carga aguda de entrenamiento (semana actual) con la carga crónica acumulada (promedio de las últimas 4 semanas).
+              El <strong>Acute:Chronic Workload Ratio</strong> compara la carga aguda de entrenamiento (última semana completa) con la carga crónica acumulada (promedio de las últimas 4 semanas).
             </p>
             <div className="mt-4 space-y-2 font-mono text-xs">
               <div className="flex justify-between items-center text-emerald-400">

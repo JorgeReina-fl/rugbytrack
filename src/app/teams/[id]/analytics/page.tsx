@@ -7,7 +7,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import type { Metadata } from "next";
 import AnalyticsClient from "./AnalyticsClient";
 import { isoWeekKeyInTz } from "@/lib/week";
-import { computeAcwr, weeklyLoads } from "@/lib/acwr";
+import { computeAcwr, lastCompleteWeekKey, weekKeysEndingAt, weekRangeLabel, weeklyLoads } from "@/lib/acwr";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -59,11 +59,11 @@ export default async function AnalyticsPage({ params }: PageProps) {
     },
   });
 
-  // Calculate workloads for default 8 weeks (fetch 8 + 4 = 12 weeks for chronic)
+  // 8 semanas completas (la última completa es la del ACWR) + 4 para la crónica
   const weeksCount = 8;
-  const weeksToFetch = weeksCount + 4;
+  const acwrWeek = lastCompleteWeekKey(new Date(), team.timezone);
   const startDateThreshold = new Date();
-  startDateThreshold.setDate(startDateThreshold.getDate() - weeksToFetch * 7);
+  startDateThreshold.setDate(startDateThreshold.getDate() - (weeksCount + 5) * 7);
 
   const rpeEntries = await prisma.rpeEntry.findMany({
     where: {
@@ -93,17 +93,8 @@ export default async function AnalyticsPage({ params }: PageProps) {
     (loadsByUser[entry.userId] ??= []).push({ startDate: entry.event.startDate, workload: entry.workload });
   }
 
-  // Generate list of sequential weeks
-  const weekLabels: string[] = [];
-  const now = new Date();
-  for (let i = weeksToFetch - 1; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-    weekLabels.push(isoWeekKeyInTz(d, team.timezone));
-  }
-  const uniqueWeeks = Array.from(new Set(weekLabels)).slice(-weeksToFetch);
-
-  // Heatmap weeks
-  const activeWeeks = uniqueWeeks.slice(-weeksCount);
+  // Heatmap weeks: las últimas N semanas completas (aritmética ISO exacta)
+  const activeWeeks = weekKeysEndingAt(acwrWeek, weeksCount);
 
   const playersData = teamPlayers.map((member) => {
     const u = member.user;
@@ -121,6 +112,7 @@ export default async function AnalyticsPage({ params }: PageProps) {
       };
     });
 
+    // La última semana completa, con o sin carga
     const latestStats = weeklyData[weeklyData.length - 1] || {
       workload: 0,
       avgRpe: 0,
@@ -156,6 +148,7 @@ export default async function AnalyticsPage({ params }: PageProps) {
 
   const initialData = {
     weeks: activeWeeks,
+    acwrWeekLabel: weekRangeLabel(acwrWeek),
     players: playersData,
     teamWeeklyAvgLoad,
   };

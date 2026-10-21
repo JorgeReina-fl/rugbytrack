@@ -1,4 +1,5 @@
 import { isoWeekKeyInTz } from "@/lib/week";
+import { formatInTz } from "@/lib/datetime";
 
 /**
  * ACWR (Acute:Chronic Workload Ratio) desacoplado, único para analytics, API y perfil.
@@ -30,8 +31,8 @@ export function acwrZone(ratio: number | null): AcwrZone | null {
   return "danger";
 }
 
-/** Clave ISO ("2026-W43") de `n` semanas antes (n>0) o después (n<0) de `weekKey`. */
-export function weekKeyOffset(weekKey: string, n: number): string {
+/** Lunes (12:00 UTC) de la semana ISO `weekKey`. El calendario ISO no depende de la zona horaria. */
+function mondayOfWeek(weekKey: string): number {
   const m = /^(\d{4})-W(\d{2})$/.exec(weekKey);
   if (!m) throw new Error(`Clave de semana inválida: ${weekKey}`);
   const year = Number(m[1]);
@@ -39,8 +40,35 @@ export function weekKeyOffset(weekKey: string, n: number): string {
   // El 4 de enero siempre cae en la semana ISO 1; su lunes es el inicio de esa semana.
   const jan4 = new Date(Date.UTC(year, 0, 4, 12));
   const mondayWeek1 = jan4.getTime() - ((jan4.getUTCDay() + 6) % 7) * 86_400_000;
-  const target = new Date(mondayWeek1 + ((week - 1) - n) * 7 * 86_400_000);
-  return isoWeekKeyInTz(target, "UTC");
+  return mondayWeek1 + (week - 1) * 7 * 86_400_000;
+}
+
+/** Clave ISO ("2026-W43") de `n` semanas antes (n>0) o después (n<0) de `weekKey`. */
+export function weekKeyOffset(weekKey: string, n: number): string {
+  return isoWeekKeyInTz(new Date(mondayOfWeek(weekKey) - n * 7 * 86_400_000), "UTC");
+}
+
+/**
+ * Última semana ISO COMPLETA en la zona del equipo: la anterior a la actual (aritmética ISO exacta,
+ * no «ahora − 7 días»). Es la semana a la que corresponde el ACWR que se muestra.
+ */
+export function lastCompleteWeekKey(now: Date, tz: string | null | undefined): string {
+  return weekKeyOffset(isoWeekKeyInTz(now, tz), 1);
+}
+
+/** `count` semanas consecutivas terminando en `endKey`, de la más antigua a la más reciente. */
+export function weekKeysEndingAt(endKey: string, count: number): string[] {
+  return Array.from({ length: count }, (_, i) => weekKeyOffset(endKey, count - 1 - i));
+}
+
+/** «Semana del 12 al 18 de octubre» (o «del 28 de septiembre al 4 de octubre» si cruza de mes). */
+export function weekRangeLabel(weekKey: string): string {
+  const monday = new Date(mondayOfWeek(weekKey));
+  const sunday = new Date(monday.getTime() + 6 * 86_400_000);
+  const sameMonth = monday.getUTCMonth() === sunday.getUTCMonth();
+  const from = formatInTz(monday, "UTC", sameMonth ? "d" : "d 'de' MMMM");
+  const to = formatInTz(sunday, "UTC", "d 'de' MMMM");
+  return `Semana del ${from} al ${to}`;
 }
 
 /** Suma la carga por semana ISO (calendario de `tz`). */
