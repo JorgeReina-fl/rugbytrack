@@ -135,6 +135,9 @@ model User {
   createdProposals Proposal[]
   proposalSupports ProposalSupport[]
   createdEvents    Event[]
+  discomforts      Discomfort[]
+  healthConsentAt      DateTime?
+  healthConsentVersion String?
 
   @@index([email])
 }
@@ -209,6 +212,7 @@ model Event {
   callups         Callup[]
   trainingSession TrainingSession?
   rpeEntries      RpeEntry[]
+  discomforts     Discomfort[]
 
   @@index([teamId])
   @@index([startDate])
@@ -406,4 +410,37 @@ model ProposalSupport {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([proposalId, userId])
+}
+
+enum BodyArea {
+  HEAD
+  NECK
+  SHOULDER
+  ARM_ELBOW
+  WRIST_HAND
+  UPPER_BACK
+  LOWER_BACK
+  HIP_GROIN
+  THIGH
+  KNEE
+  CALF_LEG
+  ANKLE_FOOT
+  OTHER
+}
+
+model Discomfort {
+  id            String    @id @default(cuid())
+  eventId       String
+  userId        String
+  bodyArea      BodyArea
+  intensity     Int
+  note          String?   @db.VarChar(280)
+  seenByCoachAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  event         Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([userId])
 }
