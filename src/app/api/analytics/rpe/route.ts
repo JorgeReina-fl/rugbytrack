@@ -12,6 +12,7 @@ import {
 } from "@/lib/api-response";
 import { z } from "zod";
 import { isoWeekKeyInTz } from "@/lib/week";
+import { computeAcwr, weeklyLoads } from "@/lib/acwr";
 
 const querySchema = z.object({
   teamId: z.string().cuid("ID de equipo inválido"),
@@ -92,27 +93,16 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Map RPE entries by userId and ISO week
-    const dataMap: Record<
-      string,
-      Record<string, { workload: number; rpeSum: number; count: number }>
-    > = {};
-
+    // Cargas y RPE por jugador y semana ISO
+    const dataMap: Record<string, Record<string, { rpeSum: number; count: number }>> = {};
+    const loadsByUser: Record<string, { startDate: Date; workload: number }[]> = {};
     for (const entry of rpeEntries) {
       const weekLabel = isoWeekKeyInTz(entry.event.startDate, membership.team.timezone);
-      let userMap = dataMap[entry.userId];
-      if (!userMap) {
-        userMap = {};
-        dataMap[entry.userId] = userMap;
-      }
-      let weekData = userMap[weekLabel];
-      if (!weekData) {
-        weekData = { workload: 0, rpeSum: 0, count: 0 };
-        userMap[weekLabel] = weekData;
-      }
-      weekData.workload += entry.workload;
+      const userMap = (dataMap[entry.userId] ??= {});
+      const weekData = (userMap[weekLabel] ??= { rpeSum: 0, count: 0 });
       weekData.rpeSum += entry.rpe;
       weekData.count += 1;
+      (loadsByUser[entry.userId] ??= []).push({ startDate: entry.event.startDate, workload: entry.workload });
     }
 
     // Generate list of sequential weeks
@@ -130,44 +120,16 @@ export async function GET(req: NextRequest) {
     const playersData = teamPlayers.map((member) => {
       const u = member.user;
       const playerMap = dataMap[u.id] || {};
+      const loads = weeklyLoads(loadsByUser[u.id] ?? [], membership.team.timezone);
 
-      // Calculate workloads for all weeks (to compute moving ACWR)
-      const allWeeksData = uniqueWeeks.map((week) => {
-        const stats = playerMap[week] || { workload: 0, rpeSum: 0, count: 0 };
-        return {
-          week,
-          workload: stats.workload,
-          avgRpe: stats.count > 0 ? Math.round((stats.rpeSum / stats.count) * 10) / 10 : 0,
-        };
-      });
-
-      // Map back to just active weeks, calculating ACWR relative to previous weeks
       const weeklyData = activeWeeks.map((week) => {
-        const indexInAll = uniqueWeeks.indexOf(week);
-        const currentWeekStats = allWeeksData[indexInAll] || { workload: 0, avgRpe: 0 };
-        const acute = currentWeekStats.workload;
-
-        // Chronic = mean of previous 4 weeks (t-1..t-4), excluding acute (standard ACWR definition)
-        let sumChronic = 0;
-        let countChronic = 0;
-        for (let j = 1; j <= 4; j++) {
-          const idx = indexInAll - j;
-          if (idx >= 0) {
-            const wData = allWeeksData[idx];
-            if (wData) {
-              sumChronic += wData.workload;
-              countChronic++;
-            }
-          }
-        }
-        const chronic = countChronic > 0 ? sumChronic / countChronic : 0;
-        const acwr = chronic > 0 && acute > 0 ? Math.round((acute / chronic) * 100) / 100 : 0;
-
+        const stats = playerMap[week];
+        const { acute, ratio } = computeAcwr(loads, week);
         return {
           week,
           workload: acute,
-          avgRpe: currentWeekStats.avgRpe,
-          acwr,
+          avgRpe: stats && stats.count > 0 ? Math.round((stats.rpeSum / stats.count) * 10) / 10 : 0,
+          acwr: ratio ?? 0,
         };
       });
 

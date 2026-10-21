@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { EventType } from "@prisma/client";
 import { isoWeekKeyInTz } from "@/lib/week";
+import { computeAcwr, weeklyLoads } from "@/lib/acwr";
 import { attendanceRate } from "@/lib/attendance";
 import { takenEventIds } from "@/lib/attendance-taken";
 
@@ -126,7 +127,7 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
     stats = playerMemberships.map((m) => {
       const teamId = m.team.id;
       const tz = m.team.timezone;
-      const { uniqueWeeks, displayWeeks } = weekSeries(tz);
+      const { displayWeeks } = weekSeries(tz);
       const teamRpe = rpeEntries.filter((e) => e.event.teamId === teamId);
 
       // avgRpe: mean RPE for last 4 weeks
@@ -140,35 +141,13 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
             ) / 10
           : null;
 
-      // ACWR — same algorithm as api/analytics/rpe
-      const weeklyMap: Record<string, number> = {};
-      for (const entry of teamRpe) {
-        const wl = isoWeekKeyInTz(entry.event.startDate, tz);
-        weeklyMap[wl] = (weeklyMap[wl] ?? 0) + entry.workload;
-      }
-      const allWeeksData = uniqueWeeks.map((week) => ({
-        week,
-        workload: weeklyMap[week] ?? 0,
-      }));
-
+      // ACWR — mismo cálculo que api/analytics/rpe (lib/acwr.ts); la última semana con carga
+      const loads = weeklyLoads(teamRpe.map((e) => ({ startDate: e.event.startDate, workload: e.workload })), tz);
       let acwr: number | null = null;
       for (let i = displayWeeks.length - 1; i >= 0; i--) {
-        const week = displayWeeks[i]!;
-        const indexInAll = uniqueWeeks.indexOf(week);
-        const acute = allWeeksData[indexInAll]?.workload ?? 0;
-        if (acute === 0) continue;
-
-        let sumChronic = 0;
-        let countChronic = 0;
-        for (let j = 1; j <= 4; j++) {
-          const idx = indexInAll - j;
-          if (idx >= 0) {
-            sumChronic += allWeeksData[idx]?.workload ?? 0;
-            countChronic++;
-          }
-        }
-        const chronic = countChronic > 0 ? sumChronic / countChronic : 0;
-        acwr = chronic > 0 ? Math.round((acute / chronic) * 100) / 100 : null;
+        const result = computeAcwr(loads, displayWeeks[i]!);
+        if (result.acute === 0) continue;
+        acwr = result.ratio;
         break;
       }
 

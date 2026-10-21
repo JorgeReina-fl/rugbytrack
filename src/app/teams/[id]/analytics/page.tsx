@@ -7,6 +7,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import type { Metadata } from "next";
 import AnalyticsClient from "./AnalyticsClient";
 import { isoWeekKeyInTz } from "@/lib/week";
+import { computeAcwr, weeklyLoads } from "@/lib/acwr";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -80,27 +81,16 @@ export default async function AnalyticsPage({ params }: PageProps) {
     },
   });
 
-  // Map RPE entries by userId and ISO week
-  const dataMap: Record<
-    string,
-    Record<string, { workload: number; rpeSum: number; count: number }>
-  > = {};
-
+  // Cargas y RPE por jugador y semana ISO
+  const dataMap: Record<string, Record<string, { rpeSum: number; count: number }>> = {};
+  const loadsByUser: Record<string, { startDate: Date; workload: number }[]> = {};
   for (const entry of rpeEntries) {
     const weekLabel = isoWeekKeyInTz(entry.event.startDate, team.timezone);
-    let userMap = dataMap[entry.userId];
-    if (!userMap) {
-      userMap = {};
-      dataMap[entry.userId] = userMap;
-    }
-    let weekData = userMap[weekLabel];
-    if (!weekData) {
-      weekData = { workload: 0, rpeSum: 0, count: 0 };
-      userMap[weekLabel] = weekData;
-    }
-    weekData.workload += entry.workload;
+    const userMap = (dataMap[entry.userId] ??= {});
+    const weekData = (userMap[weekLabel] ??= { rpeSum: 0, count: 0 });
     weekData.rpeSum += entry.rpe;
     weekData.count += 1;
+    (loadsByUser[entry.userId] ??= []).push({ startDate: entry.event.startDate, workload: entry.workload });
   }
 
   // Generate list of sequential weeks
@@ -118,41 +108,16 @@ export default async function AnalyticsPage({ params }: PageProps) {
   const playersData = teamPlayers.map((member) => {
     const u = member.user;
     const playerMap = dataMap[u.id] || {};
-
-    const allWeeksData = uniqueWeeks.map((week) => {
-      const stats = playerMap[week] || { workload: 0, rpeSum: 0, count: 0 };
-      return {
-        week,
-        workload: stats.workload,
-        avgRpe: stats.count > 0 ? Math.round((stats.rpeSum / stats.count) * 10) / 10 : 0,
-      };
-    });
+    const loads = weeklyLoads(loadsByUser[u.id] ?? [], team.timezone);
 
     const weeklyData = activeWeeks.map((week) => {
-      const indexInAll = uniqueWeeks.indexOf(week);
-      const currentWeekStats = allWeeksData[indexInAll] || { workload: 0, avgRpe: 0 };
-      const acute = currentWeekStats.workload;
-
-      let sumChronic = 0;
-      let countChronic = 0;
-      for (let j = 0; j < 4; j++) {
-        const idx = indexInAll - j;
-        if (idx >= 0) {
-          const wData = allWeeksData[idx];
-          if (wData) {
-            sumChronic += wData.workload;
-            countChronic++;
-          }
-        }
-      }
-      const chronic = countChronic > 0 ? sumChronic / countChronic : 0;
-      const acwr = chronic > 0 ? Math.round((acute / chronic) * 100) / 100 : 0;
-
+      const stats = playerMap[week];
+      const { acute, ratio } = computeAcwr(loads, week);
       return {
         week,
         workload: acute,
-        avgRpe: currentWeekStats.avgRpe,
-        acwr,
+        avgRpe: stats && stats.count > 0 ? Math.round((stats.rpeSum / stats.count) * 10) / 10 : 0,
+        acwr: ratio ?? 0,
       };
     });
 
