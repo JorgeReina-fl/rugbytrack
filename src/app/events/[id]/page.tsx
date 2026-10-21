@@ -7,7 +7,9 @@ import { getActiveMembership } from "@/lib/membership";
 import { formatInTz, safeTz } from "@/lib/datetime";
 import { RsvpControl } from "./rsvp-control";
 import { RugbyPosition } from "@prisma/client";
-import { canSubmitRpe, isRsvpOpen } from "@/lib/attendance";
+import { canSubmitRpe, eventEnd, isRsvpOpen } from "@/lib/attendance";
+import { hasCurrentConsent } from "@/lib/health-consent";
+import { DiscomfortSection } from "@/components/event/DiscomfortSection";
 import { TAKEN_COUNT, isListTakenFromCount } from "@/lib/attendance-taken";
 import { RpeForm } from "@/components/training/RpeForm";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -91,6 +93,23 @@ export default async function EventDetailPage({ params }: PageProps) {
   }
 
   const isCoach = membership.isCoach;
+
+  // Molestias (dato de salud): solo el jugador activo ve y gestiona las suyas
+  const isActivePlayer = activeMembership !== null && !activeMembership.isCoach;
+  const discomfortOpen = isActivePlayer && eventEnd(event) >= new Date();
+  const [healthUser, myDiscomforts] = isActivePlayer
+    ? await Promise.all([
+        prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { healthConsentAt: true, healthConsentVersion: true },
+        }),
+        prisma.discomfort.findMany({
+          where: { eventId: event.id, userId: session.user.id },
+          select: { id: true, bodyArea: true, intensity: true, note: true },
+          orderBy: { createdAt: "desc" },
+        }),
+      ])
+    : [null, []];
   const userAttendance = event.attendances[0] ?? null;
 
   const now = new Date();
@@ -250,6 +269,16 @@ export default async function EventDetailPage({ params }: PageProps) {
                 </p>
                 <RpeForm eventId={event.id} />
               </div>
+            )}
+
+            {/* Molestias del jugador */}
+            {isActivePlayer && (discomfortOpen || myDiscomforts.length > 0) && (
+              <DiscomfortSection
+                eventId={event.id}
+                hasConsent={hasCurrentConsent(healthUser)}
+                open={discomfortOpen}
+                items={myDiscomforts}
+              />
             )}
 
             {/* Panel de Entrenador */}

@@ -7,6 +7,8 @@ import type { Metadata } from "next";
 import { DEFAULT_TZ, formatInTz } from "@/lib/datetime";
 import ChangePasswordForm from "./ChangePasswordForm";
 import NotificationsForm from "./NotificationsForm";
+import HealthConsentForm from "./HealthConsentForm";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "Mi perfil",
@@ -20,6 +22,11 @@ export default async function ProfilePage() {
   if (!data) redirect("/login");
 
   const { account, teams, stats } = data;
+
+  const health = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { healthConsentAt: true },
+  });
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-16">
@@ -105,6 +112,16 @@ export default async function ProfilePage() {
           </h2>
           <NotificationsForm initial={account.notifications} />
         </section>
+
+        {/* Datos de salud */}
+        {health?.healthConsentAt && (
+          <section className="mb-6 border border-border p-6">
+            <h2 className="text-lg font-heading font-bold uppercase tracking-tight mb-5 text-foreground">
+              Datos de salud
+            </h2>
+            <HealthConsentForm consentDate={formatInTz(health.healthConsentAt, DEFAULT_TZ, "d 'de' MMMM 'de' yyyy")} />
+          </section>
+        )}
 
         {/* Cambiar contraseña */}
         <section className="mb-6 border border-border p-6">
