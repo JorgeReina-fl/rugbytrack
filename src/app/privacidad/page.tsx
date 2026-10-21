@@ -73,7 +73,7 @@ export default function PrivacidadPage() {
               </li>
               <li>
                 <strong>Conservación:</strong> hasta que tú o un entrenador de tu equipo las borréis, o hasta que se elimine el evento o tu cuenta.
-                Las copias de seguridad cifradas pueden conservar datos ya borrados durante un máximo de 84 días.
+                Las copias de seguridad cifradas pueden conservar datos ya borrados durante un máximo de 4 meses.
               </li>
               <li>
                 <strong>Menores:</strong> si la cuenta la usa el tutor legal de un menor, el consentimiento lo da el tutor en su nombre.
@@ -122,9 +122,23 @@ export default function PrivacidadPage() {
             <h2 className="font-heading font-bold text-2xl uppercase tracking-tight">5. Destinatarios</h2>
             <p className="font-sans text-base leading-relaxed text-foreground/90">
               Los datos son tratados en la infraestructura propia del responsable (hosting autogestionado).
-              No cedemos datos a terceros con fines comerciales ni publicitarios y no realizamos transferencias internacionales.
+              No cedemos datos a terceros con fines comerciales ni publicitarios.
               Los únicos accesos de terceros posibles son los que puedan derivarse de requerimientos legales de autoridades competentes
               o los que resulten estrictamente necesarios para el mantenimiento técnico del sistema, bajo el correspondiente deber de confidencialidad.
+            </p>
+            <p className="font-sans text-base leading-relaxed text-foreground/90">
+              <strong>Encargados del tratamiento.</strong> Para prestar el servicio usamos estos proveedores, que tratan datos por cuenta nuestra:
+            </p>
+            <ul className="font-sans text-base leading-relaxed text-foreground/90 list-disc pl-6 flex flex-col gap-1">
+              <li><strong>Cloudflare</strong> (red de distribución y seguridad): todo el tráfico web pasa por su red.</li>
+              <li><strong>Resend</strong> (envío de correos): tu nombre y tu correo cuando te enviamos un aviso.</li>
+              <li><strong>Google – Gemini</strong> (búsqueda de jugadores con perfil similar, solo cuando un entrenador la solicita): la posición y las estadísticas deportivas del jugador, sin su nombre ni datos de salud.</li>
+              <li><strong>Google Drive</strong> (copias de seguridad): solo copias cifradas en nuestro servidor antes de salir; Google no puede leer su contenido.</li>
+            </ul>
+            <p className="font-sans text-base leading-relaxed text-foreground/90">
+              Algunos de estos proveedores pueden tratar datos fuera del Espacio Económico Europeo, con las garantías previstas en el RGPD
+              (decisión de adecuación UE-EE. UU. o cláusulas contractuales tipo).
+              Los datos de salud nunca se envían a estos proveedores, salvo dentro de las copias de seguridad cifradas.
             </p>
           </section>
 
