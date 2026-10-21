@@ -20,7 +20,7 @@ export default function PrivacidadPage() {
           <header className="flex flex-col gap-3">
             <h1 className="font-heading font-extrabold text-5xl uppercase tracking-tighter">Política de Privacidad</h1>
             <p className="font-mono text-xs uppercase tracking-tighter text-muted-foreground">
-              Última actualización: 1 de agosto de 2026
+              Última actualización: 21 de octubre de 2026
             </p>
           </header>
 
@@ -44,12 +44,41 @@ export default function PrivacidadPage() {
               <li><strong>Datos de cuenta:</strong> nombre, dirección de correo electrónico y rol (entrenador o jugador).</li>
               <li><strong>Datos deportivos:</strong> asistencia a entrenamientos y eventos, métricas de esfuerzo percibido (RPE) y estadísticas derivadas.</li>
               <li><strong>Contenidos de usuario:</strong> mensajes publicados en el foro del equipo e imágenes que decidas subir.</li>
+              <li><strong>Datos de salud (solo si decides reportarlos):</strong> molestias físicas, según se describe en «Datos de salud: molestias físicas».</li>
               <li><strong>Datos técnicos mínimos:</strong> los registros necesarios para operar el servicio de forma segura (cookie de sesión, marcas de tiempo de acceso).</li>
             </ul>
             <p className="font-sans text-base leading-relaxed text-foreground/90">
-              No solicitamos ni tratamos de forma intencionada categorías especiales de datos (por ejemplo, datos de salud detallados).
+              Solo tratamos categorías especiales de datos (datos de salud) en el caso descrito en «Datos de salud: molestias físicas», y únicamente con tu consentimiento explícito.
               El RPE se trata como métrica deportiva de esfuerzo subjetivo, no como diagnóstico médico.
             </p>
+
+            <h3 className="font-heading font-bold text-xl uppercase tracking-tight mt-2">Datos de salud: molestias físicas</h3>
+            <p className="font-sans text-base leading-relaxed text-foreground/90">
+              Si decides reportar una molestia en un evento, tratamos la zona del cuerpo, la intensidad (0–10) y la nota que escribas.
+              Son datos de salud, una categoría especial de datos (art. 9 RGPD).
+            </p>
+            <ul className="font-sans text-base leading-relaxed text-foreground/90 list-disc pl-6 flex flex-col gap-2">
+              <li>
+                <strong>Finalidad:</strong> que los entrenadores de tu equipo la tengan en cuenta al planificar el entrenamiento o el partido.
+              </li>
+              <li>
+                <strong>Base jurídica:</strong> tu consentimiento explícito (art. 9.2.a RGPD), que pedimos antes del primer reporte.
+                Puedes retirarlo en cualquier momento desde tu perfil; al hacerlo se borran todas tus molestias.
+                Retirarlo no afecta a la licitud del tratamiento anterior.
+              </li>
+              <li>
+                <strong>Quién puede verlas:</strong> tú y los entrenadores activos de tu equipo. No se muestran a otros jugadores.
+                El aviso por correo al entrenador no incluye ningún detalle.
+                No se usan en estadísticas, análisis automatizados ni servicios de inteligencia artificial.
+              </li>
+              <li>
+                <strong>Conservación:</strong> hasta que tú o un entrenador de tu equipo las borréis, o hasta que se elimine el evento o tu cuenta.
+                Las copias de seguridad cifradas pueden conservar datos ya borrados durante un máximo de 84 días.
+              </li>
+              <li>
+                <strong>Menores:</strong> si la cuenta la usa el tutor legal de un menor, el consentimiento lo da el tutor en su nombre.
+              </li>
+            </ul>
           </section>
 
           <section className="flex flex-col gap-3">
@@ -58,6 +87,10 @@ export default function PrivacidadPage() {
               <li>
                 <strong>Prestación del servicio</strong> (gestión de cuenta, equipos, convocatorias, asistencia, métricas, foro):
                 ejecución de un contrato en el que el interesado es parte (art. 6.1.b RGPD).
+              </li>
+              <li>
+                <strong>Datos de salud (molestias físicas):</strong>
+                consentimiento explícito del interesado (art. 9.2.a RGPD), descrito en «Datos de salud: molestias físicas».
               </li>
               <li>
                 <strong>Seguridad, prevención de abusos y registros de acceso:</strong>
