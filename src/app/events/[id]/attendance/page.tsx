@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { getActiveMembership } from "@/lib/membership";
 import { AttendanceBoard } from "@/components/event/AttendanceBoard";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { CoachDiscomfortList } from "@/components/event/CoachDiscomfortList";
+import { getEventDiscomforts } from "@/lib/discomfort-coach";
+import { safeTz } from "@/lib/datetime";
 
 interface PageProps {
   params: Promise<{
@@ -22,6 +25,7 @@ export default async function AttendancePage({ params }: PageProps) {
   // Carga el evento
   const event = await prisma.event.findUnique({
     where: { id },
+    include: { team: { select: { timezone: true } } },
   });
 
   if (!event) {
@@ -67,6 +71,10 @@ export default async function AttendancePage({ params }: PageProps) {
     select: { userId: true, rpe: true, duration: true, workload: true, recordedById: true, updatedAt: true },
   });
   const rpeByUser = new Map(rpeEntries.map((r) => [r.userId, r]));
+
+  // Molestias del evento (solo coach activo: ya comprobado arriba), una consulta para todos los jugadores
+  const discomforts = await getEventDiscomforts(id, safeTz(event.team.timezone));
+  const discomfortUserIds = Array.from(new Set(discomforts.map((d) => d.userId)));
 
   // Mapea al mismo formato que espera el AttendanceBoard
   const mappedAttendances = attendances.map((att) => {
@@ -125,7 +133,12 @@ export default async function AttendancePage({ params }: PageProps) {
             rsvpDeadline: event.rsvpDeadline?.toISOString() ?? null,
           }}
           nowIso={new Date().toISOString()}
+          discomfortUserIds={discomfortUserIds}
         />
+
+        <div className="mt-8">
+          <CoachDiscomfortList eventId={id} items={discomforts} />
+        </div>
       </main>
     </div>
   );

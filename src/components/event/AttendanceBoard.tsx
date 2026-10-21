@@ -26,6 +26,8 @@ interface AttendanceBoardProps {
   /** Fechas ISO del evento y hora del servidor: las reglas de asistencia dependen de ellas. */
   event: { startDate: string; endDate: string | null; rsvpDeadline: string | null };
   nowIso: string;
+  /** Jugadores con alguna molestia en este evento: se marcan con «Molestia» (enlaza a la lista). */
+  discomfortUserIds?: string[];
 }
 
 const positionLabels: Record<RugbyPosition, string> = {
@@ -46,7 +48,7 @@ const positionLabels: Record<RugbyPosition, string> = {
   REPLACEMENT: "Suplente",
 };
 
-export function AttendanceBoard({ eventId, initialAttendances, event, nowIso }: AttendanceBoardProps) {
+export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, discomfortUserIds = [] }: AttendanceBoardProps) {
   const [attendances, setAttendances] = useState<PlayerAttendance[]>(initialAttendances);
   const [now, setNow] = useState(() => new Date(nowIso));
 
@@ -166,7 +168,17 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso }: 
                     {player.jerseyNumber || "—"}
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm text-foreground">{player.name}</h4>
+                    <h4 className="font-bold text-sm text-foreground">
+                      {player.name}
+                      {discomfortUserIds.includes(player.userId) && (
+                        <a
+                          href="#molestias"
+                          className="ml-2 align-middle bg-destructive/10 text-destructive border border-destructive/20 px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider hover:underline"
+                        >
+                          Molestia
+                        </a>
+                      )}
+                    </h4>
                     <p className="text-[11px] font-mono text-muted-foreground mt-0.5 uppercase tracking-widest">
                       {player.position ? positionLabels[player.position] : "Sin posición asignada"}
                     </p>

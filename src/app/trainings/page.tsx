@@ -14,6 +14,8 @@ import { CoachRpeList, type CoachRpeRow } from "@/components/training/CoachRpeLi
 import { RpeForm } from "@/components/training/RpeForm";
 import { WorkloadChart } from "@/components/training/WorkloadChart";
 import { ChartBar } from "@phosphor-icons/react/dist/ssr";
+import { getUnseenDiscomfortCounts } from "@/lib/discomfort-coach";
+import { DiscomfortBadge } from "@/components/event/DiscomfortBadge";
 
 interface PageProps {
   searchParams: Promise<{
@@ -127,6 +129,11 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
       },
     });
   }
+
+  // Molestias sin ver (solo coach activo): una consulta agrupada para los entrenos listados
+  const unseenDiscomforts = activeMembership?.isCoach
+    ? await getUnseenDiscomfortCounts(events.map((e) => e.id))
+    : new Map<string, number>();
 
   // Permiso para rellenar RPE
   const userAttendance = selectedEvent?.attendances[0] ?? null;
@@ -292,6 +299,7 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
                       <h3 className="font-heading font-extrabold uppercase tracking-tighter text-lg text-foreground truncate">
                         {event.title}
                       </h3>
+                      <DiscomfortBadge count={unseenDiscomforts.get(event.id) ?? 0} />
                       {event.location && (
                         <span className="text-[10px] font-mono uppercase text-muted-foreground block mt-1">
                           📍 {event.location}

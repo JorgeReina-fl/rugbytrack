@@ -10,6 +10,8 @@ import { RugbyPosition } from "@prisma/client";
 import { canSubmitRpe, eventEnd, isRsvpOpen } from "@/lib/attendance";
 import { hasCurrentConsent } from "@/lib/health-consent";
 import { DiscomfortSection } from "@/components/event/DiscomfortSection";
+import { CoachDiscomfortList } from "@/components/event/CoachDiscomfortList";
+import { getEventDiscomforts } from "@/lib/discomfort-coach";
 import { TAKEN_COUNT, isListTakenFromCount } from "@/lib/attendance-taken";
 import { RpeForm } from "@/components/training/RpeForm";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -93,8 +95,11 @@ export default async function EventDetailPage({ params }: PageProps) {
   }
 
   const isCoach = membership.isCoach;
+  const tz = safeTz(event.team.timezone);
 
-  // Molestias (dato de salud): solo el jugador activo ve y gestiona las suyas
+  // Molestias (dato de salud): el coach activo ve todas las del evento; el jugador activo, solo las suyas
+  const coachDiscomforts =
+    activeMembership?.isCoach ? await getEventDiscomforts(event.id, tz) : null;
   const isActivePlayer = activeMembership !== null && !activeMembership.isCoach;
   const discomfortOpen = isActivePlayer && eventEnd(event) >= new Date();
   const [healthUser, myDiscomforts] = isActivePlayer
@@ -126,7 +131,6 @@ export default async function EventDetailPage({ params }: PageProps) {
   const starters = event.callups.filter((c) => c.isStarter);
   const replacements = event.callups.filter((c) => !c.isStarter);
 
-  const tz = safeTz(event.team.timezone);
   const formattedDate = formatInTz(event.startDate, tz, "EEEE, d 'de' MMMM 'a las' HH:mm 'hs'");
 
   const formattedDeadline = event.rsvpDeadline
@@ -188,6 +192,8 @@ export default async function EventDetailPage({ params }: PageProps) {
                 </div>
               )}
             </div>
+
+            {coachDiscomforts && <CoachDiscomfortList eventId={event.id} items={coachDiscomforts} />}
 
             {/* Lista de convocados */}
             <div className="border border-border bg-card p-8 shadow-sm space-y-6">

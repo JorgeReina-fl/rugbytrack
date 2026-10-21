@@ -10,6 +10,9 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { prisma } from "@/lib/prisma";
 import { dayKeyInTz, formatInTz, safeTz } from "@/lib/datetime";
 import { buildMonthGrid, gridRangeUtc } from "@/lib/calendar";
+import { getActiveMembership } from "@/lib/membership";
+import { getUnseenDiscomfortCounts } from "@/lib/discomfort-coach";
+import { DiscomfortBadge } from "@/components/event/DiscomfortBadge";
 
 interface PageProps {
   searchParams: Promise<{
@@ -111,6 +114,12 @@ export default async function EventsPage({ searchParams }: PageProps) {
     },
     orderBy: { startDate: "asc" },
   });
+
+  // Molestias sin ver (solo coach activo): una consulta agrupada para los eventos del mes mostrado
+  const activeMembership = await getActiveMembership(selectedTeam.id, session.user.id);
+  const unseenDiscomforts = activeMembership?.isCoach
+    ? await getUnseenDiscomfortCounts(events.map((e) => e.id))
+    : new Map<string, number>();
 
   // Cuadrícula (lunes a domingo) del mes, con los días de las semanas vecinas
   const weeks = buildMonthGrid(year, month, tz, events, now);
@@ -227,6 +236,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
                           className={`block p-1.5 text-left text-[10px] leading-tight font-sans transition-all hover:border-primary ${statusColor}`}
                         >
                           <div className="font-bold truncate">{event.title}</div>
+                          <DiscomfortBadge count={unseenDiscomforts.get(event.id) ?? 0} />
                           <div className="flex items-center justify-between mt-1 text-[8px] font-mono font-bold uppercase tracking-widest opacity-80">
                             <span>{typeLabel}</span>
                             <span>
