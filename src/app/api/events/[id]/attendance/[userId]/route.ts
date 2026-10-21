@@ -7,6 +7,7 @@ import {
   apiUnauthorized,
   apiForbidden,
   apiNotFound,
+  apiError,
   handleZodError,
   handleUnknownError,
 } from "@/lib/api-response";
@@ -39,6 +40,13 @@ export async function PATCH(
     if (!membership) {
       return apiForbidden();
     }
+
+    // El jugador marcado debe ser miembro activo del equipo (no se crean asistencias a terceros)
+    const target = await prisma.teamMember.findFirst({
+      where: { userId, teamId: event.teamId, leftAt: null },
+      select: { id: true },
+    });
+    if (!target) return apiError("El jugador no pertenece al equipo", 422);
 
     const body = await request.json();
     const data = manualAttendanceSchema.parse(body);

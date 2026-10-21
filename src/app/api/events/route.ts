@@ -64,6 +64,18 @@ export async function POST(request: Request) {
       return apiForbidden();
     }
 
+    // Convocados: sin repetidos y todos miembros activos del equipo del evento (si no, no se crea nada)
+    const callups = Array.from(new Map((data.callups ?? []).map((c) => [c.userId, c])).values());
+    if (callups.length > 0) {
+      const activeMembers = await prisma.teamMember.findMany({
+        where: { teamId: data.teamId, leftAt: null, userId: { in: callups.map((c) => c.userId) } },
+        select: { userId: true },
+      });
+      if (activeMembers.length !== callups.length) {
+        return apiError("Algún jugador convocado no pertenece al equipo", 422);
+      }
+    }
+
     const event = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const newEvent = await tx.event.create({
         data: {
@@ -79,10 +91,10 @@ export async function POST(request: Request) {
         },
       });
 
-      if (data.callups && data.callups.length > 0) {
+      if (callups.length > 0) {
         // Crea las convocatorias (Callups)
         await tx.callup.createMany({
-          data: data.callups.map((c) => ({
+          data: callups.map((c) => ({
             eventId: newEvent.id,
             userId: c.userId,
             isStarter: c.isStarter,
@@ -92,7 +104,7 @@ export async function POST(request: Request) {
 
         // Crea los registros de asistencia (Attendance) iniciales
         await tx.attendance.createMany({
-          data: data.callups.map((c) => ({
+          data: callups.map((c) => ({
             eventId: newEvent.id,
             userId: c.userId,
             status: "PENDING",
@@ -105,7 +117,7 @@ export async function POST(request: Request) {
     });
 
     // Fire-and-forget: enviar RSVP con magic link a todos los convocados
-    if (data.callups && data.callups.length > 0) {
+    if (callups.length > 0) {
       sendRsvpNotifications(event.id).catch((err: unknown) => {
         logger.error({ err, eventId: event.id }, "Failed to dispatch RSVP notifications on event create");
       });
