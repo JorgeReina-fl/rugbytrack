@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { convocateMemberToFutureEvents } from "@/lib/convocation";
 import { joinTeamSchema } from "@/modules/teams/teams.schema";
 import {
   apiSuccess,
@@ -34,27 +35,35 @@ export async function POST(request: Request) {
       if (!existing.leftAt) {
         return apiError("Ya eres miembro activo de este equipo", 409);
       }
-      // Re-joining after leaving: reactivate membership
-      const member = await prisma.teamMember.update({
-        where: { id: existing.id },
-        data: {
-          leftAt: null,
-          isCoach: false,
-          position: data.position ?? existing.position,
-          jerseyNumber: data.jerseyNumber ?? existing.jerseyNumber,
-        },
+      // Re-joining after leaving: reactivate membership y convocar a los eventos de todo el equipo futuros
+      const member = await prisma.$transaction(async (tx) => {
+        const reactivated = await tx.teamMember.update({
+          where: { id: existing.id },
+          data: {
+            leftAt: null,
+            isCoach: false,
+            position: data.position ?? existing.position,
+            jerseyNumber: data.jerseyNumber ?? existing.jerseyNumber,
+          },
+        });
+        await convocateMemberToFutureEvents(tx, team.id, session.user.id, new Date());
+        return reactivated;
       });
       return apiSuccess({ team, member }, 200);
     }
 
-    const member = await prisma.teamMember.create({
-      data: {
-        userId: session.user.id,
-        teamId: team.id,
-        position: data.position ?? null,
-        jerseyNumber: data.jerseyNumber ?? null,
-        isCoach: false,
-      },
+    const member = await prisma.$transaction(async (tx) => {
+      const created = await tx.teamMember.create({
+        data: {
+          userId: session.user.id,
+          teamId: team.id,
+          position: data.position ?? null,
+          jerseyNumber: data.jerseyNumber ?? null,
+          isCoach: false,
+        },
+      });
+      await convocateMemberToFutureEvents(tx, team.id, session.user.id, new Date());
+      return created;
     });
 
     return apiSuccess({ team, member }, 201);

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { RugbyPosition, EventType } from "@prisma/client";
+import { isAllTeamEvent } from "@/lib/convocation";
 import { Warning } from "@phosphor-icons/react/dist/ssr";
 import { localInputToIso } from "@/lib/form-datetime";
 import { tzOptionsFor } from "@/lib/timezones";
@@ -256,7 +257,8 @@ export function EventForm({ teamId, timezone, members }: EventFormProps) {
     setError(null);
     setLoading(true);
 
-    const formattedCallups = Object.entries(callups)
+    // En entrenos, otros y viajes se convoca a todo el equipo: no se envían convocados
+    const formattedCallups = isAllTeamEvent(type) ? [] : Object.entries(callups)
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       .filter(([_userId, info]) => info.selected)
       .map(([userId, info]) => ({
@@ -431,6 +433,16 @@ export function EventForm({ teamId, timezone, members }: EventFormProps) {
       </div>
 
       {/* ── Sección 2: Convocatoria ───────────────────────────────── */}
+      {isAllTeamEvent(type) ? (
+        <div className="border border-border bg-card p-8 shadow-sm space-y-6">
+          <h2 className="text-2xl font-heading font-extrabold tracking-tighter uppercase text-foreground border-b border-border pb-4">
+            Convocatoria
+          </h2>
+          <p className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground">
+            Se convocará a todo el equipo
+          </p>
+        </div>
+      ) : (
       <div className="border border-border bg-card p-8 shadow-sm space-y-6">
         <div>
           <h2 className="text-2xl font-heading font-extrabold tracking-tighter uppercase text-foreground border-b border-border pb-4">
@@ -541,6 +553,7 @@ export function EventForm({ teamId, timezone, members }: EventFormProps) {
             })}
         </div>
       </div>
+      )}
 
       <div className="flex justify-end">
         <button

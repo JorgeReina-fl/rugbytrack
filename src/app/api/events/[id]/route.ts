@@ -1,6 +1,7 @@
 import "server-only";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { convocateAllActive, isAllTeamEvent } from "@/lib/convocation";
 import { updateEventSchema } from "@/modules/events/events.schema";
 import {
   apiSuccess,
@@ -107,9 +108,17 @@ export async function PATCH(
     if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null;
     if (data.rsvpDeadline !== undefined) updateData.rsvpDeadline = data.rsvpDeadline ? new Date(data.rsvpDeadline) : null;
 
-    const updatedEvent = await prisma.event.update({
-      where: { id },
-      data: updateData,
+    // Si el tipo pasa a uno de todo el equipo: se convoca a todos (sin correo) y se quitan las
+    // convocatorias con alineación. Si pasa a partido/torneo: se conservan las asistencias y no se crean Callup.
+    const becomesAllTeam = data.type !== undefined && data.type !== event.type && isAllTeamEvent(data.type);
+
+    const updatedEvent = await prisma.$transaction(async (tx) => {
+      const updated = await tx.event.update({ where: { id }, data: updateData });
+      if (becomesAllTeam) {
+        await convocateAllActive(tx, id, event.teamId);
+        await tx.callup.deleteMany({ where: { eventId: id } });
+      }
+      return updated;
     });
 
     return apiSuccess(updatedEvent);

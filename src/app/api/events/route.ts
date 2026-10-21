@@ -14,6 +14,7 @@ import {
 import { ZodError } from "zod";
 import { logger } from "@/lib/logger";
 import { sendRsvpNotifications } from "@/lib/rsvp-notify";
+import { convocateAllActive, isAllTeamEvent } from "@/lib/convocation";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -64,8 +65,11 @@ export async function POST(request: Request) {
       return apiForbidden();
     }
 
-    // Convocados: sin repetidos y todos miembros activos del equipo del evento (si no, no se crea nada)
-    const callups = Array.from(new Map((data.callups ?? []).map((c) => [c.userId, c])).values());
+    // Entrenos, otros y viajes convocan a todo el equipo activo: los callups del body se ignoran.
+    const allTeam = isAllTeamEvent(data.type);
+
+    // Convocados (partidos y torneos): sin repetidos y todos miembros activos del equipo del evento (si no, no se crea nada)
+    const callups = allTeam ? [] : Array.from(new Map((data.callups ?? []).map((c) => [c.userId, c])).values());
     if (callups.length > 0) {
       const activeMembers = await prisma.teamMember.findMany({
         where: { teamId: data.teamId, leftAt: null, userId: { in: callups.map((c) => c.userId) } },
@@ -76,6 +80,7 @@ export async function POST(request: Request) {
       }
     }
 
+    let convocated: string[] = [];
     const event = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const newEvent = await tx.event.create({
         data: {
@@ -113,11 +118,15 @@ export async function POST(request: Request) {
         });
       }
 
+      if (allTeam) {
+        convocated = await convocateAllActive(tx, newEvent.id, data.teamId);
+      }
+
       return newEvent;
     });
 
     // Fire-and-forget: enviar RSVP con magic link a todos los convocados
-    if (callups.length > 0) {
+    if (callups.length > 0 || convocated.length > 0) {
       sendRsvpNotifications(event.id).catch((err: unknown) => {
         logger.error({ err, eventId: event.id }, "Failed to dispatch RSVP notifications on event create");
       });

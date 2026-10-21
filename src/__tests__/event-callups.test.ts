@@ -33,7 +33,7 @@ const post = (callups: unknown[]) =>
   createEvent(
     new Request("http://localhost/api/events", {
       method: "POST",
-      body: JSON.stringify({ teamId: TEAM, title: "Entreno", type: "TRAINING", startDate: new Date().toISOString(), callups }),
+      body: JSON.stringify({ teamId: TEAM, title: "Partido", type: "MATCH", startDate: new Date().toISOString(), callups }),
     }) as any
   );
 
