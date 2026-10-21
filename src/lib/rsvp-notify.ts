@@ -11,9 +11,9 @@ import { eventWhen } from "@/lib/event-when";
 
 /**
  * Sends RSVP request emails (with magic-link token) to all PENDING attendance
- * records for the given event. Safe to call fire-and-forget.
+ * records for the given event (or only to `onlyUserIds`). Safe to call fire-and-forget.
  */
-export async function sendRsvpNotifications(eventId: string): Promise<void> {
+export async function sendRsvpNotifications(eventId: string, onlyUserIds?: string[]): Promise<void> {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
     select: { id: true, teamId: true, title: true, startDate: true, location: true, team: { select: { timezone: true } } },
@@ -22,7 +22,7 @@ export async function sendRsvpNotifications(eventId: string): Promise<void> {
 
   const attendances = await prisma.attendance.findMany({
     // Solo miembros activos del equipo del evento: un ex-miembro no recibe convocatorias
-    where: { eventId, status: "PENDING", user: { memberships: { some: { teamId: event.teamId, leftAt: null } } } },
+    where: { eventId, status: "PENDING", ...(onlyUserIds ? { userId: { in: onlyUserIds } } : {}), user: { memberships: { some: { teamId: event.teamId, leftAt: null } } } },
     include: { user: { select: { id: true, email: true, name: true } } },
   });
   if (attendances.length === 0) {

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { labelFor } from "@/lib/lineup";
 import { getActiveMembership } from "@/lib/membership";
 import { formatInTz, safeTz } from "@/lib/datetime";
 import { RsvpControl } from "./rsvp-control";
@@ -211,7 +212,7 @@ export default async function EventDetailPage({ params }: PageProps) {
                         >
                           <span className="font-semibold text-sm text-foreground">{c.user.name}</span>
                           <span className="bg-secondary px-2 py-1 text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest">
-                            {c.position ? positionLabels[c.position] : "Sin posición"}
+                            {event.format && c.shirtNumber != null ? labelFor(event.format, c.shirtNumber) : c.position ? positionLabels[c.position] : "Sin posición"}
                           </span>
                         </div>
                       ))}

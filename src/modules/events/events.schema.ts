@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EventType, RugbyPosition, AttendanceStatus } from "@prisma/client";
+import { EventType, MatchFormat, RugbyPosition, AttendanceStatus } from "@prisma/client";
 
 // Regex to validate ISO date strings (basic validation, parse will handle actual date conversion)
 const dateCoercible = z.string().datetime({ message: "Fecha con formato inválido (debe ser ISO-8601)" }).or(z.date());
@@ -17,15 +17,27 @@ export const createEventSchema = z.object({
   startDate: dateCoercible,
   endDate: dateCoercible.optional().nullable(),
   rsvpDeadline: dateCoercible.optional().nullable(),
+  format: z.nativeEnum(MatchFormat, { message: "Formato de partido inválido" }).optional(),
   callups: z
     .array(
       z.object({
         userId: z.string().cuid("ID de usuario inválido"),
         isStarter: z.boolean().default(false),
         position: z.nativeEnum(RugbyPosition).optional().nullable(),
+        shirtNumber: z.number().int("Dorsal inválido").optional().nullable(),
       })
     )
     .optional(),
+});
+
+export const lineupSchema = z.object({
+  format: z.nativeEnum(MatchFormat, { message: "Formato de partido inválido" }),
+  players: z.array(
+    z.object({
+      userId: z.string().cuid("ID de usuario inválido"),
+      shirtNumber: z.number().int("Dorsal inválido").nullable(),
+    })
+  ),
 });
 
 export const updateEventSchema = z.object({
@@ -58,6 +70,7 @@ export const sessionActionSchema = z.object({
 });
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
+export type LineupInput = z.infer<typeof lineupSchema>;
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 export type RsvpInput = z.infer<typeof rsvpSchema>;
 export type ManualAttendanceInput = z.infer<typeof manualAttendanceSchema>;

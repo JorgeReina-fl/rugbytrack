@@ -15,7 +15,7 @@ jest.mock("@/lib/rsvp-notify", () => ({ sendRsvpNotifications: jest.fn().mockRes
 jest.mock("@/lib/attendance-write", () => ({ setPresence: jest.fn().mockResolvedValue({ checkedIn: true }) }));
 jest.mock("@/lib/prisma", () => ({
   prisma: {
-    event: { create: jest.fn(), findUnique: jest.fn() },
+    event: { create: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn().mockResolvedValue(null) },
     teamMember: { findFirst: jest.fn(), findMany: jest.fn() },
     callup: { createMany: jest.fn() },
     attendance: { createMany: jest.fn() },

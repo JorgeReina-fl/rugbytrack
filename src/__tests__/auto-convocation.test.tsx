@@ -15,7 +15,7 @@ jest.mock("@/lib/logger", () => ({ logger: { info: jest.fn(), warn: jest.fn(), e
 jest.mock("@/lib/rsvp-notify", () => ({ sendRsvpNotifications: jest.fn().mockResolvedValue(undefined) }));
 jest.mock("@/lib/prisma", () => ({
   prisma: {
-    event: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
+    event: { create: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn().mockResolvedValue(null), findMany: jest.fn(), update: jest.fn() },
     team: { findUnique: jest.fn() },
     teamMember: { findFirst: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn() },
     callup: { createMany: jest.fn(), deleteMany: jest.fn() },

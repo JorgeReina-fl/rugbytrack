@@ -15,6 +15,7 @@ import { ZodError } from "zod";
 import { logger } from "@/lib/logger";
 import { sendRsvpNotifications } from "@/lib/rsvp-notify";
 import { convocateAllActive, isAllTeamEvent } from "@/lib/convocation";
+import { defaultFormatForTeam, slotFor, validateLineup } from "@/lib/lineup";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -80,6 +81,19 @@ export async function POST(request: Request) {
       }
     }
 
+    // Alineación por dorsal (partidos y torneos): isStarter y position salen del dorsal. Sin dorsal: formulario actual.
+    const format = allTeam ? null : (data.format ?? (await defaultFormatForTeam(data.teamId)));
+    if (format != null) {
+      const errors = validateLineup(format, callups.map((c) => ({ userId: c.userId, shirtNumber: c.shirtNumber ?? null })));
+      if (errors.length > 0) return apiError(errors[0] ?? "Alineación inválida", 422);
+    }
+    const lineup = callups.map((c) => {
+      if (format == null || c.shirtNumber == null) {
+        return { userId: c.userId, shirtNumber: null, isStarter: c.isStarter, position: c.position ?? null };
+      }
+      return { userId: c.userId, shirtNumber: c.shirtNumber, ...slotFor(format, c.shirtNumber) };
+    });
+
     let convocated: string[] = [];
     const event = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const newEvent = await tx.event.create({
@@ -87,6 +101,7 @@ export async function POST(request: Request) {
           teamId: data.teamId,
           title: data.title,
           type: data.type,
+          format,
           description: data.description ?? null,
           location: data.location ?? null,
           startDate: new Date(data.startDate),
@@ -99,11 +114,12 @@ export async function POST(request: Request) {
       if (callups.length > 0) {
         // Crea las convocatorias (Callups)
         await tx.callup.createMany({
-          data: callups.map((c) => ({
+          data: lineup.map((c) => ({
             eventId: newEvent.id,
             userId: c.userId,
             isStarter: c.isStarter,
-            position: c.position ?? null,
+            position: c.position,
+            shirtNumber: c.shirtNumber,
           })),
         });
 
