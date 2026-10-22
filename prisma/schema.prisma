@@ -123,6 +123,7 @@ model User {
   notifyProposals     Boolean  @default(true)
   notifyForumThreads  Boolean  @default(true)
   notifyRsvpReminders Boolean  @default(true)
+  notifyDiscomforts   Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
