@@ -38,6 +38,11 @@ export async function sendEmail({ to, subject, react }: SendEmailParams) {
       subject,
       html,
     });
+    // Resend no lanza ante un rechazo (destinatario inválido, límite…): devuelve { error }
+    if (data.error) {
+      logger.error({ err: errInfo(data.error) }, "Failed to send email via Resend");
+      return null;
+    }
     logger.info({ emailId: data.data?.id }, "Email sent successfully");
     return data;
   } catch (err) {

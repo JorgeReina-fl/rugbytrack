@@ -53,4 +53,32 @@ describe("sendEmail — logs sin datos personales", () => {
     expect(out).not.toContain(EMAIL);
     expect(out).not.toContain(NAME);
   });
+
+  test("Resend devuelve { error } sin lanzar: no hay «Email sent successfully», el log no lleva datos personales y el llamador ve null", async () => {
+    process.env.RESEND_API_KEY = "re_test";
+    const { sendEmail, sendCallupNotification } = await import("@/lib/resend");
+    send.mockResolvedValue({
+      data: null,
+      error: { name: "validation_error", message: `The to address ${EMAIL} is invalid (${NAME})`, statusCode: 422 },
+    });
+    expect(await sendEmail({ to: EMAIL, subject, react: null as never })).toBeNull();
+    expect(
+      await sendCallupNotification({ to: EMAIL, userName: NAME, eventTitle: "P", eventDate: "d", eventLocation: "l", rsvpLink: "http://x" })
+    ).toBeNull();
+    const out = JSON.stringify(logCalls);
+    expect(out).not.toContain("Email sent successfully");
+    expect(out).toContain("Failed to send email via Resend");
+    expect(out).toContain("validation_error");
+    expect(out).toContain("422");
+    expect(out).not.toContain(EMAIL);
+    expect(out).not.toContain(NAME);
+  });
+
+  test("respuesta correcta: devuelve los datos y registra el éxito", async () => {
+    process.env.RESEND_API_KEY = "re_test";
+    const { sendEmail } = await import("@/lib/resend");
+    send.mockResolvedValue({ data: { id: "m9" }, error: null });
+    expect(await sendEmail({ to: EMAIL, subject, react: null as never })).toEqual({ data: { id: "m9" }, error: null });
+    expect(JSON.stringify(logCalls)).toContain("Email sent successfully");
+  });
 });
