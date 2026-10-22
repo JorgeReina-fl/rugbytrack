@@ -7,6 +7,7 @@ interface NotificationPrefs {
   notifyProposals: boolean;
   notifyForumThreads: boolean;
   notifyRsvpReminders: boolean;
+  notifyDiscomforts: boolean;
 }
 
 const LABELS: Record<keyof NotificationPrefs, string> = {
@@ -14,9 +15,13 @@ const LABELS: Record<keyof NotificationPrefs, string> = {
   notifyProposals: "Nuevas propuestas",
   notifyForumThreads: "Hilos nuevos en el foro",
   notifyRsvpReminders: "Recordatorio de confirmación de asistencia (24h)",
+  notifyDiscomforts: "Avisos de molestias de mis jugadores",
 };
 
-export default function NotificationsForm({ initial }: { initial: NotificationPrefs }) {
+/** Preferencias que solo tienen sentido para un coach activo. */
+const COACH_ONLY: (keyof NotificationPrefs)[] = ["notifyDiscomforts"];
+
+export default function NotificationsForm({ initial, isCoach = false }: { initial: NotificationPrefs; isCoach?: boolean }) {
   const [prefs, setPrefs] = useState<NotificationPrefs>(initial);
   const [saving, setSaving] = useState<keyof NotificationPrefs | null>(null);
   const [errors, setErrors] = useState<Partial<Record<keyof NotificationPrefs, string>>>({});
@@ -49,7 +54,9 @@ export default function NotificationsForm({ initial }: { initial: NotificationPr
 
   return (
     <div className="space-y-4">
-      {(Object.keys(LABELS) as (keyof NotificationPrefs)[]).map((key) => (
+      {(Object.keys(LABELS) as (keyof NotificationPrefs)[])
+        .filter((key) => isCoach || !COACH_ONLY.includes(key))
+        .map((key) => (
         <div key={key}>
           <label className="flex items-center justify-between gap-4 cursor-pointer group">
             <span className="text-sm font-mono text-foreground group-hover:text-primary transition-colors">
@@ -79,6 +86,9 @@ export default function NotificationsForm({ initial }: { initial: NotificationPr
       ))}
 
       <p className="pt-2 text-xs font-mono text-muted-foreground border-t border-border">
+        Las convocatorias a eventos siempre se envían por correo; los recordatorios y el resto de avisos puedes desactivarlos aquí.
+      </p>
+      <p className="text-xs font-mono text-muted-foreground">
         Las notificaciones de <strong className="font-bold text-foreground">RSVP inicial</strong>{" "}
         y <strong className="font-bold text-foreground">recuperación de contraseña</strong> son
         transaccionales y no pueden desactivarse.

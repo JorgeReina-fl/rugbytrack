@@ -12,13 +12,12 @@ import { errInfo } from "@/lib/log-safe";
  * Dato de salud: ni el email ni los logs llevan jugador, zona, intensidad ni nota.
  * Nunca lanza: si falla, la molestia ya está guardada.
  *
- * No hay preferencia de notificación específica para este aviso (las notify* del usuario
- * son de encuestas, propuestas, foro y recordatorios RSVP), así que no se filtra por ellas.
+ * Solo a coaches con notifyDiscomforts activado. La insignia y la lista en la app no dependen de la preferencia.
  */
 export async function notifyCoachesOfDiscomfort(event: { id: string; teamId: string; title: string }): Promise<void> {
   try {
     const coaches = await prisma.teamMember.findMany({
-      where: { teamId: event.teamId, isCoach: true, leftAt: null },
+      where: { teamId: event.teamId, isCoach: true, leftAt: null, user: { notifyDiscomforts: true } },
       select: { user: { select: { email: true } } },
     });
     if (coaches.length === 0) return;

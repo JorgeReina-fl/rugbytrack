@@ -20,6 +20,7 @@ export interface NotificationPrefs {
   notifyProposals: boolean;
   notifyForumThreads: boolean;
   notifyRsvpReminders: boolean;
+  notifyDiscomforts: boolean;
 }
 
 export interface ProfileData {
@@ -57,6 +58,7 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
       notifyProposals: true,
       notifyForumThreads: true,
       notifyRsvpReminders: true,
+      notifyDiscomforts: true,
       memberships: {
         where: { leftAt: null },
         orderBy: { joinedAt: "asc" },
@@ -170,6 +172,7 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
         notifyProposals: user.notifyProposals,
         notifyForumThreads: user.notifyForumThreads,
         notifyRsvpReminders: user.notifyRsvpReminders,
+        notifyDiscomforts: user.notifyDiscomforts,
       },
     },
     teams: user.memberships.map((m) => ({

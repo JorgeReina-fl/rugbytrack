@@ -15,6 +15,7 @@ const notificationsSchema = z
     notifyProposals: z.boolean().optional(),
     notifyForumThreads: z.boolean().optional(),
     notifyRsvpReminders: z.boolean().optional(),
+    notifyDiscomforts: z.boolean().optional(),
   })
   .refine(
     (d) => Object.values(d).some((v) => v !== undefined),

@@ -110,7 +110,7 @@ export default async function ProfilePage() {
           <h2 className="text-lg font-heading font-bold uppercase tracking-tight mb-5 text-foreground">
             Notificaciones
           </h2>
-          <NotificationsForm initial={account.notifications} />
+          <NotificationsForm initial={account.notifications} isCoach={teams.some((t) => t.role === "COACH")} />
         </section>
 
         {/* Datos de salud */}
