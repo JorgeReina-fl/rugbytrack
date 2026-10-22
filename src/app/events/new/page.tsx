@@ -6,6 +6,7 @@ import Link from "next/link";
 import { EventForm } from "./event-form";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { safeTz } from "@/lib/datetime";
+import { defaultFormatForTeam } from "@/lib/lineup";
 
 interface PageProps {
   searchParams: Promise<{
@@ -53,6 +54,8 @@ export default async function NewEventPage({ searchParams }: PageProps) {
     },
   });
 
+  const defaultFormat = await defaultFormatForTeam(teamId);
+
   return (
     <div className="min-h-screen bg-background text-foreground pb-10">
       <DashboardHeader badgeLabel="Entrenador" />
@@ -73,7 +76,7 @@ export default async function NewEventPage({ searchParams }: PageProps) {
           </Link>
         </div>
 
-        <EventForm teamId={teamId} timezone={safeTz(membership.team.timezone)} members={members} />
+        <EventForm teamId={teamId} timezone={safeTz(membership.team.timezone)} members={members} defaultFormat={defaultFormat} />
       </main>
     </div>
   );

@@ -17,6 +17,7 @@ import { TAKEN_COUNT, isListTakenFromCount } from "@/lib/attendance-taken";
 import { RpeForm } from "@/components/training/RpeForm";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { NotifyButton } from "@/components/event/NotifyButton";
+import { LineupSheet } from "@/components/event/LineupSheet";
 import { Gear } from "@phosphor-icons/react/dist/ssr";
 
 interface PageProps {
@@ -134,6 +135,9 @@ export default async function EventDetailPage({ params }: PageProps) {
     ? formatInTz(event.rsvpDeadline, tz, "d 'de' MMMM 'a las' HH:mm 'hs'")
     : null;
 
+  const canEditLineup =
+    isCoach && (event.type === "MATCH" || event.type === "TOURNAMENT") && new Date(event.startDate) > now;
+
   const eventTypeLabel = event.type === "TRAINING" ? "Entrenamiento" : event.type === "MATCH" ? "Partido" : "Evento";
 
   return (
@@ -196,6 +200,13 @@ export default async function EventDetailPage({ params }: PageProps) {
             <div className="border border-border bg-card p-8 shadow-sm space-y-6">
               <h2 className="text-2xl font-heading font-extrabold tracking-tighter uppercase">Convocados ({event.callups.length})</h2>
 
+              {event.format ? (
+                <LineupSheet
+                  format={event.format}
+                  currentUserId={session.user.id}
+                  callups={event.callups.map((c) => ({ userId: c.userId, name: c.user.name, shirtNumber: c.shirtNumber }))}
+                />
+              ) : (
               <div className="space-y-6">
                 <div>
                   <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground border-b border-border pb-2 mb-3">
@@ -243,6 +254,7 @@ export default async function EventDetailPage({ params }: PageProps) {
                   )}
                 </div>
               </div>
+              )}
             </div>
           </div>
 
@@ -300,6 +312,14 @@ export default async function EventDetailPage({ params }: PageProps) {
                   >
                     Panel de Asistencia
                   </Link>
+                  {canEditLineup && (
+                    <Link
+                      href={`/events/${event.id}/lineup`}
+                      className="flex justify-center border border-primary px-4 py-3 text-center text-xs font-mono uppercase tracking-widest font-bold text-primary hover:bg-primary/10 transition-all"
+                    >
+                      Editar alineación
+                    </Link>
+                  )}
                   <NotifyButton eventId={event.id} />
                 </div>
               </div>

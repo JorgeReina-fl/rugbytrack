@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { RugbyPosition, EventType } from "@prisma/client";
+import { RugbyPosition, EventType, MatchFormat } from "@prisma/client";
 import { isAllTeamEvent } from "@/lib/convocation";
 import { Warning } from "@phosphor-icons/react/dist/ssr";
 import { localInputToIso } from "@/lib/form-datetime";
 import { tzOptionsFor } from "@/lib/timezones";
+import { SLOTS, validateLineup } from "@/lib/lineup-core";
+import { LineupEditor } from "@/components/event/LineupEditor";
+import type { LineupValue } from "@/components/event/lineup-state";
 
 interface MemberWithUser {
   id: string;
@@ -25,25 +28,8 @@ interface EventFormProps {
   teamId: string;
   timezone: string;
   members: MemberWithUser[];
+  defaultFormat?: MatchFormat;
 }
-
-const positionLabels: Record<RugbyPosition, string> = {
-  PROP_LOOSEHEAD: "Pilar Izquierdo (1)",
-  HOOKER: "Talonador (2)",
-  PROP_TIGHTHEAD: "Pilar Derecho (3)",
-  LOCK: "Segunda Línea (4/5)",
-  FLANKER_BLINDSIDE: "Flanker Ciego (6)",
-  FLANKER_OPENSIDE: "Flanker Abierto (7)",
-  NUMBER_EIGHT: "Número 8 (8)",
-  SCRUM_HALF: "Medio Melé (9)",
-  FLY_HALF: "Apertura (10)",
-  CENTER_INSIDE: "Primer Centro (12)",
-  CENTER_OUTSIDE: "Segundo Centro (13)",
-  WING_LEFT: "Ala Izquierdo (11)",
-  WING_RIGHT: "Ala Derecho (14)",
-  FULLBACK: "Zaguero (15)",
-  REPLACEMENT: "Suplente",
-};
 
 /* ── Autocomplete component ─────────────────────────────────────────── */
 
@@ -145,7 +131,7 @@ function saveSuggestion(key: string, value: string, current: string[]): string[]
 
 /* ── Main form ──────────────────────────────────────────────────────── */
 
-export function EventForm({ teamId, timezone, members }: EventFormProps) {
+export function EventForm({ teamId, timezone, members, defaultFormat = "SEVENS" }: EventFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -176,81 +162,12 @@ export function EventForm({ teamId, timezone, members }: EventFormProps) {
     [startIso, timezone]
   );
 
-  // Callups state: mapping userId -> callup info
-  const [callups, setCallups] = useState<
-    Record<
-      string,
-      {
-        selected: boolean;
-        isStarter: boolean;
-        position: RugbyPosition | "";
-      }
-    >
-  >(
-    Object.fromEntries(
-      members.map((m) => [
-        m.userId,
-        {
-          selected: false,
-          isStarter: false,
-          position: m.position ?? "",
-        },
-      ])
-    )
+  // Alineación por dorsal (solo Partido/Torneo)
+  const [lineup, setLineup] = useState<LineupValue>({ format: defaultFormat, players: [] });
+  const lineupMembers = useMemo(
+    () => members.filter((m) => !m.isCoach).map((m) => ({ userId: m.userId, name: m.user.name })),
+    [members]
   );
-
-  const playerIds = members.filter((m) => !m.isCoach).map((m) => m.userId);
-
-  const selectAll = () => {
-    setCallups((prev) => {
-      const next = { ...prev };
-      playerIds.forEach((id) => {
-        next[id] = { ...next[id]!, selected: true };
-      });
-      return next;
-    });
-  };
-
-  const deselectAll = () => {
-    setCallups((prev) => {
-      const next = { ...prev };
-      playerIds.forEach((id) => {
-        next[id] = { ...next[id]!, selected: false };
-      });
-      return next;
-    });
-  };
-
-  const toggleMemberCallup = (userId: string) => {
-    setCallups((prev) => ({
-      ...prev,
-      [userId]: {
-        ...prev[userId]!,
-        selected: !prev[userId]!.selected,
-      },
-    }));
-  };
-
-  const handleStarterChange = (userId: string, isStarter: boolean) => {
-    setCallups((prev) => ({
-      ...prev,
-      [userId]: {
-        ...prev[userId]!,
-        isStarter,
-        position: isStarter ? prev[userId]!.position || "PROP_LOOSEHEAD" : "REPLACEMENT",
-      },
-    }));
-  };
-
-  const handlePositionChange = (userId: string, position: RugbyPosition) => {
-    setCallups((prev) => ({
-      ...prev,
-      [userId]: {
-        ...prev[userId]!,
-        position,
-      },
-    }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,14 +175,23 @@ export function EventForm({ teamId, timezone, members }: EventFormProps) {
     setLoading(true);
 
     // En entrenos, otros y viajes se convoca a todo el equipo: no se envían convocados
-    const formattedCallups = isAllTeamEvent(type) ? [] : Object.entries(callups)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      .filter(([_userId, info]) => info.selected)
-      .map(([userId, info]) => ({
-        userId,
-        isStarter: info.isStarter,
-        position: info.position ? info.position : null,
-      }));
+    const allTeam = isAllTeamEvent(type);
+    if (!allTeam) {
+      const errors = validateLineup(lineup.format, lineup.players);
+      if (errors.length > 0) {
+        setError(errors[0]!);
+        setLoading(false);
+        return;
+      }
+    }
+    const formattedCallups = allTeam
+      ? []
+      : lineup.players.map((p) => ({
+          userId: p.userId,
+          isStarter: p.shirtNumber != null && p.shirtNumber <= SLOTS[lineup.format].starters,
+          position: null,
+          shirtNumber: p.shirtNumber,
+        }));
 
     try {
       const response = await fetch("/api/events", {
@@ -280,6 +206,7 @@ export function EventForm({ teamId, timezone, members }: EventFormProps) {
           startDate: localInputToIso(startDate, selectedTz) ?? "",
           endDate: localInputToIso(endDate, selectedTz),
           rsvpDeadline: localInputToIso(rsvpDeadline, selectedTz),
+          ...(allTeam ? {} : { format: lineup.format }),
           callups: formattedCallups,
         }),
       });
@@ -449,109 +376,16 @@ export function EventForm({ teamId, timezone, members }: EventFormProps) {
             Convocatoria
           </h2>
           <p className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground mt-3">
-            Selecciona los jugadores convocados y asígnales su rol en el equipo.
+            Asigna a cada jugador su dorsal o déjalo convocado sin dorsal.
           </p>
         </div>
 
-        {/* Seleccionar / Deseleccionar todos */}
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={selectAll}
-            className="px-4 py-2 text-xs font-mono font-bold uppercase tracking-widest border border-border bg-background text-foreground hover:border-primary hover:text-primary transition-all"
-          >
-            Seleccionar todos
-          </button>
-          <button
-            type="button"
-            onClick={deselectAll}
-            className="px-4 py-2 text-xs font-mono font-bold uppercase tracking-widest border border-border bg-background text-muted-foreground hover:border-destructive hover:text-destructive transition-all"
-          >
-            Deseleccionar todos
-          </button>
-        </div>
-
-        <div className="border border-border overflow-hidden divide-y divide-border bg-background">
-          {members
-            .filter((m) => !m.isCoach)
-            .map((member) => {
-              const callupInfo = callups[member.userId]!;
-
-              return (
-                <div
-                  key={member.id}
-                  className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4 transition-all ${
-                    callupInfo.selected
-                      ? "bg-primary/5 border-l-2 border-l-primary"
-                      : "bg-background"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id={`convocar-${member.userId}`}
-                      checked={callupInfo.selected}
-                      onChange={() => toggleMemberCallup(member.userId)}
-                      className="h-5 w-5 border-border bg-background text-primary focus:ring-primary focus:ring-offset-background"
-                    />
-                    <label
-                      htmlFor={`convocar-${member.userId}`}
-                      className="cursor-pointer font-bold text-sm text-foreground uppercase tracking-wide"
-                    >
-                      {member.user.name}
-                    </label>
-                  </div>
-
-                  {callupInfo.selected && (
-                    <div className="flex flex-wrap items-center gap-4 pl-8 sm:pl-0">
-                      {/* Titular / Suplente toggle */}
-                      <div className="flex border border-border bg-background p-0.5">
-                        <button
-                          type="button"
-                          onClick={() => handleStarterChange(member.userId, true)}
-                          className={`px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-widest transition-all ${
-                            callupInfo.isStarter
-                              ? "bg-primary text-primary-foreground"
-                              : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                          }`}
-                        >
-                          Titular
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleStarterChange(member.userId, false)}
-                          className={`px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-widest transition-all ${
-                            !callupInfo.isStarter
-                              ? "bg-secondary text-foreground"
-                              : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                          }`}
-                        >
-                          Suplente
-                        </button>
-                      </div>
-
-                      {/* Posición (solo titulares) */}
-                      {callupInfo.isStarter && (
-                        <select
-                          value={callupInfo.position}
-                          onChange={(e) =>
-                            handlePositionChange(member.userId, e.target.value as RugbyPosition)
-                          }
-                          className="border border-border bg-background px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                        >
-                          {Object.entries(positionLabels).map(([pos, label]) => (
-                            <option key={pos} value={pos}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-        </div>
+        <LineupEditor
+          members={lineupMembers}
+          initialFormat={defaultFormat}
+          initialPlayers={lineup.players}
+          onChange={setLineup}
+        />
       </div>
       )}
 
