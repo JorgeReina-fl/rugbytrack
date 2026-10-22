@@ -183,12 +183,13 @@ async function main() {
 
   for (const event of events) {
     const attendances = await prisma.attendance.findMany({
-      // Solo miembros activos del equipo del evento: un ex-miembro no recibe recordatorios
+      // Solo miembros activos del equipo del evento (un ex-miembro no recibe recordatorios) y que
+      // no hayan desactivado este aviso; ambos filtros van en la misma consulta
       where: {
         eventId: event.id,
         status: "PENDING",
         reminderSentAt: null,
-        user: { memberships: { some: { teamId: event.teamId, leftAt: null } } },
+        user: { notifyRsvpReminders: true, memberships: { some: { teamId: event.teamId, leftAt: null } } },
       },
       include: { user: { select: { id: true, email: true, name: true } } },
     });
