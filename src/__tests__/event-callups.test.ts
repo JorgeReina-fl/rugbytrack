@@ -107,6 +107,6 @@ describe("PATCH /api/events/[id]/attendance/[userId] — pase de lista", () => {
   test("jugador activo → OK", async () => {
     db.teamMember.findFirst.mockResolvedValue({ id: "m1", isCoach: true });
     expect((await patch()).status).toBe(200);
-    expect(setPresence).toHaveBeenCalledWith("ev1", P1, true, COACH);
+    expect(setPresence).toHaveBeenCalledWith("ev1", P1, true);
   });
 });

@@ -16,6 +16,7 @@ import { logger } from "@/lib/logger";
 import { sendRsvpNotifications } from "@/lib/rsvp-notify";
 import { convocateAllActive, isAllTeamEvent } from "@/lib/convocation";
 import { defaultFormatForTeam, slotFor, validateLineup } from "@/lib/lineup";
+import { errInfo } from "@/lib/log-safe";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -144,7 +145,7 @@ export async function POST(request: Request) {
     // Fire-and-forget: enviar RSVP con magic link a todos los convocados
     if (callups.length > 0 || convocated.length > 0) {
       sendRsvpNotifications(event.id).catch((err: unknown) => {
-        logger.error({ err, eventId: event.id }, "Failed to dispatch RSVP notifications on event create");
+        logger.error({ err: errInfo(err), eventId: event.id }, "Failed to dispatch RSVP notifications on event create");
       });
     }
 

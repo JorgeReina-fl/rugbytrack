@@ -17,6 +17,7 @@ import {
   handleUnknownError,
 } from "@/lib/api-response";
 import { ZodError } from "zod";
+import { errInfo } from "@/lib/log-safe";
 
 /** Alineación completa de un partido o torneo, editable hasta el inicio. */
 export async function PUT(
@@ -123,7 +124,7 @@ export async function PUT(
 
     if (diff.entered.length > 0 || diff.left.length > 0 || diff.changed.length > 0) {
       notifyLineupChanges({ id, title: event.title }, diff).catch((err: unknown) => {
-        logger.error({ err, eventId: id }, "Failed to dispatch lineup notifications");
+        logger.error({ err: errInfo(err), eventId: id }, "Failed to dispatch lineup notifications");
       });
     }
 

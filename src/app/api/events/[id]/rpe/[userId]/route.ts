@@ -89,15 +89,13 @@ export async function PUT(req: Request, { params }: Params) {
       logger.info(
         {
           eventId,
-          userId,
           rpe: { from: previous.rpe, to: rpe },
           duration: { from: previous.duration, to: duration },
-          recordedById: { from: previous.recordedById, to: coachId },
         },
         "RPE corrected by coach"
       );
     } else {
-      logger.info({ eventId, userId, recordedById: coachId }, "RPE created by coach");
+      logger.info({ eventId }, "RPE created by coach");
     }
 
     return NextResponse.json(entry);
@@ -127,7 +125,7 @@ export async function DELETE(_req: Request, { params }: Params) {
     await prisma.rpeEntry.delete({ where: { eventId_userId: { eventId, userId } } });
 
     logger.info(
-      { eventId, userId, rpe: entry.rpe, duration: entry.duration, recordedById: entry.recordedById },
+      { eventId, rpe: entry.rpe, duration: entry.duration },
       "RPE deleted by coach"
     );
     return NextResponse.json({ deleted: true });

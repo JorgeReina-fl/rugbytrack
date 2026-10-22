@@ -65,12 +65,12 @@ export async function POST(req: Request) {
 
     const membership = await getActiveMembership(event.teamId, userId);
     if (!membership) {
-      logger.warn({ userId, eventId, teamId: event.teamId }, "User is not an active member of the event's team");
+      logger.warn({ eventId, teamId: event.teamId }, "User is not an active member of the event's team");
       return apiError("No perteneces al equipo asociado a este evento", 403);
     }
 
     if (membership.isCoach) {
-      logger.warn({ userId, eventId, teamId: event.teamId }, "Team coach attempted RPE submission");
+      logger.warn({ eventId, teamId: event.teamId }, "Team coach attempted RPE submission");
       return apiError("Solo los jugadores pueden registrar su esfuerzo", 403);
     }
 
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
 
     const attendance = event.attendances[0];
     if (!attendance || !canSubmitRpe(attendance, isListTakenFromCount(event))) {
-      logger.warn({ userId, eventId, attendance }, "Player did not confirm attendance");
+      logger.warn({ eventId, status: attendance?.status }, "Player did not confirm attendance");
       return apiError("Debes confirmar tu asistencia antes de registrar el RPE", 403);
     }
 
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
     });
 
     if (existingRpe) {
-      logger.warn({ userId, eventId }, "RPE already submitted");
+      logger.warn({ eventId }, "RPE already submitted");
       return apiError("Ya has registrado el RPE para este evento", 409);
     }
 
@@ -114,7 +114,7 @@ export async function POST(req: Request) {
       },
     });
 
-    logger.info({ rpeEntryId: rpeEntry.id, userId, eventId }, "RPE created successfully");
+    logger.info({ rpeEntryId: rpeEntry.id, eventId }, "RPE created successfully");
     return NextResponse.json(rpeEntry, { status: 201 });
 
   } catch (error: unknown) {

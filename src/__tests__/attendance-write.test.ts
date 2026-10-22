@@ -31,7 +31,7 @@ describe("setPresence", () => {
     }));
   });
   test("marcar: escribe solo checkedIn/checkedInAt; DECLINED queda DECLINED + checkedIn", async () => {
-    const att = await setPresence("e1", "u1", true, "coach");
+    const att = await setPresence("e1", "u1", true);
     const args = db.attendance.upsert.mock.calls[0][0];
     expect(Object.keys(args.update).sort()).toEqual(["checkedIn", "checkedInAt"]);
     expect(args.update.checkedIn).toBe(true);
@@ -42,7 +42,7 @@ describe("setPresence", () => {
   });
 
   test("desmarcar: checkedInAt null y no toca status", async () => {
-    await setPresence("e1", "u1", false, "coach");
+    await setPresence("e1", "u1", false);
     const args = db.attendance.upsert.mock.calls[0][0];
     expect(args.update).toEqual({ checkedIn: false, checkedInAt: null });
     expect("status" in args.update).toBe(false);

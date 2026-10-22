@@ -8,6 +8,7 @@ import { CallupCreatedEmail } from "@/emails/callup-created";
 import { PollCreatedEmail } from "@/emails/poll-created";
 import { ProposalCreatedEmail } from "@/emails/proposal-created";
 import { ThreadCreatedEmail } from "@/emails/thread-created";
+import { errInfo } from "@/lib/log-safe";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
@@ -25,7 +26,7 @@ interface SendEmailParams {
 
 export async function sendEmail({ to, subject, react }: SendEmailParams) {
   if (!resend) {
-    logger.info({ to, subject }, "Skipping email send (RESEND_API_KEY missing)");
+    logger.info("Skipping email send (RESEND_API_KEY missing)");
     return { id: "mock-id" };
   }
 
@@ -37,10 +38,10 @@ export async function sendEmail({ to, subject, react }: SendEmailParams) {
       subject,
       html,
     });
-    logger.info({ to, subject, emailId: data.data?.id }, "Email sent successfully");
+    logger.info({ emailId: data.data?.id }, "Email sent successfully");
     return data;
   } catch (err) {
-    logger.error({ err, to, subject }, "Failed to send email via Resend");
+    logger.error({ err: errInfo(err) }, "Failed to send email via Resend");
     // No arrojamos el error para no romper flujos principales del servidor
     return null;
   }
@@ -89,7 +90,7 @@ export async function sendPollNotification({
   pollTitle: string;
 }) {
   if (!resend || members.length === 0) {
-    logger.info({ teamId, pollTitle, count: members.length }, "Skipping poll notification (no resend or no members)");
+    logger.info({ teamId, count: members.length }, "Skipping poll notification (no resend or no members)");
     return;
   }
 
@@ -120,12 +121,12 @@ export async function sendPollNotification({
 
     const result = await resend.batch.send(messages);
     if (result.error) {
-      logger.error({ teamId, pollTitle, resendError: result.error }, "Resend batch returned error");
+      logger.error({ teamId, resendError: errInfo(result.error) }, "Resend batch returned error");
       return;
     }
-    logger.info({ teamId, pollTitle, count: members.length, ids: result.data?.data?.map((r) => r.id) }, "Poll notification batch sent");
+    logger.info({ teamId, count: members.length, ids: result.data?.data?.map((r) => r.id) }, "Poll notification batch sent");
   } catch (err) {
-    logger.error({ err, teamId, pollTitle }, "Failed to send poll notification batch");
+    logger.error({ err: errInfo(err), teamId }, "Failed to send poll notification batch");
   }
 }
 
@@ -143,7 +144,7 @@ export async function sendProposalNotification({
   authorName: string;
 }) {
   if (!resend || members.length === 0) {
-    logger.info({ teamId, proposalTitle, count: members.length }, "Skipping proposal notification (no resend or no members)");
+    logger.info({ teamId, count: members.length }, "Skipping proposal notification (no resend or no members)");
     return;
   }
 
@@ -175,12 +176,12 @@ export async function sendProposalNotification({
 
     const result = await resend.batch.send(messages);
     if (result.error) {
-      logger.error({ teamId, proposalTitle, resendError: result.error }, "Resend batch returned error");
+      logger.error({ teamId, resendError: errInfo(result.error) }, "Resend batch returned error");
       return;
     }
-    logger.info({ teamId, proposalTitle, count: members.length, ids: result.data?.data?.map((r) => r.id) }, "Proposal notification batch sent");
+    logger.info({ teamId, count: members.length, ids: result.data?.data?.map((r) => r.id) }, "Proposal notification batch sent");
   } catch (err) {
-    logger.error({ err, teamId, proposalTitle }, "Failed to send proposal notification batch");
+    logger.error({ err: errInfo(err), teamId }, "Failed to send proposal notification batch");
   }
 }
 
@@ -232,11 +233,11 @@ export async function sendThreadNotification({
 
     const result = await resend.batch.send(messages);
     if (result.error) {
-      logger.error({ teamId, threadId, resendError: result.error }, "Resend batch returned error");
+      logger.error({ teamId, threadId, resendError: errInfo(result.error) }, "Resend batch returned error");
       return;
     }
     logger.info({ teamId, threadId, count: members.length, ids: result.data?.data?.map((r) => r.id) }, "Thread notification batch sent");
   } catch (err) {
-    logger.error({ err, teamId, threadId }, "Failed to send thread notification batch");
+    logger.error({ err: errInfo(err), teamId, threadId }, "Failed to send thread notification batch");
   }
 }

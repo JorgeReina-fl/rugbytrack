@@ -10,6 +10,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/client-ip";
 import { logger } from "@/lib/logger";
 import { createResetToken, sendResetEmail } from "@mivia/auth-reset";
+import { errInfo } from "@/lib/log-safe";
 
 const forgotSchema = z.object({
   email: z.string().email().toLowerCase().trim().max(254),
@@ -85,13 +86,13 @@ export async function POST(request: Request) {
             primaryColor: "#0f172a",
             expiresInMinutes: TOKEN_EXPIRES_MIN,
           });
-          logger.info({ email: user.email }, "password reset email sent");
+          logger.info("password reset email sent");
         }
       } catch (sendErr) {
-        logger.error({ err: sendErr, email: user.email }, "failed to send password reset email");
+        logger.error({ err: errInfo(sendErr) }, "failed to send password reset email");
       }
     } else {
-      logger.info({ email }, "password reset requested for unknown email — neutral response");
+      logger.info("password reset requested for unknown email — neutral response");
     }
 
     return apiSuccess({ message: NEUTRAL_MESSAGE });

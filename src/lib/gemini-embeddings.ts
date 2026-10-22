@@ -37,8 +37,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   });
 
   if (!res.ok) {
-    const errBody = await res.text();
-    logger.error({ status: res.status, body: errBody }, "Gemini embedding API error");
+    logger.error({ status: res.status }, "Gemini embedding API error");
     throw new Error(`Gemini embedding failed: ${res.status}`);
   }
 

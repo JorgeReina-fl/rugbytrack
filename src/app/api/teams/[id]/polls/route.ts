@@ -10,6 +10,7 @@ import {
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { sendPollNotification } from "@/lib/resend";
+import { errInfo } from "@/lib/log-safe";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -121,7 +122,7 @@ export async function POST(req: Request, { params }: Params) {
           pollTitle: poll.title,
         });
       })
-      .catch((err) => logger.error({ err, teamId: id, pollId: poll.id }, "Failed to dispatch poll notification"));
+      .catch((err) => logger.error({ err: errInfo(err), teamId: id, pollId: poll.id }, "Failed to dispatch poll notification"));
 
     return response;
   } catch (err) {

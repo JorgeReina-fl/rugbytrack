@@ -17,7 +17,7 @@ export async function POST() {
       where: { id: userId },
       data: { healthConsentAt: new Date(), healthConsentVersion: HEALTH_CONSENT_VERSION },
     });
-    logger.info({ userId, version: HEALTH_CONSENT_VERSION }, "Health consent given");
+    logger.info({ version: HEALTH_CONSENT_VERSION }, "Health consent given");
 
     return NextResponse.json({ version: HEALTH_CONSENT_VERSION });
   } catch (error) {
@@ -36,7 +36,7 @@ export async function DELETE() {
       prisma.discomfort.deleteMany({ where: { userId } }),
       prisma.user.update({ where: { id: userId }, data: { healthConsentAt: null, healthConsentVersion: null } }),
     ]);
-    logger.info({ userId, deleted: removed.count }, "Health consent withdrawn");
+    logger.info({ deleted: removed.count }, "Health consent withdrawn");
 
     return NextResponse.json({ deleted: removed.count });
   } catch (error) {

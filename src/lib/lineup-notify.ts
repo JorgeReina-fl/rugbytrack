@@ -6,6 +6,7 @@ import { trackEmailBudget } from "@/lib/email-budget";
 import { sendEmail } from "@/lib/resend";
 import { sendRsvpNotifications } from "@/lib/rsvp-notify";
 import { LineupChangedEmail } from "@/emails/lineup-changed";
+import { errInfo } from "@/lib/log-safe";
 
 export interface LineupDiff {
   entered: string[];
@@ -60,6 +61,6 @@ export async function notifyLineupChanges(event: { id: string; title: string }, 
       })
     );
   } catch (err) {
-    logger.error({ eventId: event.id, errMessage: err instanceof Error ? err.message : "unknown" }, "Lineup notification failed");
+    logger.error({ eventId: event.id, err: errInfo(err) }, "Lineup notification failed");
   }
 }

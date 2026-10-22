@@ -15,6 +15,8 @@ const config: Config = {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
   testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
+  // El build deja copias de los paquetes del workspace en .next/standalone: haste las vería duplicadas
+  modulePathIgnorePatterns: ["<rootDir>/.next/"],
   transform: {
     "^.+\\.(ts|tsx)$": ["ts-jest", { tsconfig: { jsx: "react-jsx" } }],
   },

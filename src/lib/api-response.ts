@@ -2,6 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { logger } from "@/lib/logger";
+import { errInfo } from "@/lib/log-safe";
 
 export function apiSuccess<T>(data: T, status = 200) {
   return NextResponse.json({ data }, { status });
@@ -32,6 +33,6 @@ export function handleZodError(err: ZodError) {
 }
 
 export function handleUnknownError(err: unknown, context: string) {
-  logger.error({ err, context }, "Unhandled API error");
+  logger.error({ err: errInfo(err), context }, "Unhandled API error");
   return apiError("Error interno del servidor", 500);
 }

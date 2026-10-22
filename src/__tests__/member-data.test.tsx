@@ -98,14 +98,14 @@ describe("removeMemberData", () => {
     expect(ops).toHaveLength(10);
   });
 
-  test("devuelve recuentos y el log lleva solo teamId, userId y recuentos", async () => {
+  test("devuelve recuentos y el log lleva solo teamId y recuentos (sin userId)", async () => {
     const counts = await run();
     expect(counts).toEqual({
       attendances: 2, callups: 2, rpeEntries: 2, discomforts: 2, pollVotes: 2, proposalSupports: 2,
       embeddings: 2, rpeUnlinked: 1, forumThreads: 3, forumComments: 5,
     });
     const [logged, msg] = (logger.info as jest.Mock).mock.calls[0];
-    expect(Object.keys(logged).sort()).toEqual(["counts", "teamId", "userId"]);
+    expect(Object.keys(logged).sort()).toEqual(["counts", "teamId"]);
     expect(msg).toBe("Member data removed on team exit");
     expect(JSON.stringify(logged)).not.toMatch(/Ex-miembro|authorName|bodyArea|note/);
   });

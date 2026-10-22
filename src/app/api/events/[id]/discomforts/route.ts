@@ -74,7 +74,7 @@ export async function POST(req: Request, { params }: Params) {
       data: { eventId, userId, ...parsed.data },
       select: { id: true, eventId: true, bodyArea: true, intensity: true, note: true, seenByCoachAt: true, createdAt: true },
     });
-    logger.info({ discomfortId: discomfort.id, eventId, userId }, "Discomfort created");
+    logger.info({ discomfortId: discomfort.id, eventId }, "Discomfort created");
 
     if (unseen === 0) await notifyCoachesOfDiscomfort(event);
 

@@ -194,7 +194,7 @@ async function main() {
     });
 
     if (attendances.length === 0) {
-      console.log(`  [${event.id}] "${event.title}" — sin pendientes sin recordatorio`);
+      console.log(`  [${event.id}] sin pendientes sin recordatorio`);
       continue;
     }
 
@@ -218,7 +218,7 @@ async function main() {
     const result = await resendBatchSend(messages, resendKey);
 
     if (result.error) {
-      console.error(`  [${event.id}] ERROR Resend: ${result.error.name} — ${result.error.message}`);
+      console.error(`  [${event.id}] ERROR Resend: ${result.error.name}`);
       continue;
     }
 
@@ -229,7 +229,7 @@ async function main() {
     });
 
     const ids = result.data?.data?.map((r) => r.id) ?? [];
-    console.log(`  [${event.id}] "${event.title}" — ${messages.length} recordatorios. IDs: ${ids.join(", ")}`);
+    console.log(`  [${event.id}] ${messages.length} recordatorios. IDs: ${ids.join(", ")}`);
     totalSent += messages.length;
   }
 
@@ -238,6 +238,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Error fatal:", err);
+  console.error("Error fatal:", err instanceof Error ? err.name : typeof err);
   prisma.$disconnect().finally(() => process.exit(1));
 });

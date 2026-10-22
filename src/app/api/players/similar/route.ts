@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
       stats: row.stats,
     }));
 
-    logger.info({ targetUserId, found: players.length }, "Similar players found");
+    logger.info({ teamId, found: players.length }, "Similar players found");
     return apiSuccess({ targetUserId, teamId, players });
   } catch (err) {
     return handleUnknownError(err, "GET /api/players/similar");

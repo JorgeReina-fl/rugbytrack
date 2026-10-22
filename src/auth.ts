@@ -44,7 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await argon2.verify(user.passwordHash, password);
         if (!valid) {
           const { logger } = await import("@/lib/logger");
-          logger.warn({ email }, "Failed login attempt");
+          logger.warn("Failed login attempt");
           return null;
         }
 

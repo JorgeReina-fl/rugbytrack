@@ -10,6 +10,7 @@ import {
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { sendProposalNotification } from "@/lib/resend";
+import { errInfo } from "@/lib/log-safe";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -105,7 +106,7 @@ export async function POST(req: Request, { params }: Params) {
           authorName: session.user.name ?? "Un compañero",
         });
       })
-      .catch((err) => logger.error({ err, teamId: id, proposalId: proposal.id }, "Failed to dispatch proposal notification"));
+      .catch((err) => logger.error({ err: errInfo(err), teamId: id, proposalId: proposal.id }, "Failed to dispatch proposal notification"));
 
     return response;
   } catch (err) {

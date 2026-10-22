@@ -26,7 +26,7 @@ export async function POST(_req: Request, { params }: Params) {
       where: { eventId, seenByCoachAt: null },
       data: { seenByCoachAt: new Date() },
     });
-    logger.info({ eventId, coachId: userId, marked: result.count }, "Discomforts marked as seen");
+    logger.info({ eventId, marked: result.count }, "Discomforts marked as seen");
 
     return NextResponse.json({ marked: result.count });
   } catch (error) {

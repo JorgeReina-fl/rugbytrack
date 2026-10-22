@@ -58,7 +58,7 @@ describe("PUT /api/events/[id]/rpe/[userId] — el coach anota RPE", () => {
     expect(arg.create).toMatchObject({ eventId: "ev1", userId: PLAYER, recordedById: COACH });
     expect(arg.create).not.toHaveProperty("notes");
     expect(arg.update).not.toHaveProperty("notes");
-    expect(info).toHaveBeenCalledWith(expect.objectContaining({ recordedById: COACH }), "RPE created by coach");
+    expect(info).toHaveBeenCalledWith({ eventId: "ev1" }, "RPE created by coach");
   });
 
   test("corrige un RPE del jugador → recordedById pasa a coach y se registra el cambio", async () => {
@@ -74,10 +74,8 @@ describe("PUT /api/events/[id]/rpe/[userId] — el coach anota RPE", () => {
     expect(info).toHaveBeenCalledWith(
       {
         eventId: "ev1",
-        userId: PLAYER,
         rpe: { from: 5, to: 9 },
         duration: { from: 60, to: 80 },
-        recordedById: { from: PLAYER, to: COACH },
       },
       "RPE corrected by coach"
     );
@@ -168,7 +166,7 @@ describe("PUT /api/events/[id]/rpe/[userId] — el coach anota RPE", () => {
       expect(await res.json()).toEqual({ deleted: true });
       expect(mockPrisma.rpeEntry.delete).toHaveBeenCalledWith({ where: { eventId_userId: { eventId: "ev1", userId: PLAYER } } });
       expect(info).toHaveBeenCalledWith(
-        { eventId: "ev1", userId: PLAYER, rpe: 6, duration: 50, recordedById: PLAYER },
+        { eventId: "ev1", rpe: 6, duration: 50 },
         "RPE deleted by coach"
       );
     });

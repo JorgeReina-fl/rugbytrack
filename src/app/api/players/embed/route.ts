@@ -19,6 +19,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { attendanceRate } from "@/lib/attendance";
 import { takenEventIds } from "@/lib/attendance-taken";
 import { z } from "zod";
+import { errInfo } from "@/lib/log-safe";
 
 const querySchema = z.object({
   userId: z.string().cuid("ID de usuario inválido").optional(),
@@ -157,9 +158,9 @@ export async function POST(req: NextRequest) {
         `;
 
         results.push({ userId: u.id, ok: true });
-        logger.info({ userId: u.id, teamId }, "Embedding generated");
+        logger.debug({ teamId }, "Embedding generated");
       } catch (embErr) {
-        logger.error({ embErr, userId: u.id }, "Failed to generate embedding");
+        logger.error({ err: errInfo(embErr), teamId }, "Failed to generate embedding");
         results.push({ userId: u.id, ok: false });
       }
     }

@@ -49,13 +49,11 @@ export async function setRsvp(
 /**
  * R2/R3: la marca del coach solo escribe checkedIn/checkedInAt (now al marcar, null al desmarcar).
  * En update NO toca status (el RSVP original es histórico); en create, PENDING.
- * `actor` (el coach que marca) solo se usa para el log.
  */
 export async function setPresence(
   eventId: string,
   userId: string,
-  checkedIn: boolean,
-  actor: string
+  checkedIn: boolean
 ) {
   const checkedInAt = checkedIn ? new Date() : null;
 
@@ -65,7 +63,7 @@ export async function setPresence(
     create: { eventId, userId, status: "PENDING", checkedIn, checkedInAt },
   });
 
-  logger.info({ eventId, userId, actor, checkedIn }, "Attendance presence set");
+  logger.info({ eventId, checkedIn }, "Attendance presence set");
 
   return attendance;
 }

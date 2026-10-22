@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { trackEmailBudget } from "@/lib/email-budget";
 import { sendEmail } from "@/lib/resend";
 import { DiscomfortReportedEmail } from "@/emails/discomfort-reported";
+import { errInfo } from "@/lib/log-safe";
 
 /**
  * Avisa a los coaches activos del equipo de que hay una molestia nueva sin ver en el evento.
@@ -37,6 +38,6 @@ export async function notifyCoachesOfDiscomfort(event: { id: string; teamId: str
       )
     );
   } catch (err) {
-    logger.error({ eventId: event.id, errMessage: err instanceof Error ? err.message : "unknown" }, "Discomfort notification failed");
+    logger.error({ eventId: event.id, err: errInfo(err) }, "Discomfort notification failed");
   }
 }

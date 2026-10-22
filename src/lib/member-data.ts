@@ -84,6 +84,6 @@ export async function removeMemberData(params: {
     forumThreads: threads.modifiedCount,
     forumComments: comments.modifiedCount,
   };
-  logger.info({ teamId, userId, counts }, "Member data removed on team exit");
+  logger.info({ teamId, counts }, "Member data removed on team exit");
   return counts;
 }

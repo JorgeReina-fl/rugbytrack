@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveMembership } from "@/lib/membership";
 import { logger } from "@/lib/logger";
 import { sendRsvpNotifications } from "@/lib/rsvp-notify";
+import { errInfo } from "@/lib/log-safe";
 
 export async function POST(
   _req: Request,
@@ -32,10 +33,10 @@ export async function POST(
 
     await sendRsvpNotifications(id);
 
-    logger.info({ eventId: id, coachId: session.user.id, pending }, "Manual RSVP notify triggered");
+    logger.info({ eventId: id, pending }, "Manual RSVP notify triggered");
     return NextResponse.json({ sent: pending });
   } catch (error) {
-    logger.error({ err: error }, "Error in notify route");
+    logger.error({ err: errInfo(error) }, "Error in notify route");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

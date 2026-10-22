@@ -51,7 +51,7 @@ export async function PATCH(
     const body = await request.json();
     const data = manualAttendanceSchema.parse(body);
 
-    const attendance = await setPresence(id, userId, data.checkedIn, session.user.id);
+    const attendance = await setPresence(id, userId, data.checkedIn);
 
     return apiSuccess(attendance);
   } catch (err) {

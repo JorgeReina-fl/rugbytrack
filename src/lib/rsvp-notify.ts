@@ -8,6 +8,7 @@ import { trackEmailBudget } from "@/lib/email-budget";
 import { generateRsvpToken } from "@/lib/tokens";
 import { RsvpRequestEmail } from "@/emails/rsvp-request";
 import { eventWhen } from "@/lib/event-when";
+import { errInfo } from "@/lib/log-safe";
 
 /**
  * Sends RSVP request emails (with magic-link token) to all PENDING attendance
@@ -62,7 +63,7 @@ export async function sendRsvpNotifications(eventId: string, onlyUserIds?: strin
 
   const result = await resend.batch.send(messages);
   if (result.error) {
-    logger.error({ eventId, resendError: result.error }, "RSVP batch send failed");
+    logger.error({ eventId, resendError: errInfo(result.error) }, "RSVP batch send failed");
     return;
   }
   logger.info(

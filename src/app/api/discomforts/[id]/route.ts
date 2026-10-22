@@ -28,7 +28,7 @@ export async function DELETE(_req: Request, { params }: Params) {
     }
 
     await prisma.discomfort.delete({ where: { id } });
-    logger.info({ discomfortId: id, eventId: discomfort.eventId, deletedBy: userId }, "Discomfort deleted");
+    logger.info({ discomfortId: id, eventId: discomfort.eventId }, "Discomfort deleted");
 
     return NextResponse.json({ deleted: 1 });
   } catch (error) {
