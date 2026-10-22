@@ -2,6 +2,8 @@ import { prisma } from "./prisma";
 import { logger } from "./logger";
 import { isRsvpOpen, type RsvpStatus } from "./attendance";
 
+export type RsvpSource = "email" | "app";
+
 export type SetRsvpResult =
   | { ok: true; status: RsvpStatus }
   | { ok: false; reason: "EVENT_NOT_FOUND" | "CLOSED" | "NO_ATTENDANCE" };
@@ -9,14 +11,14 @@ export type SetRsvpResult =
 /**
  * R1/R2: el RSVP solo escribe `status`, y solo mientras isRsvpOpen. Nunca toca checkedIn.
  * createIfMissing: la ruta con sesión crea la fila si el miembro no la tenía; la del token no
- * (solo responde a una convocatoria existente).
+ * (solo responde a una convocatoria existente). source: de dónde llega la respuesta, solo para el log.
  */
 export async function setRsvp(
   eventId: string,
   userId: string,
   status: RsvpStatus,
   now: Date,
-  { createIfMissing }: { createIfMissing: boolean }
+  { createIfMissing, source }: { createIfMissing: boolean; source: RsvpSource }
 ): Promise<SetRsvpResult> {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -31,6 +33,7 @@ export async function setRsvp(
       update: { status },
       create: { eventId, userId, status, checkedIn: false },
     });
+    logger.info({ eventId, status, source }, "RSVP recorded");
     return { ok: true, status };
   }
 
@@ -39,6 +42,7 @@ export async function setRsvp(
     data: { status },
   });
   if (updated.count === 0) return { ok: false, reason: "NO_ATTENDANCE" };
+  logger.info({ eventId, status, source }, "RSVP recorded");
   return { ok: true, status };
 }
 

@@ -6,7 +6,7 @@ import { useVisibleRefresh } from "@/hooks/useVisibleRefresh";
 import { RugbyPosition } from "@prisma/client";
 import { Warning } from "@phosphor-icons/react/dist/ssr";
 import { PlayerRpeControl, type PlayerRpeEntry } from "@/components/event/PlayerRpeControl";
-import { attendanceState, countsForEvent, listTaken, type EventTimesLike } from "@/lib/attendance";
+import { attendanceState, countsForEvent, listTaken, type AttendanceState, type EventTimesLike } from "@/lib/attendance";
 
 interface PlayerAttendance {
   userId: string;
@@ -46,6 +46,19 @@ const positionLabels: Record<RugbyPosition, string> = {
   WING_RIGHT: "Ala Derecho",
   FULLBACK: "Zaguero",
   REPLACEMENT: "Suplente",
+};
+
+/** Orden de los grupos de la lista. */
+const STATE_ORDER: AttendanceState[] = ["present", "confirmed", "pending", "declined", "absent", "not_taken"];
+
+const BADGE = "px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest border";
+const stateBadge: Record<AttendanceState, { cls: string; label: string }> = {
+  present: { cls: "bg-primary/10 border-primary/30 text-primary", label: "Presente" },
+  confirmed: { cls: "bg-blue-100 text-blue-800 border-blue-200", label: "Confirmado" },
+  pending: { cls: "bg-secondary border-border text-muted-foreground", label: "Sin respuesta" },
+  declined: { cls: "bg-destructive/10 border-destructive/30 text-destructive", label: "No asistirá" },
+  absent: { cls: "bg-destructive/10 border-destructive/30 text-destructive", label: "Ausente" },
+  not_taken: { cls: "bg-secondary border-border text-muted-foreground", label: "Sin pasar lista" },
 };
 
 export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, discomfortUserIds = [] }: AttendanceBoardProps) {
@@ -108,7 +121,7 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, di
     }
   };
 
-  // Contadores (reglas comunes en src/lib/attendance.ts)
+  // Contadores y orden (reglas comunes en src/lib/attendance.ts)
   const rows = attendances.map((a) => ({
     status: a.status as "PENDING" | "CONFIRMED" | "DECLINED",
     checkedIn: a.checkedIn,
@@ -117,9 +130,16 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, di
   const started = now.getTime() >= eventTimes.startDate.getTime();
   const counts = countsForEvent(rows, eventTimes, now);
   const totalConvocados = attendances.length;
-  const presentes = counts.present;
-  const ausentes = counts.absent + counts.declined;
-  const pendientes = counts.pending + counts.confirmed + counts.notTaken;
+  const noAsisten = counts.declined + counts.absent;
+
+  const stateOf = (p: PlayerAttendance): AttendanceState =>
+    attendanceState({ status: p.status as "PENDING" | "CONFIRMED" | "DECLINED", checkedIn: p.checkedIn }, eventTimes, now, taken);
+  const sorted = attendances
+    .map((player) => ({ player, state: stateOf(player) }))
+    .sort(
+      (a, b) =>
+        STATE_ORDER.indexOf(a.state) - STATE_ORDER.indexOf(b.state) || a.player.name.localeCompare(b.player.name, "es")
+    );
 
   return (
     <div className="space-y-6">
@@ -130,19 +150,29 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, di
       )}
 
       {/* Contadores Estadísticos */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className={`grid grid-cols-2 gap-4 ${counts.notTaken > 0 ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>
         <div className="border border-primary/30 bg-primary/5 p-4 text-center shadow-sm">
-          <div className="text-4xl font-heading font-black text-primary">{presentes}</div>
+          <div className="text-4xl font-heading font-black text-primary">{counts.present}</div>
           <div className="text-xs font-mono mt-1 font-bold uppercase tracking-widest text-muted-foreground">Presentes</div>
         </div>
-        <div className="border border-destructive/30 bg-destructive/5 p-4 text-center shadow-sm">
-          <div className="text-4xl font-heading font-black text-destructive">{ausentes}</div>
-          <div className="text-xs font-mono mt-1 font-bold uppercase tracking-widest text-muted-foreground">Ausentes</div>
+        <div className="border border-blue-200 bg-blue-100 p-4 text-center shadow-sm">
+          <div className="text-4xl font-heading font-black text-blue-800">{counts.confirmed}</div>
+          <div className="text-xs font-mono mt-1 font-bold uppercase tracking-widest text-muted-foreground">Confirmados</div>
         </div>
         <div className="border border-border bg-card p-4 text-center shadow-sm">
-          <div className="text-4xl font-heading font-black text-foreground">{pendientes}</div>
-          <div className="text-xs font-mono mt-1 font-bold uppercase tracking-widest text-muted-foreground">Pendientes</div>
+          <div className="text-4xl font-heading font-black text-foreground">{counts.pending}</div>
+          <div className="text-xs font-mono mt-1 font-bold uppercase tracking-widest text-muted-foreground">Sin respuesta</div>
         </div>
+        <div className="border border-destructive/30 bg-destructive/5 p-4 text-center shadow-sm">
+          <div className="text-4xl font-heading font-black text-destructive">{noAsisten}</div>
+          <div className="text-xs font-mono mt-1 font-bold uppercase tracking-widest text-muted-foreground">No asisten / Ausentes</div>
+        </div>
+        {counts.notTaken > 0 && (
+          <div className="border border-border bg-card p-4 text-center shadow-sm">
+            <div className="text-4xl font-heading font-black text-foreground">{counts.notTaken}</div>
+            <div className="text-xs font-mono mt-1 font-bold uppercase tracking-widest text-muted-foreground">Sin pasar lista</div>
+          </div>
+        )}
       </div>
 
       {/* Tabla/Lista de jugadores */}
@@ -157,7 +187,7 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, di
               No hay jugadores convocados para este evento.
             </div>
           ) : (
-            attendances.map((player) => (
+            sorted.map(({ player, state }) => (
               <div
                 key={player.userId}
                 className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between p-4 gap-3 hover:bg-secondary/40 transition-all"
@@ -188,33 +218,9 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, di
                 {/* RSVP y Estado real-time */}
                 <div className="flex items-center gap-4 pl-13 sm:pl-0 justify-between sm:justify-end">
                   <div className="flex flex-col items-end gap-1">
-                    {(() => {
-                      const state = attendanceState(
-                        { status: player.status as "PENDING" | "CONFIRMED" | "DECLINED", checkedIn: player.checkedIn },
-                        eventTimes,
-                        now,
-                        taken
-                      );
-                      if (state === "present") {
-                        return (
-                          <span className="bg-primary/10 border border-primary/30 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-primary">
-                            Presente (Check-In)
-                          </span>
-                        );
-                      }
-                      if (state === "declined" || state === "absent") {
-                        return (
-                          <span className="bg-destructive/10 border border-destructive/30 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-destructive">
-                            {player.status === "DECLINED" ? "Ausente (Declinó)" : "Ausente"}
-                          </span>
-                        );
-                      }
-                      return (
-                        <span className="bg-secondary border border-border px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground">
-                          Pendiente
-                        </span>
-                      );
-                    })()}
+                    <span className={`${BADGE} ${stateBadge[state].cls}`}>
+                      {state === "absent" && player.status === "DECLINED" ? "Ausente (no asistirá)" : stateBadge[state].label}
+                    </span>
 
                     {player.checkedInAt && (
                       <span className="text-[9px] font-mono text-muted-foreground">

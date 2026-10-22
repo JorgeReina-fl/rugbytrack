@@ -45,6 +45,7 @@ export async function POST(
 
     const result = await setRsvp(id, session.user.id, data.status, new Date(), {
       createIfMissing: true,
+      source: "app",
     });
 
     if (!result.ok) {

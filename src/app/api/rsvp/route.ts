@@ -77,6 +77,7 @@ export async function POST(req: Request) {
 
     const result = await setRsvp(eventId, userId, status, new Date(), {
       createIfMissing: false,
+      source: "email",
     });
 
     if (!result.ok) {
