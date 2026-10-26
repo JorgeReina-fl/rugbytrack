@@ -67,3 +67,43 @@ export async function setPresence(
 
   return attendance;
 }
+
+/**
+ * Marca checkedIn a todos los jugadores con RSVP CONFIRMED y sin check-in del evento.
+ * Misma semántica que setPresence(true): checkedIn=true, checkedInAt=now y status intacto.
+ * Solo miembros activos (leftAt nulo) que no sean coach. Idempotente: una segunda llamada marca 0.
+ * Todo en una transacción; devuelve las filas marcadas en el formato que usa el panel.
+ */
+export async function markConfirmedPresent(eventId: string) {
+  const result = await prisma.$transaction(async (tx) => {
+    const event = await tx.event.findUnique({ where: { id: eventId }, select: { teamId: true } });
+    if (!event) return { marked: 0, attendances: [] };
+
+    const pending = await tx.attendance.findMany({
+      where: {
+        eventId,
+        status: "CONFIRMED",
+        checkedIn: false,
+        user: { memberships: { some: { teamId: event.teamId, leftAt: null, isCoach: false } } },
+      },
+      select: { userId: true },
+    });
+    if (pending.length === 0) return { marked: 0, attendances: [] };
+
+    const userIds = pending.map((a) => a.userId);
+    const checkedInAt = new Date();
+    // Repite el filtro del estado: si otro coach marcó entre medias, esa fila no cuenta
+    const { count } = await tx.attendance.updateMany({
+      where: { eventId, userId: { in: userIds }, status: "CONFIRMED", checkedIn: false },
+      data: { checkedIn: true, checkedInAt },
+    });
+    const attendances = await tx.attendance.findMany({
+      where: { eventId, userId: { in: userIds } },
+      select: { userId: true, status: true, checkedIn: true, checkedInAt: true },
+    });
+    return { marked: count, attendances };
+  });
+
+  logger.info({ eventId, marked: result.marked }, "Confirmed players marked present");
+  return result;
+}

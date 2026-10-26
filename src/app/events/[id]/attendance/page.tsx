@@ -134,6 +134,7 @@ export default async function AttendancePage({ params }: PageProps) {
             rsvpDeadline: event.rsvpDeadline?.toISOString() ?? null,
           }}
           nowIso={new Date().toISOString()}
+          isCoach
           discomfortUserIds={discomfortUserIds}
         />
 

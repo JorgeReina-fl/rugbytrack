@@ -87,3 +87,72 @@ describe("AttendanceBoard — estados y contadores", () => {
     expect(order).toEqual(names);
   });
 });
+
+describe("AttendanceBoard — marcar confirmados como presentes", () => {
+  const { fireEvent, waitFor } = jest.requireActual("@testing-library/react");
+  const fetchMock = jest.fn();
+  beforeEach(() => {
+    fetchMock.mockReset();
+    (global as any).fetch = fetchMock;
+  });
+
+  const setupCoach = (players: ReturnType<typeof p>[], isCoach = true) =>
+    render(
+      <AttendanceBoard
+        eventId="e1"
+        initialAttendances={players}
+        event={{ startDate: iso(-10), endDate: iso(-5), rsvpDeadline: null }}
+        nowIso={iso(0)}
+        isCoach={isCoach}
+      />
+    );
+  const BTN = "Marcar confirmados como presentes";
+
+  test("evento terminado, 1 presente y 3 confirmados: tras la acción 4 Presente y 0 Ausente", async () => {
+    setupCoach([p("Ana", "CONFIRMED", true), p("Beto", "CONFIRMED"), p("Cris", "CONFIRMED"), p("Dani", "CONFIRMED")]);
+    expect(badge("Beto")).toBe("Ausente");
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          marked: 3,
+          attendances: ["Beto", "Cris", "Dani"].map((u) => ({ userId: u, status: "CONFIRMED", checkedIn: true, checkedInAt: iso(0) })),
+        },
+      }),
+    });
+    fireEvent.click(screen.getByText(BTN));
+    expect(screen.getByRole("dialog").textContent).toContain("Marcar 3 confirmados como presentes");
+    fireEvent.click(screen.getByText("Confirmar"));
+    await waitFor(() => expect(counter("Presentes")).toBe("4"));
+    expect(counter("No asisten / Ausentes")).toBe("0");
+    expect(screen.queryByText(BTN)).toBeNull();
+    expect(fetchMock).toHaveBeenCalledWith("/api/events/e1/attendance/confirmed-present", { method: "POST" });
+  });
+
+  test("el botón del modal queda deshabilitado mientras la petición está en curso", async () => {
+    setupCoach([p("Ana", "CONFIRMED", true), p("Beto", "CONFIRMED")]);
+    fetchMock.mockReturnValue(new Promise(() => {}));
+    fireEvent.click(screen.getByText(BTN));
+    fireEvent.click(screen.getByText("Confirmar"));
+    await waitFor(() => expect((screen.getByText("Marcando…") as HTMLButtonElement).disabled).toBe(true));
+    expect((screen.getByText("Cancelar") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  test("error de la API: muestra el mensaje y no cambia estados", async () => {
+    setupCoach([p("Ana", "CONFIRMED", true), p("Beto", "CONFIRMED")]);
+    fetchMock.mockResolvedValue({ ok: false, json: async () => ({ error: "No tienes permisos para realizar esta acción" }) });
+    fireEvent.click(screen.getByText(BTN));
+    fireEvent.click(screen.getByText("Confirmar"));
+    await waitFor(() => screen.getByText(/No tienes permisos/));
+    expect(badge("Beto")).toBe("Ausente");
+  });
+
+  test("botón oculto si N=0 o si el usuario no es coach", () => {
+    setupCoach([p("Ana", "CONFIRMED", true), p("Beto", "DECLINED"), p("Cris", "PENDING")]);
+    expect(screen.queryByText(BTN)).toBeNull();
+  });
+  test("botón oculto si no es coach aunque haya confirmados sin marca", () => {
+    setupCoach([p("Ana", "CONFIRMED", true), p("Beto", "CONFIRMED")], false);
+    expect(screen.queryByText(BTN)).toBeNull();
+  });
+});

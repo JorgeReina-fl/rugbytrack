@@ -26,6 +26,8 @@ interface AttendanceBoardProps {
   /** Fechas ISO del evento y hora del servidor: las reglas de asistencia dependen de ellas. */
   event: { startDate: string; endDate: string | null; rsvpDeadline: string | null };
   nowIso: string;
+  /** Solo el coach ve la acción masiva; la página del panel ya exige coach activo. */
+  isCoach?: boolean;
   /** Jugadores con alguna molestia en este evento: se marcan con «Molestia» (enlaza a la lista). */
   discomfortUserIds?: string[];
 }
@@ -61,7 +63,7 @@ const stateBadge: Record<AttendanceState, { cls: string; label: string }> = {
   not_taken: { cls: "bg-secondary border-border text-muted-foreground", label: "Sin pasar lista" },
 };
 
-export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, discomfortUserIds = [] }: AttendanceBoardProps) {
+export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, isCoach = false, discomfortUserIds = [] }: AttendanceBoardProps) {
   const [attendances, setAttendances] = useState<PlayerAttendance[]>(initialAttendances);
   const [now, setNow] = useState(() => new Date(nowIso));
 
@@ -76,6 +78,8 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, di
     rsvpDeadline: event.rsvpDeadline ? new Date(event.rsvpDeadline) : null,
   };
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const router = useRouter();
 
   // Varios coaches pueden marcar a la vez: refresco periódico solo con la pestaña visible
@@ -121,6 +125,38 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, di
     }
   };
 
+  const handleMarkConfirmed = async () => {
+    setError(null);
+    setBulkBusy(true);
+
+    try {
+      const response = await fetch(`/api/events/${eventId}/attendance/confirmed-present`, { method: "POST" });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Error al marcar a los confirmados");
+      }
+
+      // Mismo tratamiento que tras setPresence: se aplican las filas devueltas por la API
+      const updated = new Map<string, { checkedIn: boolean; checkedInAt: string | null; status: string }>(
+        result.data.attendances.map((a: { userId: string; checkedIn: boolean; checkedInAt: string | null; status: string }) => [a.userId, a])
+      );
+      setAttendances((prev) =>
+        prev.map((att) => {
+          const row = updated.get(att.userId);
+          return row ? { ...att, checkedIn: row.checkedIn, checkedInAt: row.checkedInAt, status: row.status } : att;
+        })
+      );
+      setConfirmOpen(false);
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "Ocurrió un error al marcar a los confirmados");
+      setConfirmOpen(false);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   // Contadores y orden (reglas comunes en src/lib/attendance.ts)
   const rows = attendances.map((a) => ({
     status: a.status as "PENDING" | "CONFIRMED" | "DECLINED",
@@ -130,6 +166,7 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, di
   const started = now.getTime() >= eventTimes.startDate.getTime();
   const counts = countsForEvent(rows, eventTimes, now);
   const totalConvocados = attendances.length;
+  const confirmedToMark = attendances.filter((a) => a.status === "CONFIRMED" && !a.checkedIn).length;
   const noAsisten = counts.declined + counts.absent;
 
   const stateOf = (p: PlayerAttendance): AttendanceState =>
@@ -146,6 +183,47 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, di
       {error && (
         <div className="border border-destructive bg-destructive/10 p-4 text-sm font-mono font-bold text-destructive">
           <Warning size={24} weight="regular" className="inline mr-2" /> {error}
+        </div>
+      )}
+
+      {isCoach && confirmedToMark > 0 && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setConfirmOpen(true)}
+            disabled={bulkBusy}
+            className="px-4 py-2 text-xs font-mono font-bold uppercase tracking-widest border border-primary/30 bg-primary text-primary-foreground transition-all hover:opacity-90 disabled:opacity-50"
+          >
+            Marcar confirmados como presentes
+          </button>
+        </div>
+      )}
+
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="bulk-present-title" className="w-full max-w-md border border-border bg-card p-6 shadow-sm space-y-4">
+            <h3 id="bulk-present-title" className="font-mono font-bold text-sm uppercase tracking-widest">
+              Marcar {confirmedToMark} {confirmedToMark === 1 ? "confirmado" : "confirmados"} como {confirmedToMark === 1 ? "presente" : "presentes"}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Se registrará la asistencia de los jugadores con respuesta «Asistiré» que aún no están marcados. Puedes corregir cada marca después.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmOpen(false)}
+                disabled={bulkBusy}
+                className="px-4 py-2 text-xs font-mono font-bold uppercase tracking-widest border border-border text-muted-foreground hover:text-foreground disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleMarkConfirmed}
+                disabled={bulkBusy}
+                className="px-4 py-2 text-xs font-mono font-bold uppercase tracking-widest border border-primary/30 bg-primary text-primary-foreground disabled:opacity-50"
+              >
+                {bulkBusy ? "Marcando…" : "Confirmar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
