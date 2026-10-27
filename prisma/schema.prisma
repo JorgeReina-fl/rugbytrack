@@ -160,6 +160,8 @@ model Team {
   inviteToken String   @unique
   logoUrl     String?
   timezone    String   @default("Europe/Madrid")
+  // Envío automático de enlaces de RPE al terminar el evento
+  rpeLinksAuto Boolean @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -207,6 +209,8 @@ model Event {
   startDate   DateTime
   endDate     DateTime?
   rsvpDeadline DateTime?
+  // Última vez que se enviaron los enlaces de RPE de este evento
+  rpeLinksSentAt DateTime?
   proposalId  String?
   createdById String
   createdAt   DateTime  @default(now())
