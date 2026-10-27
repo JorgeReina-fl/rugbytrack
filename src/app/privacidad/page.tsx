@@ -20,7 +20,7 @@ export default function PrivacidadPage() {
           <header className="flex flex-col gap-3">
             <h1 className="font-heading font-extrabold text-5xl uppercase tracking-tighter">Política de Privacidad</h1>
             <p className="font-mono text-xs uppercase tracking-tighter text-muted-foreground">
-              Última actualización: 21 de octubre de 2026
+              Última actualización: 27 de octubre de 2026
             </p>
           </header>
 
@@ -50,6 +50,22 @@ export default function PrivacidadPage() {
             <p className="font-sans text-base leading-relaxed text-foreground/90">
               Solo tratamos categorías especiales de datos (datos de salud) en el caso descrito en «Datos de salud: molestias físicas», y únicamente con tu consentimiento explícito.
               El RPE se trata como métrica deportiva de esfuerzo subjetivo, no como diagnóstico médico.
+            </p>
+
+            <h3 className="font-heading font-bold text-xl uppercase tracking-tight mt-2">Enlace para registrar el RPE por email</h3>
+            <p className="font-sans text-base leading-relaxed text-foreground/90">
+              Una vez terminado el evento, el entrenador puede enviar —o la aplicación enviar de forma automática, si el equipo lo tiene activado— un email con un enlace personal para registrar el RPE.
+              Solo lo reciben los jugadores que el entrenador ha marcado como presentes y que aún no han registrado su RPE de ese evento.
+            </p>
+            <p className="font-sans text-base leading-relaxed text-foreground/90">
+              El enlace es personal, no requiere iniciar sesión, sirve únicamente para ese evento y se puede usar una sola vez.
+              Caduca 48 horas después del fin del evento (si el evento no tiene hora de fin, se cuentan 3 horas desde su inicio).
+              No debes reenviarlo: quien lo tenga podría registrar el RPE en tu nombre.
+            </p>
+            <p className="font-sans text-base leading-relaxed text-foreground/90">
+              El RPE registrado mediante el enlace es el mismo dato que el registrado en la aplicación y se trata igual.
+              Este email forma parte de la gestión del evento y no se puede desactivar desde las preferencias de notificaciones; el entrenador sí puede desactivar el envío automático para su equipo.
+              El envío se realiza a través de Resend (ver «5. Destinatarios»).
             </p>
 
             <h3 className="font-heading font-bold text-xl uppercase tracking-tight mt-2">Datos de salud: molestias físicas</h3>
