@@ -21,6 +21,7 @@ export const updateTeamSchema = z.object({
     .optional(),
   description: z.string().max(500).trim().optional().nullable(),
   logoUrl: uploadUrl.optional().nullable(),
+  rpeLinksAuto: z.boolean().optional(),
 });
 
 export const joinTeamSchema = z.object({

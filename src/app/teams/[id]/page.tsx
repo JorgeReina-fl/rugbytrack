@@ -5,6 +5,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { TeamRosterClient } from "@/components/teams/TeamRosterClient";
+import { TeamSettingsCard } from "@/components/teams/TeamSettingsCard";
 import type { Metadata } from "next";
 import { CheckSquare, Lightbulb, ChartBar, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 
@@ -131,6 +132,8 @@ export default async function TeamDetailPage({ params }: PageProps) {
             </p>
           </div>
         )}
+
+        {isCoach && <TeamSettingsCard teamId={team.id} rpeLinksAuto={team.rpeLinksAuto} />}
 
         <TeamRosterClient
           teamId={team.id}

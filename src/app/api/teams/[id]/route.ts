@@ -10,6 +10,7 @@ import {
   handleUnknownError,
 } from "@/lib/api-response";
 import { ZodError } from "zod";
+import { logger } from "@/lib/logger";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -86,8 +87,12 @@ export async function PATCH(req: Request, { params }: Params) {
         ...(data.name !== undefined && { name: data.name }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.logoUrl !== undefined && { logoUrl: data.logoUrl }),
+        ...(data.rpeLinksAuto !== undefined && { rpeLinksAuto: data.rpeLinksAuto }),
       },
     });
+
+    // Solo teamId y nombres de campo: nunca valores (nombre, descripción, logo)
+    logger.info({ teamId: id, fields: Object.keys(data).filter((k) => data[k as keyof typeof data] !== undefined) }, "Team updated");
 
     return apiSuccess(team);
   } catch (err) {
