@@ -9,7 +9,7 @@
 
 import crypto from "node:crypto";
 
-export type TokenPurpose = "rsvp" | "rpe";
+export type TokenPurpose = "rsvp" | "rpe" | "cron";
 
 export interface EventTokenPayload {
   userId: string;
@@ -113,4 +113,18 @@ export function verifyEventToken(
   } catch {
     return null;
   }
+}
+
+// Token de servicio para el cron (script → endpoint interno de la app). No identifica a ningún
+// usuario ni evento: userId es CRON_USER_ID y eventId es el nombre del trabajo.
+export const CRON_USER_ID = "cron";
+export const CRON_TOKEN_TTL_MS = 5 * 60 * 1000;
+
+export function signCronToken(job: string): string {
+  return signEventToken({ userId: CRON_USER_ID, eventId: job, purpose: "cron", ttlMs: CRON_TOKEN_TTL_MS });
+}
+
+export function verifyCronToken(token: string, job: string): EventTokenPayload | null {
+  const payload = verifyEventToken(token, "cron");
+  return payload && payload.userId === CRON_USER_ID && payload.eventId === job ? payload : null;
 }

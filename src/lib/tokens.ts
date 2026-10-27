@@ -2,12 +2,14 @@ import {
   RSVP_TTL_MS,
   signEventToken,
   verifyEventToken,
+  signCronToken,
+  verifyCronToken,
   type EventTokenPayload,
 } from "../../prisma/token-core";
 
 // La implementación vive en prisma/token-core.ts para que el cron de recordatorios
 // (que corre en el contenedor sin src/) firme con exactamente el mismo código.
-export { signEventToken, verifyEventToken };
+export { signEventToken, verifyEventToken, signCronToken, verifyCronToken };
 export type { TokenPurpose, EventTokenPayload } from "../../prisma/token-core";
 
 export function generateRsvpToken(userId: string, eventId: string): string {

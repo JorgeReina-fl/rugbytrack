@@ -5,7 +5,7 @@
 import { isPublicPath } from "@/lib/public-paths";
 
 // Tabla de verdad fija de isPublicPath: todas las páginas y APIs de src/app (rutas dinámicas con "x")
-// más casos límite. Único cambio frente a la tabla previa a /rpe/[token]: "/rpe/x" pasa a público.
+// más casos límite. Cambios respecto a la tabla original: "/rpe/x" y "/api/internal/rpe-links-auto" pasan a públicos.
 const TABLE: Array<[string, boolean]> = [
   ["/", true],
   ["/api/analytics/rpe", false],
@@ -27,6 +27,9 @@ const TABLE: Array<[string, boolean]> = [
   ["/api/events/x/rsvp", false],
   ["/api/forum/x/comments", false],
   ["/api/me/health-consent", false],
+  ["/api/internal/rpe-links-auto", true],
+  ["/api/internal/rpe-links-autox", false],
+  ["/api/internal/x", false],
   ["/api/players/embed", false],
   ["/api/players/similar", false],
   ["/api/polls/x/vote", false],
