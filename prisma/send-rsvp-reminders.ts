@@ -14,32 +14,16 @@
  */
 
 import { PrismaClient } from "@prisma/client";
-import crypto from "crypto";
+import { RSVP_TTL_MS, signEventToken } from "./token-core.ts";
 
 const prisma = new PrismaClient();
 
 // ---------------------------------------------------------------------------
-// RSVP token (misma lógica que src/lib/tokens.ts)
+// RSVP token (núcleo compartido con src/lib/tokens.ts)
 // ---------------------------------------------------------------------------
 
-// Copia de src/lib/env-secret.ts — src/ no existe en el standalone build
-function getRequiredSecret(name: string): string {
-  const value = process.env[name];
-  if (!value || value.length < 32) {
-    throw new Error(`${name} missing or too short`);
-  }
-  return value;
-}
-
 function generateRsvpToken(userId: string, eventId: string): string {
-  const payloadStr = JSON.stringify({
-    userId,
-    eventId,
-    exp: Date.now() + 7 * 24 * 60 * 60 * 1000,
-  });
-  const secret = getRequiredSecret("NEXTAUTH_SECRET");
-  const hmac = crypto.createHmac("sha256", secret).update(payloadStr).digest("hex");
-  return Buffer.from(JSON.stringify({ payload: payloadStr, hmac })).toString("base64url");
+  return signEventToken({ userId, eventId, purpose: "rsvp", ttlMs: RSVP_TTL_MS });
 }
 
 // ---------------------------------------------------------------------------
