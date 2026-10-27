@@ -22,27 +22,38 @@ export type SubmitRpeResult =
   // raced: la unicidad de BD saltó entre la comprobación y el create
   | { ok: false; code: SubmitRpeFailure; raced?: boolean };
 
+type EligibleEvent = NonNullable<Awaited<ReturnType<typeof loadEvent>>>;
+
+export type EvaluateRpeResult =
+  | { ok: true; event: EligibleEvent }
+  // closesAt/timezone solo en WINDOW_CLOSED (ya verificado miembro, no coach y check-in): para el aviso de la página
+  | { ok: false; code: SubmitRpeFailure; closesAt?: Date; timezone?: string };
+
+function loadEvent(eventId: string, userId: string) {
+  return prisma.event.findUnique({
+    where: { id: eventId },
+    include: {
+      attendances: { where: { userId } },
+      team: { select: { name: true, timezone: true } },
+      ...TAKEN_COUNT,
+    },
+  });
+}
+
 /**
- * Escritura del RPE de un jugador por sí mismo (recordedById = userId).
+ * Elegibilidad del jugador para registrar su RPE, sin escribir nada.
  * Orden: evento → miembro activo → no coach → evento empezado → asistencia/check-in →
- * ya existe → plazo de 48 h. Sin respuestas HTTP ni logs: eso es cosa de quien la llama.
+ * ya existe → plazo de 48 h.
  *
  * requireCheckIn=false: vale el RSVP confirmado cuando no se ha pasado lista (app).
  * requireCheckIn=true: solo con check-in del coach (enlace público).
  */
-export async function submitPlayerRpe(
+export async function evaluatePlayerRpe(
   userId: string,
   eventId: string,
-  input: RpeEntryInput,
   opts: { requireCheckIn: boolean },
-): Promise<SubmitRpeResult> {
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    include: {
-      attendances: { where: { userId } },
-      ...TAKEN_COUNT,
-    },
-  });
+): Promise<EvaluateRpeResult> {
+  const event = await loadEvent(eventId, userId);
   if (!event) return { ok: false, code: "EVENT_NOT_FOUND" };
 
   const membership = await getActiveMembership(event.teamId, userId);
@@ -64,7 +75,26 @@ export async function submitPlayerRpe(
   });
   if (existing) return { ok: false, code: "ALREADY_RECORDED" };
 
-  if (rpeWindow(event, now).state === "closed") return { ok: false, code: "WINDOW_CLOSED" };
+  const window = rpeWindow(event, now);
+  if (window.state === "closed") {
+    return { ok: false, code: "WINDOW_CLOSED", closesAt: window.closesAt, timezone: event.team?.timezone ?? undefined };
+  }
+
+  return { ok: true, event };
+}
+
+/**
+ * Escritura del RPE de un jugador por sí mismo (recordedById = userId).
+ * Sin respuestas HTTP ni logs: eso es cosa de quien la llama.
+ */
+export async function submitPlayerRpe(
+  userId: string,
+  eventId: string,
+  input: RpeEntryInput,
+  opts: { requireCheckIn: boolean },
+): Promise<SubmitRpeResult> {
+  const evaluation = await evaluatePlayerRpe(userId, eventId, opts);
+  if (!evaluation.ok) return { ok: false, code: evaluation.code };
 
   try {
     const entry = await prisma.rpeEntry.create({

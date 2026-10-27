@@ -32,6 +32,16 @@ const nextConfig: NextConfig = {
         },
       ],
     },
+    {
+      // El token del enlace de RPE va en la URL: ni referrer, ni caché, ni indexación.
+      // Va después de la regla global para que su Referrer-Policy prevalezca.
+      source: "/rpe/:path*",
+      headers: [
+        { key: "Referrer-Policy", value: "no-referrer" },
+        { key: "Cache-Control", value: "no-store" },
+        { key: "X-Robots-Tag", value: "noindex, nofollow" },
+      ],
+    },
   ],
 };
 

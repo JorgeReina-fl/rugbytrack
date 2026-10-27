@@ -9,16 +9,35 @@ import { Warning } from "@phosphor-icons/react/dist/ssr";
 import { getRpeColorClasses } from "./rpe-styles";
 
 interface RpeFormProps {
-  eventId: string;
+  /** Modo app (sesión): evento al que se envía el RPE. En modo enlace no hace falta. */
+  eventId?: string;
+  /** Modo enlace público: envía a otra URL con campos extra en el body (el token) y no usa sesión. */
+  submit?: { url: string; extraBody: Record<string, string> };
   /** Fecha y hora de cierre ya formateadas en la zona del equipo. */
   closesAtLabel: string;
   /** Plazo vencido: se muestra solo el aviso, sin formulario. */
   closed?: boolean;
 }
 
-export function RpeForm({ eventId, closesAtLabel, closed = false }: RpeFormProps) {
+// Textos del modo enlace según el código de la API
+function linkErrorMessage(status: number, code: unknown, closesAtLabel: string): string {
+  if (status === 429) return "Demasiados intentos. Prueba de nuevo en unos minutos.";
+  if (status === 409) return "Ya registraste tu RPE para este evento.";
+  if (code === "NOT_CHECKED_IN") {
+    return "Solo pueden registrar el RPE quienes figuran como presentes en la lista del entrenador.";
+  }
+  if (code === "RPE_WINDOW_CLOSED") {
+    return `El plazo para registrar el RPE de este evento terminó el ${closesAtLabel}.`;
+  }
+  if (code === "INVALID_LINK") return "Este enlace no es válido o ha caducado.";
+  if (status === 400) return "Datos inválidos. Revisa el formulario.";
+  return "Ocurrió un error al enviar el RPE";
+}
+
+export function RpeForm({ eventId, submit, closesAtLabel, closed = false }: RpeFormProps) {
   const router = useRouter();
   const [apiError, setApiError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
 
   const {
     register,
@@ -36,8 +55,32 @@ export function RpeForm({ eventId, closesAtLabel, closed = false }: RpeFormProps
   const selectedRpe = watch("rpe");
   const notesValue = watch("notes") || "";
 
+  const onLinkSubmit = async (data: RpeEntryInput, link: NonNullable<RpeFormProps["submit"]>) => {
+    try {
+      const response = await fetch(link.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, ...link.extraBody }),
+      });
+      if (response.ok) {
+        setDone(true);
+        return;
+      }
+      let code: unknown;
+      try {
+        code = (await response.json())?.error;
+      } catch {
+        // respuesta no JSON (p. ej. proxy): se decide solo por el estado HTTP
+      }
+      setApiError(linkErrorMessage(response.status, code, closesAtLabel));
+    } catch {
+      setApiError("Ocurrió un error al enviar el RPE");
+    }
+  };
+
   const onSubmit = async (data: RpeEntryInput) => {
     setApiError(null);
+    if (submit) return onLinkSubmit(data, submit);
     try {
       const response = await fetch("/api/rpe", {
         method: "POST",
@@ -64,6 +107,14 @@ export function RpeForm({ eventId, closesAtLabel, closed = false }: RpeFormProps
       setApiError(error.message);
     }
   };
+
+  if (done) {
+    return (
+      <p className="text-sm font-semibold text-foreground" role="status">
+        RPE registrado. Gracias.
+      </p>
+    );
+  }
 
   if (closed) {
     return (
