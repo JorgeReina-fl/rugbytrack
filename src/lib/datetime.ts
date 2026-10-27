@@ -25,6 +25,11 @@ function toDate(date: Date | string): Date {
   return typeof date === "string" ? new Date(date) : date;
 }
 
+/** Mayúscula solo en el primer carácter («martes 27 de octubre» → «Martes 27 de octubre»); no toca el resto. */
+export function capitalizeFirst(s: string): string {
+  return s.charAt(0).toLocaleUpperCase("es") + s.slice(1);
+}
+
 export function formatInTz(date: Date | string, timeZone: string, pattern: string): string {
   return format(toDate(date), pattern, { locale: es, in: tz(safeTz(timeZone)) });
 }

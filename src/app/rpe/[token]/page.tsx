@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { verifyRpeToken } from "@/lib/tokens";
 import { evaluatePlayerRpe } from "@/lib/rpe-submit";
 import { rpeWindow } from "@/lib/rpe-window";
-import { formatInTz, safeTz } from "@/lib/datetime";
+import { capitalizeFirst, formatInTz, safeTz } from "@/lib/datetime";
 import { RpeForm } from "@/components/training/RpeForm";
 
 // El token va en la URL: nunca cacheada ni indexada (las cabeceras están en next.config.ts)
@@ -92,8 +92,8 @@ export default async function RpeLinkPage({ params }: { params: Promise<{ token:
         <h1 className="text-3xl font-heading font-extrabold uppercase tracking-tighter text-foreground">
           {event.title}
         </h1>
-        <p className="font-sans text-muted-foreground capitalize">
-          {formatInTz(event.startDate, tz, "EEEE d 'de' MMMM, HH:mm")}
+        <p className="font-sans text-muted-foreground">
+          {capitalizeFirst(formatInTz(event.startDate, tz, "EEEE d 'de' MMMM, HH:mm"))}
         </p>
       </div>
       <RpeForm submit={{ url: "/api/rpe/link", extraBody: { token } }} closesAtLabel={closesAtLabel} />

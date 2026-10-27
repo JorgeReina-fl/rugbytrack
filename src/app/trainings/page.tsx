@@ -9,7 +9,7 @@ import TeamSelector from "./team-selector";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { prisma } from "@/lib/prisma";
 import { getActiveMembership, getActiveTeamsForUser } from "@/lib/membership";
-import { formatInTz, safeTz } from "@/lib/datetime";
+import { capitalizeFirst, formatInTz, safeTz } from "@/lib/datetime";
 import { CoachRpeList, type CoachRpeRow } from "@/components/training/CoachRpeList";
 import { RpeForm } from "@/components/training/RpeForm";
 import { playerRpeUi, rpeWindow } from "@/lib/rpe-window";
@@ -310,8 +310,8 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
                     <h2 className="text-3xl font-heading font-extrabold tracking-tighter uppercase mt-4 mb-2">
                       {selectedEvent.title}
                     </h2>
-                    <p className="text-muted-foreground text-xs font-mono capitalize">
-                      {formatInTz(selectedEvent.startDate, tz, "EEEE, d 'de' MMMM 'a las' HH:mm 'hs'")}
+                    <p className="text-muted-foreground text-xs font-mono">
+                      {capitalizeFirst(formatInTz(selectedEvent.startDate, tz, "EEEE, d 'de' MMMM 'a las' HH:mm 'hs'"))}
                     </p>
 
                     {selectedEvent.location && (

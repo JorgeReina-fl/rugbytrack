@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyRsvpToken } from "@/lib/tokens";
 import { getActiveMembership } from "@/lib/membership";
 import { RsvpAction } from "./rsvp-action";
-import { formatInTz, safeTz } from "@/lib/datetime";
+import { capitalizeFirst, formatInTz, safeTz } from "@/lib/datetime";
 
 export default async function RsvpPage({
   params,
@@ -63,8 +63,8 @@ export default async function RsvpPage({
             <p className="font-heading font-bold text-2xl uppercase text-primary">
               {event.title}
             </p>
-            <p className="font-sans text-muted-foreground capitalize">
-              {formattedDate}
+            <p className="font-sans text-muted-foreground">
+              {capitalizeFirst(formattedDate)}
             </p>
             {event.location && (
               <p className="font-sans text-sm text-muted-foreground mt-2">

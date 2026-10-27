@@ -5,7 +5,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { labelFor } from "@/lib/lineup";
 import { getActiveMembership } from "@/lib/membership";
-import { formatInTz, safeTz } from "@/lib/datetime";
+import { capitalizeFirst, formatInTz, safeTz } from "@/lib/datetime";
 import { RsvpControl } from "./rsvp-control";
 import { RugbyPosition } from "@prisma/client";
 import { canSubmitRpe, eventEnd, isRsvpOpen } from "@/lib/attendance";
@@ -164,7 +164,7 @@ export default async function EventDetailPage({ params }: PageProps) {
                 {eventTypeLabel}
               </span>
               <h1 className="text-4xl font-heading font-extrabold tracking-tighter uppercase mt-4">{event.title}</h1>
-              <p className="mt-2 text-muted-foreground text-sm font-mono capitalize">{formattedDate}</p>
+              <p className="mt-2 text-muted-foreground text-sm font-mono">{capitalizeFirst(formattedDate)}</p>
 
               {event.location && (
                 <div className="mt-4 flex items-center gap-2 text-sm text-foreground font-mono">

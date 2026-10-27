@@ -84,7 +84,7 @@ describe("/rpe/[token] — estados", () => {
     expect(html).toContain("Entreno de martes");
     expect(html).toContain("Entrenamiento");
     expect(html).toContain("Club Rugby Norte");
-    expect(html).toContain("martes 20 de octubre, 20:00");
+    expect(html).toContain("Martes 20 de octubre, 20:00");
     expect(html).toContain("url=/api/rpe/link hasToken=true");
     expect(html).toMatch(/label=\d+ de \w+ a las \d\d:\d\d hs/);
   });
