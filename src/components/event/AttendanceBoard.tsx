@@ -6,6 +6,7 @@ import { useVisibleRefresh } from "@/hooks/useVisibleRefresh";
 import { RugbyPosition } from "@prisma/client";
 import { Warning } from "@phosphor-icons/react/dist/ssr";
 import { PlayerRpeControl, type PlayerRpeEntry } from "@/components/event/PlayerRpeControl";
+import { RpeLinksPanel, type RpeLinksInfo } from "@/components/event/RpeLinksPanel";
 import { attendanceState, countsForEvent, listTaken, type AttendanceState, type EventTimesLike } from "@/lib/attendance";
 
 interface PlayerAttendance {
@@ -30,6 +31,8 @@ interface AttendanceBoardProps {
   isCoach?: boolean;
   /** Jugadores con alguna molestia en este evento: se marcan con «Molestia» (enlaza a la lista). */
   discomfortUserIds?: string[];
+  /** Envío de enlaces de RPE (solo coach): lo calcula la página, sin datos de jugadores. */
+  rpeLinks?: RpeLinksInfo;
 }
 
 const positionLabels: Record<RugbyPosition, string> = {
@@ -63,7 +66,7 @@ const stateBadge: Record<AttendanceState, { cls: string; label: string }> = {
   not_taken: { cls: "bg-secondary border-border text-muted-foreground", label: "Sin pasar lista" },
 };
 
-export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, isCoach = false, discomfortUserIds = [] }: AttendanceBoardProps) {
+export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, isCoach = false, discomfortUserIds = [], rpeLinks }: AttendanceBoardProps) {
   const [attendances, setAttendances] = useState<PlayerAttendance[]>(initialAttendances);
   const [now, setNow] = useState(() => new Date(nowIso));
 
@@ -185,6 +188,8 @@ export function AttendanceBoard({ eventId, initialAttendances, event, nowIso, is
           <Warning size={24} weight="regular" className="inline mr-2" /> {error}
         </div>
       )}
+
+      {isCoach && rpeLinks && <RpeLinksPanel eventId={eventId} info={rpeLinks} now={now} />}
 
       {isCoach && confirmedToMark > 0 && (
         <div className="flex justify-end">

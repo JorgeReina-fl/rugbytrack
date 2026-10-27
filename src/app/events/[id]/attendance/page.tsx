@@ -8,7 +8,11 @@ import { AttendanceBoard } from "@/components/event/AttendanceBoard";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { CoachDiscomfortList } from "@/components/event/CoachDiscomfortList";
 import { getEventDiscomforts } from "@/lib/discomfort-coach";
-import { safeTz } from "@/lib/datetime";
+import { formatInTz, safeTz } from "@/lib/datetime";
+import { eventEnd } from "@/lib/attendance";
+import { rpeWindow } from "@/lib/rpe-window";
+import { rpeLinksPhase, rpeLinksRetryAt } from "@/lib/rpe-links-ui";
+import { countPendingRpe } from "@/lib/rpe-recipients";
 
 interface PageProps {
   params: Promise<{
@@ -25,7 +29,7 @@ export default async function AttendancePage({ params }: PageProps) {
   // Carga el evento
   const event = await prisma.event.findUnique({
     where: { id },
-    include: { team: { select: { timezone: true } } },
+    include: { team: { select: { timezone: true, rpeLinksAuto: true } } },
   });
 
   if (!event) {
@@ -76,6 +80,15 @@ export default async function AttendancePage({ params }: PageProps) {
   // Molestias del evento (solo coach activo: ya comprobado arriba), una consulta para todos los jugadores
   const discomforts = await getEventDiscomforts(id, event.teamId, safeTz(event.team.timezone));
   const discomfortUserIds = Array.from(new Set(discomforts.map((d) => d.userId)));
+
+  // Envío de enlaces de RPE: solo cuenta pendientes con la ventana abierta (misma consulta que los destinatarios)
+  const tz = safeTz(event.team.timezone);
+  const now = new Date();
+  const endsAt = eventEnd(event);
+  const closesAt = rpeWindow(event, now).closesAt;
+  const pendingRpe = rpeLinksPhase(now, endsAt, closesAt) === "open" ? await countPendingRpe(id, event.teamId) : 0;
+  const retryAt = rpeLinksRetryAt(event.rpeLinksSentAt, now);
+  const WHEN = "d 'de' MMMM 'a las' HH:mm 'hs'";
 
   // Mapea al mismo formato que espera el AttendanceBoard
   const mappedAttendances = attendances.map((att) => {
@@ -136,6 +149,17 @@ export default async function AttendancePage({ params }: PageProps) {
           nowIso={new Date().toISOString()}
           isCoach
           discomfortUserIds={discomfortUserIds}
+          rpeLinks={{
+            endsAt: endsAt.toISOString(),
+            closesAt: closesAt.toISOString(),
+            sentAt: event.rpeLinksSentAt?.toISOString() ?? null,
+            pendingRpe,
+            autoEnabled: event.team.rpeLinksAuto,
+            timezone: tz,
+            closesAtLabel: formatInTz(closesAt, tz, WHEN),
+            sentAtLabel: event.rpeLinksSentAt ? formatInTz(event.rpeLinksSentAt, tz, WHEN) : null,
+            retryHourLabel: retryAt ? formatInTz(retryAt, tz, "HH:mm") : null,
+          }}
         />
 
         <div className="mt-8">

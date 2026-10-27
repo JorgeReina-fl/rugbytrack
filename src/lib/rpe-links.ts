@@ -11,8 +11,10 @@ import { eventWhen } from "@/lib/event-when";
 import { formatInTz, safeTz } from "@/lib/datetime";
 import { RpeLinkEmail } from "@/emails/rpe-link";
 
-/** Mínimo entre dos envíos del mismo evento (el botón del coach no puede duplicar correos). */
-export const RPE_LINKS_MIN_INTERVAL_MS = 30 * 60 * 1000;
+import { RPE_LINKS_MIN_INTERVAL_MS } from "@/lib/rpe-links-ui";
+import { rpeRecipientsWhere } from "@/lib/rpe-recipients";
+
+export { RPE_LINKS_MIN_INTERVAL_MS };
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
   TRAINING: "Entrenamiento",
@@ -91,14 +93,7 @@ export async function sendRpeLinks(
   }
 
   const recipients = await prisma.attendance.findMany({
-    where: {
-      eventId,
-      checkedIn: true,
-      user: {
-        memberships: { some: { teamId: event.teamId, leftAt: null, isCoach: false } },
-        rpeEntries: { none: { eventId } },
-      },
-    },
+    where: rpeRecipientsWhere(eventId, event.teamId),
     select: { user: { select: { id: true, email: true, name: true } } },
   });
 
