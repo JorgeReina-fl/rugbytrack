@@ -21,9 +21,13 @@ const json = (body: unknown, status: number, headers?: Record<string, string>) =
  * Lo llama el cron (prisma/send-rpe-links.ts) con Authorization: Bearer <token cron>.
  * Cualquier fallo de autenticación responde 404 para no revelar que existe.
  */
-export async function POST(req: Request) {
+function hasValidToken(req: Request): boolean {
   const token = /^Bearer (.+)$/.exec(req.headers.get("authorization") ?? "")?.[1];
-  if (!token || !verifyCronToken(token, JOB)) return json({ error: "NOT_FOUND" }, 404);
+  return !!token && !!verifyCronToken(token, JOB);
+}
+
+export async function POST(req: Request) {
+  if (!hasValidToken(req)) return json({ error: "NOT_FOUND" }, 404);
 
   try {
     const now = new Date();
@@ -80,8 +84,10 @@ export async function POST(req: Request) {
   }
 }
 
-const methodNotAllowed = () => json({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "POST" });
-export const GET = methodNotAllowed;
-export const PUT = methodNotAllowed;
-export const PATCH = methodNotAllowed;
-export const DELETE = methodNotAllowed;
+// Primero el token, sea cual sea el método: sin token válido la ruta no existe (404)
+const otherMethod = (req: Request) =>
+  hasValidToken(req) ? json({ error: "METHOD_NOT_ALLOWED" }, 405, { Allow: "POST" }) : json({ error: "NOT_FOUND" }, 404);
+export const GET = otherMethod;
+export const PUT = otherMethod;
+export const PATCH = otherMethod;
+export const DELETE = otherMethod;

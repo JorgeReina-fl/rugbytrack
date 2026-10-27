@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 
-import { POST, GET, PUT, DELETE } from "@/app/api/internal/rpe-links-auto/route";
+import { POST, GET, PUT, PATCH, DELETE } from "@/app/api/internal/rpe-links-auto/route";
 import { prisma } from "@/lib/prisma";
 import { sendRpeLinks } from "@/lib/rpe-links";
 import { logger } from "@/lib/logger";
@@ -130,11 +130,17 @@ describe("POST /api/internal/rpe-links-auto", () => {
     expect(await res.json()).toEqual({ error: "INTERNAL" });
   });
 
-  test("GET / PUT / DELETE → 405 JSON", async () => {
-    for (const h of [GET, PUT, DELETE]) {
-      const res = await h();
-      expect(res.status).toBe(405);
-      expect(res.headers.get("allow")).toBe("POST");
+  test("GET / PUT / PATCH / DELETE: sin token válido → 404; con token válido → 405", async () => {
+    for (const h of [GET, PUT, PATCH, DELETE]) {
+      for (const authorization of [undefined, "Bearer basura"]) {
+        const res = await h(new Request("http://localhost/api/internal/rpe-links-auto", { headers: authorization ? { authorization } : {} }));
+        expect(res.status).toBe(404);
+        expect(await res.json()).toEqual({ error: "NOT_FOUND" });
+        expect(res.headers.get("allow")).toBeNull();
+      }
+      const ok = await h(new Request("http://localhost/api/internal/rpe-links-auto", { headers: { authorization: bearer() } }));
+      expect(ok.status).toBe(405);
+      expect(ok.headers.get("allow")).toBe("POST");
     }
   });
 
