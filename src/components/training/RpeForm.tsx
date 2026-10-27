@@ -10,9 +10,13 @@ import { getRpeColorClasses } from "./rpe-styles";
 
 interface RpeFormProps {
   eventId: string;
+  /** Fecha y hora de cierre ya formateadas en la zona del equipo. */
+  closesAtLabel: string;
+  /** Plazo vencido: se muestra solo el aviso, sin formulario. */
+  closed?: boolean;
 }
 
-export function RpeForm({ eventId }: RpeFormProps) {
+export function RpeForm({ eventId, closesAtLabel, closed = false }: RpeFormProps) {
   const router = useRouter();
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -49,6 +53,9 @@ export function RpeForm({ eventId }: RpeFormProps) {
         if (response.status === 409) {
           throw new Error("Ya has registrado el RPE para este evento");
         }
+        if (result.error === "RPE_WINDOW_CLOSED") {
+          throw new Error("El plazo para registrar el RPE de este evento ya terminó");
+        }
         throw new Error(result.error || "Ocurrió un error al enviar el RPE");
       }
 
@@ -58,8 +65,20 @@ export function RpeForm({ eventId }: RpeFormProps) {
     }
   };
 
+  if (closed) {
+    return (
+      <p className="text-sm font-mono text-muted-foreground uppercase tracking-widest">
+        El plazo para registrar el RPE de este evento terminó el {closesAtLabel}
+      </p>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
+        Puedes registrarlo hasta el {closesAtLabel}
+      </p>
+
       {apiError && (
         <div className="rounded-none border border-destructive bg-destructive/10 p-4 text-sm font-semibold text-destructive">
           <Warning size={24} weight="regular" className="inline mr-2" /> {apiError}

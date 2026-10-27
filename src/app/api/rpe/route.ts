@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getActiveMembership } from "@/lib/membership";
 import { rpeWorkload } from "@/lib/rpe";
+import { rpeWindow } from "@/lib/rpe-window";
 import { rpeEntrySchema } from "@/lib/validations/rpe";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
@@ -98,6 +99,12 @@ export async function POST(req: Request) {
     if (existingRpe) {
       logger.warn({ eventId }, "RPE already submitted");
       return apiError("Ya has registrado el RPE para este evento", 409);
+    }
+
+    // Tras el 409: quien ya lo envió sigue recibiendo "ya registrado" aunque el plazo haya cerrado
+    if (rpeWindow(event, now).state === "closed") {
+      logger.warn({ eventId }, "RPE window closed");
+      return apiError("RPE_WINDOW_CLOSED", 403);
     }
 
     const workload = rpeWorkload(rpe, duration);

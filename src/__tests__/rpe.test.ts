@@ -43,7 +43,7 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
   const eventFixture = {
     id: validEventId,
     teamId: "team-123",
-    startDate: new Date("2026-06-09T20:00:00Z"),
+    startDate: new Date(Date.now() - 2 * 60 * 60 * 1000), // dentro del plazo de 48 h
     attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }],
     _count: { attendances: 0 },
   };
@@ -161,7 +161,7 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
     mockPrisma.event.findUnique.mockResolvedValue({
       id: validEventId,
       teamId: "team-123",
-      startDate: new Date("2026-06-09T20:00:00Z"),
+      startDate: new Date(Date.now() - 2 * 60 * 60 * 1000), // dentro del plazo de 48 h
       attendances: [],
       _count: { attendances: 0 },
     });
@@ -193,7 +193,7 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
     mockPrisma.event.findUnique.mockResolvedValue({
       id: validEventId,
       teamId: "team-123",
-      startDate: new Date("2026-06-09T20:00:00Z"),
+      startDate: new Date(Date.now() - 2 * 60 * 60 * 1000), // dentro del plazo de 48 h
       attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }],
       _count: { attendances: 0 },
     });
@@ -226,7 +226,7 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
     mockPrisma.event.findUnique.mockResolvedValue({
       id: validEventId,
       teamId: "team-123",
-      startDate: new Date("2026-06-09T20:00:00Z"),
+      startDate: new Date(Date.now() - 2 * 60 * 60 * 1000), // dentro del plazo de 48 h
       attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }],
       _count: { attendances: 0 },
     });
@@ -250,7 +250,7 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
     mockPrisma.event.findUnique.mockResolvedValue({
       id: validEventId,
       teamId: "team-123",
-      startDate: new Date("2026-06-09T20:00:00Z"),
+      startDate: new Date(Date.now() - 2 * 60 * 60 * 1000), // dentro del plazo de 48 h
       attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }],
       _count: { attendances: 0 },
     });
@@ -288,7 +288,7 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
     mockPrisma.event.findUnique.mockResolvedValue({
       id: validEventId,
       teamId: "team-123",
-      startDate: new Date("2026-06-09T20:00:00Z"),
+      startDate: new Date(Date.now() - 2 * 60 * 60 * 1000), // dentro del plazo de 48 h
       attendances: [{ userId: "player-123", status: "CONFIRMED", checkedIn: false }],
       _count: { attendances: 12 },
     });
@@ -308,7 +308,7 @@ describe("RugbyTrack — Fase 3 RPE API Tests", () => {
     mockPrisma.event.findUnique.mockResolvedValue({
       id: validEventId,
       teamId: "team-123",
-      startDate: new Date("2026-06-09T20:00:00Z"),
+      startDate: new Date(Date.now() - 2 * 60 * 60 * 1000), // dentro del plazo de 48 h
       attendances: [{ userId: "player-123", status: "DECLINED", checkedIn: true }],
       _count: { attendances: 12 },
     });

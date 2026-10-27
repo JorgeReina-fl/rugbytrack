@@ -12,6 +12,7 @@ import { getActiveMembership, getActiveTeamsForUser } from "@/lib/membership";
 import { formatInTz, safeTz } from "@/lib/datetime";
 import { CoachRpeList, type CoachRpeRow } from "@/components/training/CoachRpeList";
 import { RpeForm } from "@/components/training/RpeForm";
+import { playerRpeUi, rpeWindow } from "@/lib/rpe-window";
 import { WorkloadChart } from "@/components/training/WorkloadChart";
 import { ChartBar } from "@phosphor-icons/react/dist/ssr";
 import { getUnseenDiscomfortCounts } from "@/lib/discomfort-coach";
@@ -123,14 +124,15 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
 
   // Permiso para rellenar RPE
   const userAttendance = selectedEvent?.attendances[0] ?? null;
-  const showRpeForm =
+  const canRpe =
     selectedEvent &&
     activeMembership !== null &&
     !activeMembership.isCoach &&
-    new Date(selectedEvent.startDate) <= new Date() &&
     userAttendance !== null &&
-    canSubmitRpe(userAttendance, isListTakenFromCount(selectedEvent)) &&
-    !playerRpeEntry;
+    canSubmitRpe(userAttendance, isListTakenFromCount(selectedEvent));
+  const rpeWin = selectedEvent ? rpeWindow(selectedEvent, new Date()) : null;
+  const rpeUi = canRpe && rpeWin ? playerRpeUi(rpeWin.state, !!playerRpeEntry) : "none";
+  const rpeClosesAtLabel = rpeWin ? formatInTz(rpeWin.closesAt, tz, "d 'de' MMMM 'a las' HH:mm 'hs'") : "";
 
   // Estadísticas del entrenamiento para el entrenador
   const coachRpeEntries = selectedEvent?.rpeEntries ?? [];
@@ -426,12 +428,12 @@ export default async function TrainingsPage({ searchParams }: PageProps) {
                             </div>
                           )}
                         </div>
-                      ) : showRpeForm ? (
+                      ) : rpeUi === "form" || rpeUi === "closed" ? (
                         <div>
                           <h3 className="text-xl font-heading font-extrabold uppercase tracking-tighter mb-4">
                             REGISTRAR CARGA FÍSICA
                           </h3>
-                          <RpeForm eventId={selectedEvent.id} />
+                          <RpeForm eventId={selectedEvent.id} closesAtLabel={rpeClosesAtLabel} closed={rpeUi === "closed"} />
                         </div>
                       ) : (
                         <div className="text-center p-6 bg-secondary/30 border border-border rounded-none">

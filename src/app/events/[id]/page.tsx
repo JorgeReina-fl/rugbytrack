@@ -9,6 +9,7 @@ import { formatInTz, safeTz } from "@/lib/datetime";
 import { RsvpControl } from "./rsvp-control";
 import { RugbyPosition } from "@prisma/client";
 import { canSubmitRpe, eventEnd, isRsvpOpen } from "@/lib/attendance";
+import { playerRpeUi, rpeWindow } from "@/lib/rpe-window";
 import { hasCurrentConsent } from "@/lib/health-consent";
 import { DiscomfortSection } from "@/components/event/DiscomfortSection";
 import { CoachDiscomfortList } from "@/components/event/CoachDiscomfortList";
@@ -116,13 +117,14 @@ export default async function EventDetailPage({ params }: PageProps) {
   const userAttendance = event.attendances[0] ?? null;
 
   const now = new Date();
-  const showRpeForm =
+  const canRpe =
     activeMembership !== null &&
     !activeMembership.isCoach &&
-    new Date(event.startDate) <= now &&
     userAttendance !== null &&
-    canSubmitRpe(userAttendance, isListTakenFromCount(event)) &&
-    !rpeEntry;
+    canSubmitRpe(userAttendance, isListTakenFromCount(event));
+  const rpeWin = rpeWindow(event, now);
+  const rpeUi = canRpe ? playerRpeUi(rpeWin.state, rpeEntry !== null) : "none";
+  const rpeClosesAtLabel = formatInTz(rpeWin.closesAt, tz, "d 'de' MMMM 'a las' HH:mm 'hs'");
   const rsvpClosed = !isRsvpOpen(event, now);
 
   // Separa titulares de suplentes
@@ -276,13 +278,15 @@ export default async function EventDetailPage({ params }: PageProps) {
             )}
 
             {/* Panel de RPE para el jugador */}
-            {showRpeForm && (
+            {(rpeUi === "form" || rpeUi === "closed") && (
               <div className="border border-border bg-card p-6 shadow-sm space-y-4">
                 <h3 className="text-xl font-heading font-extrabold tracking-tighter uppercase">Registro RPE</h3>
-                <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
-                  Registra el nivel de esfuerzo percibido y la duración de esta sesión.
-                </p>
-                <RpeForm eventId={event.id} />
+                {rpeUi === "form" && (
+                  <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
+                    Registra el nivel de esfuerzo percibido y la duración de esta sesión.
+                  </p>
+                )}
+                <RpeForm eventId={event.id} closesAtLabel={rpeClosesAtLabel} closed={rpeUi === "closed"} />
               </div>
             )}
 
